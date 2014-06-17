@@ -67,9 +67,13 @@ int main(int ArgQ, char** ArgList)
     CDSP2_SetArch(CDSP2_Arch_Gnrc);
     CDSP2_SetDebugOn(CDSP2_Debug_Check);
     
-    String OutputPath, InputPath, StrPitch, StrVelocity, StrFlags;
+    printf("Sleepwalking's toy resampler v0.1.\n");
+    printf("Powered by Rocaloid's subprojects: CVESVP, CVEDSP2, and RFNL.\n");
+    
+    String OutputPath, InputPath, StrPitch, StrVelocity, StrFlags, StrOffset,
+        StrLength;
     RNew(String, & OutputPath, & InputPath, & StrPitch, & StrVelocity, 
-        & StrFlags);
+        & StrFlags, & StrOffset, & StrLength);
     
     if(ArgQ < 4)
     {
@@ -81,22 +85,37 @@ int main(int ArgQ, char** ArgList)
     String_SetChars(& OutputPath, ArgList[2]);
     String_SetChars(& StrPitch, ArgList[3]);
     
+    String_SetChars(& StrVelocity, "100");
+    String_SetChars(& StrFlags, "");
+    String_SetChars(& StrOffset, "0");
+    String_SetChars(& StrLength, "-1");
+    
     if(ArgQ > 4)
         String_SetChars(& StrVelocity, ArgList[4]);
-    else
-        String_SetChars(& StrVelocity, "100");
     if(ArgQ > 5)
         String_SetChars(& StrFlags, ArgList[5]);
-    else
-        String_SetChars(& StrFlags, "");
+    if(ArgQ > 6)
+        String_SetChars(& StrOffset, ArgList[6]);
+    if(ArgQ > 7)
+        String_SetChars(& StrLength, ArgList[7]);
     
     number Fundamental = FreqFromPitch(& StrPitch);
     number Velocity    = CNumberStr(& StrVelocity);
+    int    Length      = CIntStr(& StrLength);
     if(Fundamental < 50)
     {
         printf("Wrong pitch.\n");
         return 1;
     }
+    
+    /*
+    printf("resampler (in)%s (out)%s (pitch)%s (vel)%s (flags)%s (offset)%s "
+           "(length)%s\n",
+        String_GetChars(& InputPath), String_GetChars(& OutputPath),
+        String_GetChars(& StrPitch), String_GetChars(& StrVelocity), 
+        String_GetChars(& StrFlags), String_GetChars(& StrOffset), 
+        String_GetChars(& StrLength));
+    */
     
     Wave InWave, OutWave;
     FWindow_T DyWin;
@@ -114,11 +133,18 @@ int main(int ArgQ, char** ArgList)
     RCall(Wave, SetWindow)(& InWave, HannWind, 2048);
     RCall(Wave, SetWindow)(& OutWave, HannWind, 2048);
     
-    RCall(Wave, FromFile)(& InWave, & InputPath);
+    if(! RCall(Wave, FromFile)(& InWave, & InputPath))
+    {
+        printf("Cannot read file!\n");
+        return 1;
+    }
+    
+    Length = Length * (number)InWave.SampleRate / 1000;
+    if(Length < 0) Length = InWave.Size;
     
     int VOT = RCall(CSVP_VOTFromWave, number)(& InWave, 0, InWave.Size / 2);
     int Onset = RCall(CSVP_OnsetFromWave, number)
-        (& InWave, 0.0005, 0, InWave.Size);
+        (& InWave, 0.005, 0, InWave.Size);
     
     printf("Got VOT at %d.\n", VOT);
     printf("Got Onset at %d.\n", Onset);
@@ -160,31 +186,40 @@ int main(int ArgQ, char** ArgList)
     RCall(PSOLAItersizer, SetWave)(& PSyn, & OutWave);
     RCall(PSOLAItersizer, SetWindow)(& PSyn, & DyWin);
     RCall(PSOLAItersizer, SetPosition)(& PSyn, 0);
-    RCall(PSOLAItersizer, RepositionFrom)(& PSyn, 0);
     
     //Transposition process
-    PMatch SorcPulse;
-    RNew(PMatch, & SorcPulse);
+    PMatch SorcPulse, LengthMatch;
+    RNew(PMatch, & SorcPulse, & LengthMatch);
+    for(i = 0; i <= PAna.PulseList.Frames_Index; i ++)
+        PAna.PulseList.Frames[i] -= Onset;
     PMatchFromList_Int(& SorcPulse, & PAna.PulseList);
     int Fill = SorcPulse.X[1] - SorcPulse.X[0];
     i = 0;
     number p = SorcPulse.X[0];
     number Period = (number)InWave.SampleRate / Fundamental;
-    while(p < VOT)
+    while(p < VOT - Onset)
     {
         i = RCall(PMatch, Query)(& SorcPulse, p).LowerIndex;
         RCall(PSOLAItersizer, Add)(& PSyn, p, & DataList.Frames[i]);
         p += Fill;
     }
     
-    while(i < PAna.PulseList.Frames_Index)
+    RCall(PMatch, AddPair)(& LengthMatch, VOT - Onset, VOT - Onset);
+    RCall(PMatch, AddPair)(& LengthMatch, Length,
+        SorcPulse.X[SorcPulse.X_Index - 1]);
+    while(p < Length)
     {
         Transition TransPulse;
-        TransPulse = RCall(PMatch, Query)(& SorcPulse, p);
+        int p2 = RCall(PMatch, Query)(& LengthMatch, p).Y;
+        TransPulse = RCall(PMatch, Query)(& SorcPulse, p2);
         i = TransPulse.LowerIndex;
         RCall(PSOLAItersizer, Add)(& PSyn, p, & DataList.Frames[i]);
         p += Period;
     }
+    
+    int Offset = (int)CNumberStr(& StrOffset) * InWave.SampleRate / 1000;
+    //int OffIndex = RCall(PMatch, Query)(& SorcPulse, Offset).LowerIndex;
+    RCall(PSOLAItersizer, RepositionFrom)(& PSyn, Onset - Offset);
     
     //Synthesis process
     RCall(PSOLAItersizer, IterNextTo)(& PSyn, InWave.Size);
@@ -194,6 +229,7 @@ int main(int ArgQ, char** ArgList)
     
     RFree(HannWind);
     RDelete(& OutputPath, & InputPath, & StrPitch, & StrVelocity, & StrFlags,
-        & InWave, & OutWave, & DyWin, & PAna, & PSyn, & DataList, & SorcPulse);
+        & InWave, & OutWave, & DyWin, & PAna, & PSyn, & DataList, & SorcPulse,
+        & LengthMatch, & StrOffset, & StrLength);
 }
 
