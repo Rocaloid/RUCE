@@ -13,6 +13,7 @@ int main(int ArgN, char** ArgList)
     String_SetChars(& Name, "bie");
     
     RUCE_LoadPitchModel(& PM, & Name, & Path);
+    printf("%f\n", PMatch_Float_Float_Query(& PM.NoizCurve, 300).Y);
     
     RDelete(& PM, & Path, & Name);
     return 0;
