@@ -1,6 +1,7 @@
 #ifndef RUCE_IO_H
 #define RUCE_IO_H
 
+#include <CVESVP.h>
 #include <RUtil2.h>
 
 RClass(RUCE_DB_Frame)
@@ -33,6 +34,8 @@ RClass(RUCE_DB_Entry)
     int InvarLeft;
     int InvarRight;
 };
+
+void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path);
 
 #endif
 
