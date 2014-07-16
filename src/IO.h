@@ -23,7 +23,7 @@ RClass(RUCE_DB_Entry)
     //Public
     int HopSize;
     int NoizSize;
-    Array_Define(DB_Frame, FrameList);
+    Array_Define(RUCE_DB_Frame, FrameList);
     Array_Define(int, PulseList);
     
     int WaveSize;

@@ -22,3 +22,4 @@ set(CMAKE_LD_FLAGS_DEBUG "-Wl,-O0")
 set(CMAKE_LD_FLAGS_RELEASE "-Wl,-O1,--as-needed,--sort-common")
 
 add_subdirectory(src)
+
