@@ -37,5 +37,13 @@ RClass(RUCE_DB_Entry)
 
 void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path);
 
+#define _JSON_SafeRead(Name) do {\
+    cJSON* Name = cJSON_GetObjectItem(Entry, _S(Name)); \
+    if(Name) \
+    { \
+        Dest -> Name = Name -> valuedouble; \
+    } \
+    } while(0)
+
 #endif
 

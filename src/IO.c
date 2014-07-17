@@ -3,14 +3,6 @@
 #include <fnmatch.h>
 #include "../external/cJSON/cJSON.h"
 
-#define _JSON_SafeRead(Name) do {\
-    cJSON* Name = cJSON_GetObjectItem(Entry, _S(Name)); \
-    if(Name) \
-    { \
-        Dest -> Name = Name -> valuedouble; \
-    } \
-    } while(0)
-
 #define _JSON_SafeReadList(Name) do {\
     cJSON* Name = cJSON_GetObjectItem(Entry, _S(Name)); \
     if(Name) \
