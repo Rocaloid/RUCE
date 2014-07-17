@@ -1,5 +1,5 @@
 #ifndef RUCE_ROTO_H
-#define RUCE_TOTO_H
+#define RUCE_ROTO_H
 
 #include <RUtil2.h>
 
