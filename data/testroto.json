@@ -1,0 +1,10 @@
+{
+    "Entries" :
+    {
+        "a" : {"VOT" : 2000, "InvarLeft" : 15000, "InvarRight" : 25000, "Overlap" : 500},
+        "ba" : {"VOT" : 3000, "InvarLeft" : 18000, "InvarRight" : 22000, "Overlap" : 600},
+        "bie" : {"VOT" : 2500, "InvarLeft" : 16000, "InvarRight" : 23000, "Overlap" : 300},
+        "la" : {"VOT" : 1500, "InvarLeft" : 17000, "InvarRight" : 25500, "Overlap" : 400}
+    }
+}
+
