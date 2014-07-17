@@ -19,6 +19,13 @@ target_link_libraries(RUCE_CLI CVEDSP2)
 target_link_libraries(RUCE_CLI RFNL)
 target_link_libraries(RUCE_CLI m)
 
+install(FILES RUCE.h
+              DESTINATION ${CMAKE_INSTALL_PREFIX}/include/)
+install(FILES IO.h
+              Roto.h
+              Pitchbend.h
+              DESTINATION ${CMAKE_INSTALL_PREFIX}/include/RUCE/)
+
 if(CYGWIN OR WIN32)
     message(STATUS "You are compiling this project as COFF.")
     install(TARGETS RUCE LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
