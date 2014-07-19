@@ -19,7 +19,7 @@ Pulse (int32)
 Pulse (int32)
 ...
 
-EOL3(4 chars, EOL mark, Optional)
+EOL3(4 chars, EOF mark, Optional)
 
 (CRC32 & BlockSize End)
 

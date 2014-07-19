@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <memory.h>
+#include "Roto.h"
+#include "RUDB.h"
 #include "../external/cJSON/cJSON.h"
 
 RCtor(RUCE_DB_Frame)
@@ -40,14 +42,6 @@ RDtor(RUCE_DB_Entry)
     if(This -> Wave)
         free(This -> Wave);
 }
-
-#define _JSON_SafeRead(Name) do {\
-    cJSON* Name = cJSON_GetObjectItem(Entry, _S(Name)); \
-    if(Name) \
-    { \
-        Dest -> Name = Name -> valuedouble; \
-    } \
-    } while(0)
 
 #define _JSON_SafeReadList(Name) do {\
     cJSON* Name = cJSON_GetObjectItem(Entry, _S(Name)); \
@@ -143,170 +137,32 @@ void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path)
     String_Dtor(& PMContent);
 }
 
-int RUCE_LoadRUDB(RUCE_DB_Entry* Dest, File* Sorc)
-{
-    int ReverseEndian = 0;
-    
-    int64_t FLen = File_GetLength(Sorc);
-    if(FLen < 48)
-        return -1;
-    char CBuffer[8];
-    uint32_t Header[4];
-    uint64_t DataSize;
-    File_Read_Buffer(Sorc, Header, 12);
-    if(Header[0] != 0x42445552)
-    {
-        Endian_Switch_UInt32_Array(Header, 4);
-        ReverseEndian = 1;
-    }
-    if(Header[0] != 0x42445552)
-    {
-        fprintf(stderr, "Bad file header.\n");
-        return -1;
-    }
-    File_Read_Buffer(Sorc, CBuffer, 4);
-    if(strncmp(CBuffer, "DATA", 4))
-    {
-        fprintf(stderr, "Bad DATA header.\n");
-        return -2;
-    }
-    
-    File_Read_Buffer(Sorc, & DataSize, 8);
-    
-    if(DataSize < 8)
-    {
-        fprintf(stderr, "Bad Data size.\n");
-        return -2;
-    }
-    
-    char* Data = malloc(DataSize);
-    File_Read_Buffer(Sorc, Data, DataSize);
-    
-    if(Header[1] != CRC32Sum(Data, DataSize, 0))
-    {
-        fprintf(stderr, "Bad CRC32 sum.\n");
-        return -2;
-    }
-    
-    memcpy(& (Dest -> HopSize), Data, 8);
-    Data += 8;
-    if(ReverseEndian)
-        Endian_Switch_Int32_Array(& (Dest -> HopSize), 2);
-    
-    while(Data != Data + DataSize)
-    {
-        if(! strncmp(Data, "FRME", 4))
-        {
-            Data += 4;
-            memcpy(Header, Data, 4);
-            Data += 4;
-            if(ReverseEndian)
-                Endian_Switch_UInt32(Header);
-            Array_Resize(RUCE_DB_Frame, Dest -> FrameList, Header[0]);
-            for(int i = 0; i < Header[0]; ++i)
-            {
-                RUCE_DB_Frame_Ctor(& (Dest -> FrameList[i]));
-                if(strncmp(Data, "FRMB", 4))
-                {
-                    fprintf(stderr, 
-                            "[ERROR] Bad FRMB @ %p!\n", 
-                            Data);
-                    return -255;
-                }
-                Data += 4;
-                memcpy(& (Dest -> FrameList[i].Position), Data, 4);
-                Data += 4;
-                int Cnt;
-                memcpy(& Cnt, Data, 4);
-                Data += 4;
-                if(ReverseEndian)
-                {
-                    Endian_Switch_Int32(& (Dest -> FrameList[i].Position));
-                    Endian_Switch_Int32(& Cnt);
-                }
-                Array_Resize(float, Dest -> FrameList[i].Freq, Cnt);
-                Array_Resize(float, Dest -> FrameList[i].Ampl, Cnt);
-                Array_Resize(float, Dest -> FrameList[i].Phse, Cnt);
-                if(Dest -> FrameList[i].Noiz)
-                    free(Dest -> FrameList[i].Noiz);
-                Dest -> FrameList[i].Noiz = RAlloc_Float(Dest -> NoizSize);
-                memcpy(Dest -> FrameList[i].Freq, Data, Cnt * 4);
-                Data += Cnt * 4;
-                memcpy(Dest -> FrameList[i].Ampl, Data, Cnt * 4);
-                Data += Cnt * 4;
-                memcpy(Dest -> FrameList[i].Phse, Data, Cnt * 4);
-                Data += Cnt * 4;
-                memcpy(Dest -> FrameList[i].Noiz, Data, Dest -> NoizSize * 4);
-                Data += Dest -> NoizSize * 4;
-                if(ReverseEndian)
-                {
-                    Endian_Switch_Float_Array(Dest -> FrameList[i].Freq, Cnt);
-                    Endian_Switch_Float_Array(Dest -> FrameList[i].Ampl, Cnt);
-                    Endian_Switch_Float_Array(Dest -> FrameList[i].Phse, Cnt);
-                    Endian_Switch_Float_Array(Dest -> FrameList[i].Noiz, Dest -> NoizSize);
-                }
-            }
-        }
-        else if(! strncmp(Data, "PULS", 4))
-        {
-            Data += 4;
-            memcpy(Header, Data, 4);
-            Data += 4;
-            if(ReverseEndian)
-                Endian_Switch_UInt32(Header);
-            Array_Resize(int, Dest -> PulseList, Header[0]);
-            memcpy(Dest -> PulseList, Data, Header[0] * 4);
-            Data += Header[0] * 4;
-            if(ReverseEndian)
-                Endian_Switch_Int32_Array(Dest -> PulseList, Header[0]);
-        }
-        else if(! strncmp(Data, "EOL3", 4))
-        {
-            Data += 4;
-            break;
-        }
-        else
-        {
-            Data += 4;
-            fprintf(stderr, 
-                    "[ERROR] Bad RUDB @ %p!\n", 
-                    Data);
-            return -233;
-        }
-    }
-    
-    free(Data - DataSize);
-    return 1;
-}
-
-int RUCE_DB_ReadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path, String* RotoPath)
+int RUCE_DB_LoadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path, String* RotoPath)
 {
     int Ret = -1;
-    cJSON* Root, * Entries;
     String s, l;
-    File f;
     
     String_Ctor(& s);
     String_Ctor(& l);
-    File_Ctor(& f);
     
-    /* Load and phrase Roto */
+    /* Load Roto */
     
-    if(! File_Open(& f, RotoPath, READONLY)) goto End;
-    File_Read_String(& f, & s);
+    RUCE_Roto       o;
+    RUCE_Roto_Entry e;
+    if(RUCE_Roto_CtorLoad(& o, RotoPath) != 1)
+    {
+        fprintf(stderr, "[Error] Cannot load roto '%s'!", String_GetChars(RotoPath));
+        goto End;
+    }
+    RUCE_Roto_Entry_Ctor(& e);
     
-    Root = cJSON_Parse(String_GetChars(& s));
-    Entries = cJSON_GetObjectItem(Root, "Entries");
+    RUCE_Roto_GetEntry(& o, & e, Sorc);
+    Dest -> VOT = e.VOT;
+    Dest -> InvarLeft = e.InvarLeft;
+    Dest -> InvarRight = e.InvarRight;
     
-    cJSON* Entry = cJSON_GetObjectItem(Entries, String_GetChars(Sorc));
-    
-    _JSON_SafeRead(VOT);
-    _JSON_SafeRead(InvarLeft);
-    _JSON_SafeRead(InvarRight);
-    
-    cJSON_Delete(Root);
-    
-    File_Close(& f);
+    RUCE_Roto_Entry_Dtor(& e);
+    RUCE_Roto_Dtor(& o);
     
     /* Load RUDB. */
 
@@ -314,14 +170,12 @@ int RUCE_DB_ReadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path, String* R
     String_JoinChars(& l, "/");
     String_Join(& l, Sorc);
     String_JoinChars(& l, ".rudb");
-    if(! File_Open(& f, & l, READONLY)) goto End;
-    if(RUCE_LoadRUDB(Dest, & f) != 1)
+    
+    if(RUCE_RUDB_Load(Dest, & l) != 1)
     {
         fprintf(stderr, "[Error] There are some errors occurred while reading RUDB!\n");
         goto End;
     }
-    
-    File_Close(& f);
     
     WaveFile w;
     WaveFile_Ctor(& w);
@@ -356,8 +210,6 @@ int RUCE_DB_ReadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path, String* R
     Ret = 1;
     
 End:
-    File_Close(& f);
-    File_Dtor(& f);
     String_Dtor(& s);
     String_Dtor(& l);
     return Ret;
@@ -366,15 +218,59 @@ End:
 int RUCE_DB_WriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path, String* RotoPath)
 {
     int Ret = -1;
-    cJSON* Root, * Entries;
     String s, l;
     File f;
-    
-    
     
     String_Ctor(& s);
     String_Ctor(& l);
     File_Ctor(& f);
+    
+    /* Write RUDB */
+    String_Copy(& l, Path);
+    String_JoinChars(& l, "/");
+    String_Join(& l, Dest);
+    String_JoinChars(& l, ".rudb");
+    RUCE_RUDB_Save(Sorc, & l);
+    
+    /* Write ROTO */
+    
+    RUCE_Roto       o;
+    RUCE_Roto_Entry e;
+    
+    int RotoStat = File_IsFile(RotoPath);
+    if(RotoStat == 1)
+    {
+        if(RUCE_Roto_CtorLoad(& o, RotoPath) != 1)
+        {
+            fprintf(stderr, "[Error] Cannot load roto '%s'!", String_GetChars(RotoPath));
+            goto End;
+        }
+    }
+    else if(RotoStat == 0)
+    {
+        fprintf(stderr, "[Error] Cannot open a directory as Roto!");
+        goto End;
+    }
+    else
+        RUCE_Roto_Ctor(& o);
+    
+    RUCE_Roto_Entry_Ctor(& e);
+    
+    String_Copy(& e.Name, Dest);
+    e.VOT = Sorc -> VOT;
+    e.InvarLeft = Sorc -> InvarLeft;
+    e.InvarRight = Sorc -> InvarRight;
+    
+    RUCE_Roto_SetEntry(& o, & e);
+    
+    RUCE_Roto_Write(& o, RotoPath);
+    
+    /* ** Need it write to wave? ** */
+    
+    RUCE_Roto_Entry_Dtor(& e);
+    RUCE_Roto_Dtor(& o);
+    
+    Ret = 1;
     
 End:
     File_Close(& f);
@@ -417,20 +313,4 @@ void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
     
     printf("    WaveSize = %d, VOT = %d, InvarLeft = %d, InvarRight = %d.\n", 
            Sorc -> WaveSize, Sorc -> VOT, Sorc -> InvarLeft, Sorc -> InvarRight);
-}
-
-int main()
-{
-    String_FromChars(a, "a");
-    String_FromChars(b, "./");
-    String_FromChars(c, "./roto.json");
-    RUCE_DB_Entry t;
-    RUCE_DB_Entry_Ctor(& t);
-    printf("Done, Ret = %d.\n", RUCE_DB_GetEntry(& t, & a, & b, & c));
-    RUCE_DB_PrintEntry(& t);
-    String_Dtor(& c);
-    String_Dtor(& b);
-    String_Dtor(& a);
-    RUCE_DB_Entry_Dtor(& t);
-    return 0;
 }

@@ -38,5 +38,9 @@ if(IS_BIG_ENDIAN)
     add_definitions(-D__BIG_ENDIAN__)
 endif()
 
-add_subdirectory(src)
+include(${CMAKE_CURRENT_SOURCE_DIR}/FileCopy.cmake)
 
+enable_testing()
+
+add_subdirectory(src)
+add_subdirectory(test)

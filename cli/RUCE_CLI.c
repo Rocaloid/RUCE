@@ -1,4 +1,4 @@
-#include "RUCE.h"
+#include "Roto.h"
 #include "IO.h"
 #include <CVESVP.h>
 
@@ -15,7 +15,23 @@ int main(int ArgN, char** ArgList)
     RUCE_LoadPitchModel(& PM, & Name, & Path);
     printf("%f\n", PMatch_Float_Float_Query(& PM.NoizCurve, 300).Y);
     
-    RDelete(& PM, & Path, & Name);
+    RUCE_Roto Roto;
+//    RUCE_Roto_Ctor(& Roto);
+    RUCE_Roto_Entry Entry;
+    RUCE_Roto_Entry_Ctor(& Entry);
+    
+    String_SetChars(& Path, "/tmp/testroto.json");
+    RUCE_Roto_CtorLoad(& Roto, & Path);
+    RUCE_Roto_GetEntry(& Roto, & Entry, & Name);
+    String_SetChars(& Entry.Name, "bao");
+    
+    Entry.VOT = 1234;
+    RUCE_Roto_SetEntry(& Roto, & Entry);
+    
+    String_SetChars(& Path, "/tmp/testroto2.json");
+    RUCE_Roto_Write(& Roto, & Path);
+    
+    RDelete(& PM, & Path, & Name, & Roto, & Entry);
     return 0;
 }
 
