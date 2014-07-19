@@ -82,6 +82,11 @@ int  RUCE_Roto_Write(RUCE_Roto* This, String* Path)
 
 int  RUCE_Roto_GetEntry(RUCE_Roto* This, RUCE_Roto_Entry* Dest, String* Name)
 {
+    if(! This -> Ptr)
+    {
+        fprintf(stderr, "[Error] RUCE_Roto maybe not initalized.\n");
+        return -3;
+    }
     cJSON* Entries = cJSON_GetObjectItem(This -> Ptr, "Entries");
     if(! Entries) return 0;
     

@@ -11,6 +11,7 @@ include_directories(RUCE PUBLIC "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(RUCE CVESVP)
 target_link_libraries(RUCE CVEDSP2)
 target_link_libraries(RUCE RFNL)
+target_link_libraries(RUCE RUtil2)
 target_link_libraries(RUCE m)
 
 target_link_libraries(RUCE_CLI RUCE)
@@ -26,19 +27,5 @@ install(FILES IO.h
               Pitchbend.h
               DESTINATION ${CMAKE_INSTALL_PREFIX}/include/RUCE/)
 
-if(CYGWIN OR WIN32)
-    message(STATUS "You are compiling this project as COFF.")
-    install(TARGETS RUCE LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
-                         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    message(STATUS "You are compiling this project as 64bit.")
-    install(TARGETS RUCE LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
-                         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    message(STATUS "You are compiling this project as 32bit.")
-    install(TARGETS RUCE LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
-                         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-else()
-    message(FATAL_ERROR "Your system is unsupported!")
-endif()
-
+install(TARGETS RUCE LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+                     RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
