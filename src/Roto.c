@@ -72,6 +72,7 @@ int  RUCE_Roto_Write(RUCE_Roto* This, String* Path)
     }
     
     File_Write_Chars(& RotoFile, Data);
+    File_Write_Chars(& RotoFile, "\n");
     
     End:
     File_Dtor(& RotoFile);
