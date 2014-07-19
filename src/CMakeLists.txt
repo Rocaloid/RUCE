@@ -11,7 +11,6 @@ include_directories(RUCE PUBLIC "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(RUCE CVESVP)
 target_link_libraries(RUCE CVEDSP2)
 target_link_libraries(RUCE RFNL)
-target_link_libraries(RUCE RUtil2)
 target_link_libraries(RUCE m)
 
 target_link_libraries(RUCE_CLI RUCE)
@@ -29,3 +28,4 @@ install(FILES IO.h
 
 install(TARGETS RUCE LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+

@@ -10,3 +10,4 @@ get_filename_component(TopDir ${CMAKE_SOURCE_DIR} ABSOLUTE)
 COPY_DIRECTORY_IF_CHANGED("${CMAKE_SOURCE_DIR}/test/TestRUDB/TestData" "${CMAKE_CURRENT_BINARY_DIR}" TestRUDB)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${TestDir}/TestRUDB -I${TopDir}/src")
+
