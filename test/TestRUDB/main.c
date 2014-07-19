@@ -22,7 +22,9 @@ int main()
     
     printf("\nTestWrite...\n");
     
-    RAssert(RUCE_DB_WriteEntry(& t, & a, & b, & c) == 1, "Cannot Write Entry!");
+    RAssert(RUCE_DB_RUDBWriteEntry(& t, & a, & b) == 1, "Cannot Write RUDB Entry!");
+    RAssert(RUCE_DB_RotoWriteEntry(& t, & a, & c) == 1, "Cannot Write Roto Entry!");
+    RAssert(RUCE_DB_WaveWriteEntry(& t, & a, & b) == 1, "Cannot Write Wave Entry!");
     
     RAssert(RUCE_DB_LoadEntry(& r, & a, & b, & c) == 1, "Cannot Load Entry which have be written!");
 

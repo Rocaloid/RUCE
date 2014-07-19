@@ -40,8 +40,12 @@ RClass(RUCE_DB_Entry)
 };
 
 void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path);
-int RUCE_DB_LoadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path, String* RotoPath);
-int RUCE_DB_WriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path, String* RotoPath);
+int RUCE_DB_LoadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path, 
+                      String* RotoPath);
+int RUCE_DB_RUDBWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path);
+int RUCE_DB_RotoWriteEntry(RUCE_DB_Entry* Sorc, String* Name, 
+                           String* RotoPath);
+int RUCE_DB_WaveWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path);
 void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc);
 
 #define _JSON_SafeRead(Name) do {\

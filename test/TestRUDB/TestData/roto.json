@@ -6,12 +6,6 @@
 			"InvarRight":	25000,
 			"Overlap":	500
 		},
-		"b":	{
-            "VOT":  2500,
-            "InvarLeft":    16000,
-            "InvarRight":   23000,
-            "Overlap":  300
-		},
 		"ba":	{
 			"VOT":	3000,
 			"InvarLeft":	18000,

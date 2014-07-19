@@ -10,10 +10,7 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     File Sorc;
     File_Ctor(& Sorc);
     if(! File_Open(& Sorc, Path, READONLY))
-    {
-        fprintf(stderr, "[Error] Cannot open RUDB file '%s'.\n", String_GetChars(Path));
         return -1;
-    }
     
     int ReverseEndian = 0;
     
@@ -26,47 +23,32 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     File_Read_Buffer(& Sorc, Header, 12);
     if(Header[0] != RUDB_Header)
     {
-        Endian_Switch_UInt32_Array(Header, 4);
+        Endian_Switch_Array_UInt32(Header, 4);
         ReverseEndian = 1;
     }
     if(Header[0] != RUDB_Header)
-    {
-        fprintf(stderr, "Bad file header.\n");
-        return -1;
-    }
+        return -2;
     if(Header[2] > RUDB_VERSION)
-    {
-        fprintf(stderr, "Bad RUDB version! (Self = %d, File = %d)\n", RUDB_VERSION, Header[2]);
-        return -1;
-    }
+        return -3;
     File_Read_Buffer(& Sorc, CBuffer, 4);
     if(strncmp(CBuffer, "DATA", 4))
-    {
-        fprintf(stderr, "Bad DATA header.\n");
-        return -2;
-    }
+        return -4;
     
     File_Read_Buffer(& Sorc, & DataSize, 8);
     
     if(DataSize < 8)
-    {
-        fprintf(stderr, "Bad Data size.\n");
-        return -2;
-    }
+        return -5;
     
     char* Data = malloc(DataSize);
     File_Read_Buffer(& Sorc, Data, DataSize);
     
     if(Header[1] != CRC32Sum(Data, DataSize, 0))
-    {
-        fprintf(stderr, "Bad CRC32 sum.\n");
-        return -2;
-    }
+        return -6;
     
     memcpy(& (Dest -> HopSize), Data, 8);
     Data += 8;
     if(ReverseEndian)
-        Endian_Switch_Int32_Array(& (Dest -> HopSize), 2);
+        Endian_Switch_Array_Int32(& (Dest -> HopSize), 2);
     
     while(Data != Data + DataSize)
     {
@@ -78,17 +60,14 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
             if(ReverseEndian)
                 Endian_Switch_UInt32(Header);
             int OldSize = Dest -> FrameList_Index + 1;
-            Array_Resize(RUCE_DB_Frame, Dest -> FrameList, OldSize + Header[0]);
+            Array_Resize(RUCE_DB_Frame, 
+                         Dest -> FrameList, 
+                         OldSize + Header[0]);
             for(int i = 0 + OldSize; i < Header[0] + OldSize; ++i)
             {
                 RUCE_DB_Frame_Ctor(& (Dest -> FrameList[i]));
                 if(strncmp(Data, "FRMB", 4))
-                {
-                    fprintf(stderr, 
-                            "[ERROR] Bad FRMB @ %p!\n", 
-                            Data);
                     return -255;
-                }
                 Data += 4;
                 memcpy(& (Dest -> FrameList[i].Position), Data, 4);
                 Data += 4;
@@ -119,10 +98,11 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
                 Data += Dest -> NoizSize * 4;
                 if(ReverseEndian)
                 {
-                    Endian_Switch_Float_Array(Dest -> FrameList[i].Freq, Cnt);
-                    Endian_Switch_Float_Array(Dest -> FrameList[i].Ampl, Cnt);
-                    Endian_Switch_Float_Array(Dest -> FrameList[i].Phse, Cnt);
-                    Endian_Switch_Float_Array(Dest -> FrameList[i].Noiz, Dest -> NoizSize);
+                    Endian_Switch_Array_Float(Dest -> FrameList[i].Freq, Cnt);
+                    Endian_Switch_Array_Float(Dest -> FrameList[i].Ampl, Cnt);
+                    Endian_Switch_Array_Float(Dest -> FrameList[i].Phse, Cnt);
+                    Endian_Switch_Array_Float(Dest -> FrameList[i].Noiz, 
+                                              Dest -> NoizSize);
                 }
             }
         }
@@ -138,7 +118,7 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
             memcpy(& (Dest -> PulseList[OldSize]), Data, Header[0] * 4);
             Data += Header[0] * 4;
             if(ReverseEndian)
-                Endian_Switch_Int32_Array(Dest -> PulseList, Header[0]);
+                Endian_Switch_Array_Int32(Dest -> PulseList, Header[0]);
         }
         else if(! strncmp(Data, "EOL3", 4))
         {
@@ -148,10 +128,7 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
         else
         {
             Data += 4;
-            fprintf(stderr, 
-                    "[ERROR] Bad RUDB @ %p!\n", 
-                    Data);
-            return -233;
+            return -23333;
         }
     }
     
@@ -166,10 +143,7 @@ int RUCE_RUDB_Save(RUCE_DB_Entry* Sorc, String* Path)
     File Dest;
     File_Ctor(& Dest);
     if(! File_Open(& Dest, Path, WRITEONLY))
-    {
-        fprintf(stderr, "[Error] Cannot open RUDB file '%s'.\n", String_GetChars(Path));
         return -1;
-    }
     
     uint64_t Size = 0;
     char* Data, * Curr;

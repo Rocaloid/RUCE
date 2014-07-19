@@ -137,7 +137,9 @@ void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path)
     String_Dtor(& PMContent);
 }
 
-int RUCE_DB_LoadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path, String* RotoPath)
+int 
+RUCE_DB_LoadEntry
+(RUCE_DB_Entry* Dest, String* Sorc, String* Path, String* RotoPath)
 {
     int Ret = -1;
     String s, l;
@@ -150,10 +152,7 @@ int RUCE_DB_LoadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path, String* R
     RUCE_Roto       o;
     RUCE_Roto_Entry e;
     if(RUCE_Roto_CtorLoad(& o, RotoPath) != 1)
-    {
-        fprintf(stderr, "[Error] Cannot load roto '%s'!", String_GetChars(RotoPath));
         goto End;
-    }
     RUCE_Roto_Entry_Ctor(& e);
     
     RUCE_Roto_GetEntry(& o, & e, Sorc);
@@ -172,10 +171,7 @@ int RUCE_DB_LoadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path, String* R
     String_JoinChars(& l, ".rudb");
     
     if(RUCE_RUDB_Load(Dest, & l) != 1)
-    {
-        fprintf(stderr, "[Error] There are some errors occurred while reading RUDB!\n");
         goto End;
-    }
     
     WaveFile w;
     WaveFile_Ctor(& w);
@@ -188,15 +184,9 @@ int RUCE_DB_LoadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path, String* R
     /* Fetch Wavesize and wave */
     
     if(WaveFile_Open(& w, & l) != 1)
-    {
-        fprintf(stderr, "[Error] Cannot open wave file '%s'!\n", String_GetChars(& l));
         goto End;
-    }
     if(w.Header.Channel != 1)
-    {
-        fprintf(stderr, "[Error] We only support mono wav yet!\n");
         goto End;
-    }
     Dest -> WaveSize = w.Header.DataNum;
     if(Dest -> Wave)
         free(Dest -> Wave);
@@ -215,67 +205,87 @@ End:
     return Ret;
 }
 
-int RUCE_DB_WriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path, String* RotoPath)
+int RUCE_DB_RUDBWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path)
 {
     int Ret = -1;
-    String s, l;
-    File f;
-    
-    String_Ctor(& s);
+    String l;
     String_Ctor(& l);
-    File_Ctor(& f);
     
-    /* Write RUDB */
     String_Copy(& l, Path);
     String_JoinChars(& l, "/");
     String_Join(& l, Dest);
     String_JoinChars(& l, ".rudb");
-    RUCE_RUDB_Save(Sorc, & l);
+    if(RUCE_RUDB_Save(Sorc, & l) != 1)
+        goto End;
     
-    /* Write ROTO */
+    Ret = 1;
+    
+End:
+    String_Dtor(& l);
+    return Ret;
+}
+
+int RUCE_DB_RotoWriteEntry(RUCE_DB_Entry* Sorc, String* Name, String* RotoPath)
+{
+    int Ret = -1;
     
     RUCE_Roto       o;
     RUCE_Roto_Entry e;
     
-    int RotoStat = File_IsFile(RotoPath);
-    if(RotoStat == 1)
-    {
-        if(RUCE_Roto_CtorLoad(& o, RotoPath) != 1)
-        {
-            fprintf(stderr, "[Error] Cannot load roto '%s'!", String_GetChars(RotoPath));
-            goto End;
-        }
-    }
-    else if(RotoStat == 0)
-    {
-        fprintf(stderr, "[Error] Cannot open a directory as Roto!");
-        goto End;
-    }
-    else
+    if(RUCE_Roto_CtorLoad(& o, RotoPath) != 1)
         RUCE_Roto_Ctor(& o);
     
     RUCE_Roto_Entry_Ctor(& e);
     
-    String_Copy(& e.Name, Dest);
+    String_Copy(& e.Name, Name);
     e.VOT = Sorc -> VOT;
     e.InvarLeft = Sorc -> InvarLeft;
     e.InvarRight = Sorc -> InvarRight;
     
     RUCE_Roto_SetEntry(& o, & e);
     
-    RUCE_Roto_Write(& o, RotoPath);
-    
-    /* ** Need it write to wave? ** */
-    
-    RUCE_Roto_Entry_Dtor(& e);
-    RUCE_Roto_Dtor(& o);
+    if(RUCE_Roto_Write(& o, RotoPath) != 1)
+        goto End;
     
     Ret = 1;
     
 End:
-    File_Close(& f);
-    File_Dtor(& f);
-    String_Dtor(& s);
+    RUCE_Roto_Entry_Dtor(& e);
+    RUCE_Roto_Dtor(& o);
+    return Ret;
+}
+
+int RUCE_DB_WaveWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path)
+{
+    int Ret = -1;
+    String l;
+    String_Ctor(& l);
+    
+    String_Copy(& l, Path);
+    String_JoinChars(& l, "/");
+    String_Join(& l, Dest);
+    String_JoinChars(& l, ".wav");
+    
+    WaveFile w;
+    WaveFile_Ctor(& w);
+    
+    w.Header.Channel = 1;
+    w.Header.SamplePerSecond = 44100;
+    w.Header.BytePerSecond = 176400;
+    w.Header.BlockAlign = 1;
+    w.Header.BitPerSample = 32;
+    
+    if(WaveFile_Save(& w, & l) != 1)
+        goto End;
+    
+    WaveFile_WriteAllFloat(& w, Sorc -> Wave, Sorc -> WaveSize);
+    
+    WaveFile_FinishWrite(& w);
+    
+    Ret = 1;
+    
+End:
+    WaveFile_Dtor(& w);
     String_Dtor(& l);
     return Ret;
 }
@@ -308,9 +318,11 @@ void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
     
     printf("    PULS\n");
     for(int i = 0; i <= Sorc -> PulseList_Index; ++ i)
-        printf("     |--#%d = %d\n", i, Sorc -> PulseList[i]);
-    printf("     |__EOL3\n");
+        printf("     |  #%d = %d\n", i, Sorc -> PulseList[i]);
+    printf("    EOL3\n");
     
-    printf("    WaveSize = %d, VOT = %d, InvarLeft = %d, InvarRight = %d.\n", 
-           Sorc -> WaveSize, Sorc -> VOT, Sorc -> InvarLeft, Sorc -> InvarRight);
+    printf("    WaveSize = %d," 
+           "VOT = %d, InvarLeft = %d, InvarRight = %d.\n", 
+           Sorc -> WaveSize, 
+           Sorc -> VOT, Sorc -> InvarLeft, Sorc -> InvarRight);
 }
