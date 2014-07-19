@@ -31,6 +31,7 @@ RClass(RUCE_DB_Entry)
     
     /* from wave */
     int WaveSize;
+    int Samprate;
     float* Wave;
     
     /* from roto */

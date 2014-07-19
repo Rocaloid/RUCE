@@ -187,6 +187,7 @@ RUCE_DB_LoadEntry
         goto End;
     if(w.Header.Channel != 1)
         goto End;
+    Dest -> Samprate = w.Header.SamplePerSecond;
     Dest -> WaveSize = w.Header.DataNum;
     if(Dest -> Wave)
         free(Dest -> Wave);
@@ -270,8 +271,8 @@ int RUCE_DB_WaveWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path)
     WaveFile_Ctor(& w);
     
     w.Header.Channel = 1;
-    w.Header.SamplePerSecond = 44100;
-    w.Header.BytePerSecond = 176400;
+    w.Header.SamplePerSecond = Sorc -> Samprate;
+    w.Header.BytePerSecond = Sorc -> Samprate * 4;
     w.Header.BlockAlign = 1;
     w.Header.BitPerSample = 32;
     
@@ -321,8 +322,8 @@ void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
         printf("     |  #%d = %d\n", i, Sorc -> PulseList[i]);
     printf("    EOL3\n");
     
-    printf("    WaveSize = %d," 
+    printf("    WaveSize = %d, WaveSamprate = %d, " 
            "VOT = %d, InvarLeft = %d, InvarRight = %d.\n", 
-           Sorc -> WaveSize, 
+           Sorc -> WaveSize, Sorc -> Samprate, 
            Sorc -> VOT, Sorc -> InvarLeft, Sorc -> InvarRight);
 }
