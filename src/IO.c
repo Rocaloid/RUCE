@@ -137,9 +137,8 @@ void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path)
     String_Dtor(& PMContent);
 }
 
-int 
-RUCE_DB_LoadEntry
-(RUCE_DB_Entry* Dest, String* Sorc, String* Path, String* RotoPath)
+int RUCE_DB_LoadEntry (RUCE_DB_Entry* Dest, String* Sorc, String* Path,
+    String* RotoPath)
 {
     int Ret = -1;
     String s, l;
@@ -327,3 +326,4 @@ void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
            Sorc -> WaveSize, Sorc -> Samprate, 
            Sorc -> VOT, Sorc -> InvarLeft, Sorc -> InvarRight);
 }
+

@@ -23,6 +23,7 @@ install(FILES RUCE.h
               DESTINATION ${CMAKE_INSTALL_PREFIX}/include/)
 install(FILES IO.h
               Roto.h
+              RUDB.h
               Pitchbend.h
               DESTINATION ${CMAKE_INSTALL_PREFIX}/include/RUCE/)
 
