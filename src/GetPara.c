@@ -19,7 +19,7 @@ int RUCE_PhrasePara(int argc, char* argv[], RUCE_RESAMPLER_PARA* Dest)
     switch(CLV)
     {
         case 14:
-            (void) 0;
+            (void) 0; // Puzzling bug.
             String_FromChars(PP, argv[3]);
             String_FromChars(PBD, argv[13]);
             float Tempo = atof(argv[12]);
