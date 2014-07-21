@@ -47,6 +47,8 @@ int  RUCE_Roto_CtorLoad(RUCE_Roto* This, String* Path)
     }
     File_Read_String(& RotoFile, & RotoContent);
     This -> Ptr = cJSON_Parse(String_GetChars(& RotoContent));
+    if(! This -> Ptr)
+        Ret = 0;
     
     End:
     File_Close(& RotoFile);
