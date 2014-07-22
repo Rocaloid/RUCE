@@ -82,25 +82,44 @@ int  RUCE_Roto_Write(RUCE_Roto* This, String* Path)
     return Ret;
 }
 
+#define _GetEntry() \
+    String_SetChars(& Dest -> Name, Entry -> string); \
+    _JSON_SafeRead(VOT); \
+    _JSON_SafeRead(InvarLeft); \
+    _JSON_SafeRead(InvarRight); \
+    _JSON_SafeRead(Overlap)
+    
 int  RUCE_Roto_GetEntry(RUCE_Roto* This, RUCE_Roto_Entry* Dest, String* Name)
 {
-    if(! This -> Ptr)
-    {
-        fprintf(stderr, "[Error] RUCE_Roto maybe not initalized.\n");
-        return -3;
-    }
     cJSON* Entries = cJSON_GetObjectItem(This -> Ptr, "Entries");
     if(! Entries) return 0;
     
     cJSON* Entry = cJSON_GetObjectItem(Entries, String_GetChars(Name));
     if(! Entry) return -1;
     
-    String_Copy(& Dest -> Name, Name);
+    _GetEntry();
     
-    _JSON_SafeRead(VOT);
-    _JSON_SafeRead(InvarLeft);
-    _JSON_SafeRead(InvarRight);
-    _JSON_SafeRead(Overlap);
+    return 1;
+}
+
+int  RUCE_Roto_GetEntryNum(RUCE_Roto* This)
+{
+    cJSON* Entries = cJSON_GetObjectItem(This -> Ptr, "Entries");
+    if(! Entries) return 0;
+    
+    return cJSON_GetArraySize(Entries);
+}
+
+int  RUCE_Roto_GetEntryByIndex(RUCE_Roto* This, RUCE_Roto_Entry* Dest,
+    int Index)
+{
+    cJSON* Entries = cJSON_GetObjectItem(This -> Ptr, "Entries");
+    if(! Entries) return 0;
+    
+    cJSON* Entry = cJSON_GetArrayItem(Entries, Index);
+    if(! Entry) return -1;
+    
+    _GetEntry();
     
     return 1;
 }
