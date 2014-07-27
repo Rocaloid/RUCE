@@ -10,7 +10,31 @@ static const char* Help =
     "[<volume> [<modulation> [<pitch bend>...]]]]]]]"
 };
 
-int RUCE_PhrasePara(int argc, char* argv[], RUCE_RESAMPLER_PARA* Dest)
+RCtor(RUCE_ResamplerPara)
+{
+    String_Ctor(& This -> Input);
+    String_Ctor(& This -> Output);
+    PMatch_Float_Float_Ctor(& This -> Freq);
+    
+    This -> InvarLeft   = 0;
+    This -> InvarRight  = 0;
+    This -> LenRequire  = 0;
+    This -> FixedLength = 0;
+    This -> Velocity    = 0;
+    This -> Volume      = 0;
+    This -> Modulation  = 0;
+    
+    RInit(RUCE_ResamplerPara);
+}
+
+RDtor(RUCE_ResamplerPara)
+{
+    String_Dtor(& This -> Input);
+    String_Dtor(& This -> Output);
+    PMatch_Float_Float_Dtor(& This -> Freq);
+}
+
+int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
 {
     int Ret = 1;
     int CLV = argc;
@@ -35,16 +59,14 @@ int RUCE_PhrasePara(int argc, char* argv[], RUCE_RESAMPLER_PARA* Dest)
             for(int i = 0; i < DataNum; ++ i)
             {
                 PMatch_Float_Float_AddPair(& Dest -> Freq, 
-                                           Tune_BeatToTime_Float(Tempo, 
-                                                                 (((float)i) / 
-                                                                 96.0f)), 
-                                           Tune_AddCentToFreq_Float(Freq, 
-                                                                    Data[i]));
+                    Tune_BeatToTime_Float(Tempo, (((float)i) / 96.0f)), 
+                    Tune_AddCentToFreq_Float(Freq, Data[i]));
             }
-            free(Data);
+            RFree(Data);
             EnablePitchConv = 0; // Disable standalone pitch conv.
             CLV -= 2;
             
+            RDelete(& PP, & PBD);
         case 12:
             Dest -> Modulation = atof(argv[11]);
             if(Dest -> Modulation <= 0.0f)
@@ -112,6 +134,7 @@ int RUCE_PhrasePara(int argc, char* argv[], RUCE_RESAMPLER_PARA* Dest)
                 String_FromChars(PP, argv[3]);
                 PMatch_Float_Float_AddPair(& Dest -> Freq, 0, 
                                            Tune_SPNToFreq_Float(& PP));
+                RDelete(& PP);
             }
             String_SetChars(& (Dest -> Input), argv[1]);
             String_SetChars(& (Dest -> Output), argv[2]);
@@ -124,3 +147,4 @@ int RUCE_PhrasePara(int argc, char* argv[], RUCE_RESAMPLER_PARA* Dest)
     
     return Ret;
 }
+

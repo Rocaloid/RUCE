@@ -1,37 +1,30 @@
 #include "Roto.h"
 #include "IO.h"
+#include "GetPara.h"
 #include <CVESVP.h>
 
-int main(int ArgN, char** ArgList)
+int main(int ArgN, char** Arg)
 {
-    CSVP_PitchModel PM;
-    CSVP_PitchModel_Ctor(& PM);
+    RUCE_ResamplerPara Para;
+    RUCE_ResamplerPara_Ctor(& Para);
     
-    String Path, Name;
-    RNew(String, & Path, & Name);
-    String_SetChars(& Path, "/tmp/testpm.json");
-    String_SetChars(& Name, "bie");
+    RUCE_ParsePara(& Para, ArgN, Arg);
+    /*
+    String Input, Output;
+    float InvarLeft, InvarRight;
+    float LenRequire, FixedLength;
+    float Velocity, Volume, Modulation;
+    PMatch_Float_Float Freq;
+    */
+    printf("Input: %s, Output: %s\n",
+        String_GetChars(& Para.Input), String_GetChars(& Para.Output));
+    printf("InvarLeft: %f, InvarRight: %f\n", Para.InvarLeft, Para.InvarRight);
+    printf("LenRequire: %f, FixedLength: %f\n", Para.LenRequire,
+        Para.FixedLength);
+    printf("Velocity: %f, Modulation: %f\n", Para.Velocity, Para.Modulation);
+    PMatch_Float_Float_Print(& Para.Freq);
     
-    RUCE_LoadPitchModel(& PM, & Name, & Path);
-    printf("%f\n", PMatch_Float_Float_Query(& PM.NoizCurve, 300).Y);
-    
-    RUCE_Roto Roto;
-//    RUCE_Roto_Ctor(& Roto);
-    RUCE_Roto_Entry Entry;
-    RUCE_Roto_Entry_Ctor(& Entry);
-    
-    String_SetChars(& Path, "/tmp/testroto.json");
-    RUCE_Roto_CtorLoad(& Roto, & Path);
-    RUCE_Roto_GetEntry(& Roto, & Entry, & Name);
-    String_SetChars(& Entry.Name, "bao");
-    
-    Entry.VOT = 1234;
-    RUCE_Roto_SetEntry(& Roto, & Entry);
-    
-    String_SetChars(& Path, "/tmp/testroto2.json");
-    RUCE_Roto_Write(& Roto, & Path);
-    
-    RDelete(& PM, & Path, & Name, & Roto, & Entry);
+    RDelete(& Para);
     return 0;
 }
 
