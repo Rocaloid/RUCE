@@ -8,6 +8,12 @@ int main(int ArgN, char** Arg)
     RUCE_ResamplerPara Para;
     RUCE_ResamplerPara_Ctor(& Para);
     
+    int i;
+    for(i = 0; i < ArgN; i ++)
+    {
+        printf("%s\n", Arg[i]);
+    }
+    
     RUCE_ParsePara(& Para, ArgN, Arg);
     /*
     String Input, Output;

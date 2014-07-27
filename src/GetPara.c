@@ -40,17 +40,18 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
     int CLV = argc;
     int EnablePitchConv = 1;
     
+    String PP, PBD;
+    RNew(String, & PP, & PBD);
     switch(CLV)
     {
         case 14:
-            (void) 0; // Puzzling bug.
-            String_FromChars(PP, argv[3]);
-            String_FromChars(PBD, argv[13]);
-            float Tempo = atof(argv[12]);
+            String_SetChars(& PP, argv[3]);
+            String_SetChars(& PBD, argv[13]);
+            float Tempo = atof(argv[12] + 1);
             if(Tempo <= 0)
             {
                 Ret = 0;
-                RAssert(0, "Bad tempo!");
+                RAssert(0, "Bad tempo.");
             }
             int DataNum = RUCE_Pitchbend_GetLength(& PBD);
             short* Data = RAlloc(DataNum * sizeof(short));
@@ -58,39 +59,39 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
             RUCE_Pitchbend_Decode(Data, & PBD);
             for(int i = 0; i < DataNum; ++ i)
             {
+                Data[i] = Data[i] > 2048 ? Data[i] - 4096 : Data[i];
                 PMatch_Float_Float_AddPair(& Dest -> Freq, 
-                    Tune_BeatToTime_Float(Tempo, (((float)i) / 96.0f)), 
+                    Tune_BeatToTime_Float(Tempo, (((float)i) / 96.0f)),
                     Tune_AddCentToFreq_Float(Freq, Data[i]));
             }
             RFree(Data);
             EnablePitchConv = 0; // Disable standalone pitch conv.
             CLV -= 2;
             
-            RDelete(& PP, & PBD);
         case 12:
             Dest -> Modulation = atof(argv[11]);
-            if(Dest -> Modulation <= 0.0f)
+            if(Dest -> Modulation < 0.0f)
             {
                 Ret = 0;
-                RAssert(0, "Bad modulation!");
+                RAssert(0, "Bad modulation.");
             }
             -- CLV;
             
         case 11:
             Dest -> Volume = atof(argv[10]);
-            if(Dest -> Modulation <= 0.0f)
+            if(Dest -> Volume < 0.0f)
             {
                 Ret = 0;
-                RAssert(0, "Bad volume!");
+                RAssert(0, "Bad volume.");
             }
             -- CLV;
             
         case 10:
             Dest -> InvarRight = atof(argv[9]) / 1000.0f;
-            if(Dest -> InvarRight <= 0.0f)
+            if(Dest -> InvarRight < 0.0f)
             {
                 Ret = 0;
-                RAssert(0, "Bad end blank!");
+                RAssert(0, "Bad end blank.");
             }
             -- CLV;
             
@@ -99,7 +100,7 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
             if(Dest -> FixedLength <= 0.0f)
             {
                 Ret = 0;
-                RAssert(0, "Bad fixed length!");
+                RAssert(0, "Bad fixed length.");
             }
             -- CLV;
             
@@ -108,13 +109,13 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
             if(Dest -> LenRequire < 0.0f)
             {
                 Ret = 0;
-                RAssert(0, "Bad length require!");
+                RAssert(0, "Bad length require.");
             }
             Dest -> InvarLeft = atof(argv[6]) / 1000.0f;
             if(Dest -> InvarLeft < 0.0f)
             {
                 Ret = 0;
-                RAssert(0, "Bad offset!");
+                RAssert(0, "Bad offset.");
             }
             CLV -= 2;
             
@@ -127,14 +128,13 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
             if(Dest -> Velocity < 0.0f)
             {
                 Ret = 0;
-                RAssert(0, "Bad velocity!");
+                RAssert(0, "Bad velocity.");
             }
             if(EnablePitchConv)
             {
-                String_FromChars(PP, argv[3]);
+                String_SetChars(& PP, argv[3]);
                 PMatch_Float_Float_AddPair(& Dest -> Freq, 0, 
                                            Tune_SPNToFreq_Float(& PP));
-                RDelete(& PP);
             }
             String_SetChars(& (Dest -> Input), argv[1]);
             String_SetChars(& (Dest -> Output), argv[2]);
@@ -145,6 +145,7 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
             Ret = -1;
     };
     
+    RDelete(& PP, & PBD);
     return Ret;
 }
 
