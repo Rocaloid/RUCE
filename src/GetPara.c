@@ -3,12 +3,12 @@
 #include <stdio.h>
 #include <RUtil2.h>
 
-static const char* Help = 
+void PrintUsage()
 {
-    "Usage: %s <input file> <output file> <pitch percent> <velocity> "
-    "[<flags> [<offset> <length require> [<fixed length> [<end blank> "
-    "[<volume> [<modulation> [<pitch bend>...]]]]]]]"
-};
+    printf("Usage: RUCE_CLI <input file> <output file> <pitch percent> "
+        "<velocity> [<flags> [<offset> <length require> [<fixed length> "
+        "[<end blank> [<volume> [<modulation> [<pitch bend>...]]]]]]]");
+}
 
 RCtor(RUCE_ResamplerPara)
 {
@@ -51,6 +51,7 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
             if(Tempo <= 0)
             {
                 Ret = 0;
+                printf("%f %s\n", Tempo, argv[12]);
                 RAssert(0, "Bad tempo.");
             }
             int DataNum = RUCE_Pitchbend_GetLength(& PBD);
@@ -67,14 +68,10 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
             RFree(Data);
             EnablePitchConv = 0; // Disable standalone pitch conv.
             CLV -= 2;
-            
+        
+        case 13:
         case 12:
             Dest -> Modulation = atof(argv[11]);
-            if(Dest -> Modulation < 0.0f)
-            {
-                Ret = 0;
-                RAssert(0, "Bad modulation.");
-            }
             -- CLV;
             
         case 11:
@@ -105,7 +102,7 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
             -- CLV;
             
         case 8:
-            Dest -> LenRequire = atof(argv[7]);
+            Dest -> LenRequire = atof(argv[7]) / 1000.0f;
             if(Dest -> LenRequire < 0.0f)
             {
                 Ret = 0;
@@ -120,7 +117,7 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
             CLV -= 2;
             
         case 6:
-            // <Flags> <-- WTF?
+            //Flags - not supported yet.
             -- CLV;
             
         case 5:
@@ -141,7 +138,7 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
             break;
             
         default:
-            printf(Help, argv[0]);
+            PrintUsage();
             Ret = -1;
     };
     
