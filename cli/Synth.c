@@ -56,16 +56,17 @@ int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         RCall(_List_Int, Add)(& ConPulse, SorcDB -> PulseList[i]);
     RCall(_List_DataFrame, FromWave)(& ConList, Sorc, & ConPulse);
     RCall(CDSP2_List_Int_ToPMatch, Real)(& ConPulse, & ConMatch);
-    
+        
     //Frequency remapping
     Verbose("Frequency remapping...\n");
     int VOTIndex;
     Real VOTTime = (Real)SorcDB -> VOT / SampleRate;
     Array_IncFind(VOTIndex, Real, Para -> Freq.X, VOTTime);
-    if(VOTIndex > 0)
+    if(VOTIndex > 1)
     {
         Array_RemoveRange(Real, Para -> Freq.X, 0, VOTIndex - 1);
         Array_RemoveRange(Real, Para -> Freq.Y, 0, VOTIndex - 1);
+        
         Real ConFreq = SampleRate / (Real)(ConPulse.Frames[1] -
             ConPulse.Frames[0]);
         
@@ -150,32 +151,51 @@ int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcDB -> WaveSize);
     
     //Interpolate target HNM frames
-    Verbose("Interpolating target HNM frames...\n");
+    Verbose("Interpolating & pitch-scaling target HNM frames...\n");
     _HNMItersizer VowSynth;
     RCall(_HNMItersizer, CtorSize)(& VowSynth, WinSize);
     RCall(_HNMItersizer, SetHopSize)(& VowSynth, SorcDB -> HopSize);
     RCall(_HNMItersizer, SetWave)(& VowSynth, & VowWave);
+    
+    RCall(_PMatch, Print)(& PM -> NoizCurve);
+    _HNMFrame TempHNM;
+    _HNMContour TempCont;
+    RCall(_HNMFrame, Ctor)(& TempHNM);
+    RCall(_HNMContour, Ctor)(& TempCont);
     int Position = VowPulse.Frames[0];
     int Count = 1;
     while(Position < Dest -> Size - SorcDB -> HopSize)
     {
+        //TODO: Add linear interpolation
         int SorcPosition = (int)RCall(_PMatch, Query)(& TimeMatch, Position).Y;
         _Transition Trans = RCall(_PMatch, Query)(& VowMatch, SorcPosition);
-        printf("%d %d\n", Trans.LowerIndex, Position);
-        RCall(_HNMItersizer, Add)(& VowSynth, & VowList.Frames
-            [Trans.LowerIndex], Position);
-        /*
+        Real F0 = RCall(_PMatch, Query)(& Para -> Freq, (Real)Position
+            / SampleRate).Y;
+        
+        RCall(_HNMFrame, From)(& TempHNM, & VowList.Frames[Trans.LowerIndex]);
+        CSVP_PitchConvertHNMFrame_Float(& TempCont, & TempHNM, PM, F0, 10000,
+            SampleRate);
+        RCall(_HNMFrame, FromContour)(& TempHNM, & TempCont, F0, 12000);
+        RCall(_HNMItersizer, Add)(& VowSynth, & TempHNM, Position);
+        
         if(Count % 10 == 0)
+        {
+            CSVP_PhaseSyncH_Float(& PhseList.Frames[Trans.LowerIndex], 0);
+            CSVP_PhaseContract_Float(& PhseList.Frames[Trans.LowerIndex],
+                CSVP_PitchModel_GetPhseCoh(PM, F0));
             RCall(_HNMItersizer, AddPhase)(& VowSynth, & PhseList.Frames
-                [Trans.LowerIndex], Position);*/
+                [Trans.LowerIndex], Position);
+        }
         Position += SorcDB -> HopSize;
         Count ++;
     }
+    RCall(_HNMFrame, Dtor)(& TempHNM);
+    RCall(_HNMContour, Dtor)(& TempCont);
+    
     
     //HNM synthesis
     Verbose("HNM synthesis...\n");
-    printf("From %d To %d\n", VowPulse.Frames[1], Dest -> Size - SorcDB -> HopSize);
-    //VowSynth.Option.PhaseControl = 1;
+    VowSynth.Option.PhaseControl = 1;
     RCall(_HNMItersizer, SetPosition)(& VowSynth, VowPulse.Frames[1]);
     RCall(_HNMItersizer, SetInitPhase)(& VowSynth, & PhseList.Frames[0]);
     RCall(_HNMItersizer, IterNextTo)(& VowSynth, Dest -> Size -

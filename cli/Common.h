@@ -9,6 +9,7 @@
 #define _FWindow CDSP2_FWindow_Float
 #define _DataFrame CDSP2_DataFrame_Float
 #define _HNMFrame CSVP_HNMFrame_Float
+#define _HNMContour CSVP_HNMContour_Float
 #define _List_DataFrame CDSP2_List_DataFrame_Float
 #define _List_HNMFrame CSVP_List_HNMFrame_Float
 #define _List_Int CDSP2_List_Int

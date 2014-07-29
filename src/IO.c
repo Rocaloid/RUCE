@@ -49,10 +49,11 @@ RDtor(RUCE_DB_Entry)
     { \
         int ArrayNum = cJSON_GetArraySize(Name); \
         if(ArrayNum % 2 == 1) return -1; \
+        PMatch_Float_Float_Clear(& Dest -> Name); \
         for(i = 0; i < ArrayNum / 2; i ++) \
         { \
-            cJSON* Freq = cJSON_GetArrayItem(Name, i); \
-            cJSON* Val  = cJSON_GetArrayItem(Name, i + 1); \
+            cJSON* Freq = cJSON_GetArrayItem(Name, i * 2); \
+            cJSON* Val  = cJSON_GetArrayItem(Name, i * 2 + 1); \
             PMatch_Float_Float_AddPair(& Dest -> Name, \
                 Freq -> valuedouble, Val -> valuedouble); \
         } \
