@@ -3,6 +3,7 @@
 
 #define Real Float
 #define _Wave CDSP2_Wave_Float
+#define _Spectrum CDSP2_Spectrum_Float
 #define _PSOLAItersizer CSVP_PSOLAItersizer_Float
 #define _HNMItersizer CSVP_HNMItersizer_Float
 #define _FWindow_T RFNL_FWindow_Gnrc_Float
@@ -16,7 +17,7 @@
 #define _PMatch PMatch_Float_Float
 #define _Transition Transition_Float_Float
 
-#define WinSize 2048
+#define WINSIZE 2048
 #define Verbose(...) printf(__VA_ARGS__)
 
 #endif
