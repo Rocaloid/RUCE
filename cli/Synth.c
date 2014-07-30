@@ -152,7 +152,7 @@ int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         
         RCall(CDSP2_VSet, Real)(DestFrame -> Noiz, -999, WINSIZE / 2 + 1);
         RCall(CDSP2_Resample_Linear, Real)(DestFrame -> Noiz, SorcFrame -> Noiz,
-            WINSIZE / 2, SorcDB -> NoizSize);
+            WINSIZE / 2 + 1, SorcDB -> NoizSize);
     }
     VowPulse.Frames_Index = FrameNum - 1;
     RCall(CDSP2_List_Int_ToPMatch, Real)(& VowPulse, & VowMatch);
@@ -239,6 +239,8 @@ int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(CDSP2_VSet, Real)(ConWave.Data + ConcatPos + i, 0,
         ConWave.Size - i - ConcatPos);
     RCall(CDSP2_VAdd, Real)(Dest -> Data, ConWave.Data, VowWave.Data,
+        Dest -> Size);
+    RCall(CDSP2_VCMul, Real)(Dest -> Data, Dest -> Data, Para -> Volume / 100.0,
         Dest -> Size);
     
     Verbose("Freeing memory...\n");
