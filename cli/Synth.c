@@ -11,14 +11,37 @@ static void HNMFrameAndPhaseFromWave(_HNMFrame* Dest, _DataFrame* DestPhse,
     RCall(_Spectrum, FromWaveW)(& Spec1, Sorc, Position - WinSize / 2);
     RCall(_Spectrum, FromWaveW)(& Spec2, Sorc, Position - WinSize / 2 + 1);
     
-    F0 = RCall(CSVP_F0FromSuccSpectrum_Peak, Real)(& Spec1, & Spec2, 1,
+    Real NewF0 = RCall(CSVP_F0FromSuccSpectrum_Peak, Real)(& Spec1, & Spec2, 1,
         F0 * 0.5, F0 * 1.7);
     
-    int HNum = 8000 / F0;
+    if(NewF0 < 0) NewF0 = F0;
+    int HNum = 8000 / NewF0;
     RCall(_HNMFrame, Resize)(Dest, WinSize, HNum);
-    RCall(_HNMFrame, FromSpectrumWithPhase)(Dest, DestPhse, & Spec1, F0, HNum);
+    RCall(_HNMFrame, FromSpectrumWithPhase)(Dest, DestPhse, & Spec1, NewF0,
+        HNum);
     
     RDelete(& Spec1, & Spec2);
+}
+
+static void InterpFetchHNMFrame(_HNMFrame* Dest, _List_HNMFrame* Sorc,
+    _Transition* Trans)
+{
+    int LIndex, HIndex;
+    LIndex = Trans -> LowerIndex;
+    HIndex = Trans -> LowerIndex == Sorc -> Frames_Index ? LIndex : LIndex + 1;
+    _HNMFrame* LHNM = & Sorc -> Frames[LIndex];
+    _HNMFrame* HHNM = & Sorc -> Frames[HIndex];
+    
+    RCall(_HNMFrame, Resize)(Dest, LHNM -> Size, LHNM -> Hmnc.Size);
+    RCall(_Sinusoid, InterpFrom)(& Dest -> Hmnc, & LHNM -> Hmnc, & HHNM -> Hmnc,
+        Trans -> X);
+    
+    RCall(CDSP2_VSet,  Real)(Dest -> Noiz, 0, Dest -> Size / 2 + 1);
+    RCall(CDSP2_VFCMA, Real)(Dest -> Noiz, LHNM -> Noiz, 1.0 - Trans -> X,
+        Dest -> Size / 2 + 1);
+    RCall(CDSP2_VFCMA, Real)(Dest -> Noiz, HHNM -> Noiz, Trans -> X,
+        Dest -> Size / 2 + 1);
+    RCall(_HNMFrame, From)(Dest, LHNM);
 }
 
 int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
@@ -85,13 +108,14 @@ int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     Array_IncFind(VOTIndex, Real, Para -> Freq.X, VOTTime);
     if(VOTIndex > 1)
     {
+        Real StableFreq = RCall(_PMatch, Query)(& Para -> Freq, VOTTime).Y;
+        
         Array_RemoveRange(Real, Para -> Freq.X, 0, VOTIndex - 1);
         Array_RemoveRange(Real, Para -> Freq.Y, 0, VOTIndex - 1);
         
         Real ConFreq = SampleRate / (Real)(ConPulse.Frames[1] -
             ConPulse.Frames[0]);
         
-        Real StableFreq = RCall(_PMatch, Query)(& Para -> Freq, VOTTime).Y;
         RCall(_PMatch, AddPair)(& Para -> Freq, VOTTime, StableFreq);
         
         if(VOTTime > 0.05)
@@ -143,6 +167,7 @@ int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         
         RCall(_HNMFrame, Resize)(DestFrame, WINSIZE, HNum);
         RCall(_DataFrame, Resize)(& PhseList.Frames[i], HNum);
+        
         for(j = 0; j < HNum; j ++)
         {
             DestFrame -> Hmnc.Freq[j]  = SorcFrame -> Freq[j];
@@ -193,9 +218,10 @@ int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         Real F0 = RCall(_PMatch, Query)(& Para -> Freq, (Real)Position
             / SampleRate).Y;
         
-        RCall(_HNMFrame, From)(& TempHNM, & VowList.Frames[Trans.LowerIndex]);
+        InterpFetchHNMFrame(& TempHNM, & VowList, & Trans);
         CSVP_PitchConvertHNMFrame_Float(& TempCont, & TempHNM, PM, F0, 10000,
             SampleRate);
+        
         RCall(_HNMFrame, FromContour)(& TempHNM, & TempCont, F0, 8000);
         RCall(_HNMItersizer, Add)(& VowSynth, & TempHNM, Position);
         
