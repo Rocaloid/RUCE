@@ -328,3 +328,72 @@ void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
            Sorc -> VOT, Sorc -> InvarLeft, Sorc -> InvarRight);
 }
 
+RCtor(RUCE_Oto_Entry)
+{
+    String_Ctor(& This -> UnitName);
+    String_Ctor(& This -> Symbol);
+    RInit(RUCE_Oto_Entry);
+}
+
+RDtor(RUCE_Oto_Entry)
+{
+    String_Dtor(& This -> UnitName);
+    String_Dtor(& This -> Symbol);
+}
+
+int RUCE_Oto_LoadEntry(RUCE_Oto_Entry* Dest, String* Sorc, String* OtoPath)
+{
+    File OtoFile;
+    File_Ctor(& OtoFile);
+    
+    if(! File_Open(& OtoFile, OtoPath, READONLY))
+    {
+        File_Dtor(& OtoFile);
+        return 0;
+    }
+    
+    int Ret = 0;
+    
+    String LineBuff, WordBuff;
+    String_FromChars(Dot, ".");
+    String_FromChars(Equ, "=");
+    String_FromChars(Com, ",");
+    String_Ctor(& LineBuff);
+    String_Ctor(& WordBuff);
+    
+    int FileLen = File_GetLength(& OtoFile);
+    while(File_GetPosition(& OtoFile) < FileLen - 1)
+    {
+        File_ReadLine(& OtoFile, & LineBuff);
+        int Pos = InStr(& LineBuff, & Dot);
+        Left(& WordBuff, & LineBuff, Pos);
+        if(String_Equal(& WordBuff, Sorc))
+        {
+            int EndPos;
+            String_From(& Dest -> UnitName, Sorc);
+            Pos = InStr(& LineBuff, & Equ) + 1;
+            EndPos = InStrFrom(& LineBuff, & Com, Pos) - 1;
+            if(Pos != EndPos)
+                Mid(& Dest -> Symbol, & LineBuff, Pos, EndPos - Pos);
+            MidFrom(& WordBuff, & LineBuff, EndPos + 2);
+            
+            float tmp1, tmp2, tmp3, tmp4, tmp5;
+            sscanf(String_GetChars(& WordBuff), "%f,%f,%f,%f,%f",
+                & tmp1, & tmp2, & tmp3, & tmp4, & tmp5);
+            
+            Dest -> LeftBound = tmp1 / 1000.0;
+            Dest -> InvarLeft = (tmp1 + tmp2) / 1000.0;
+            Dest -> RightBound = tmp3 / 1000.0;
+            Dest -> Preutterance = (tmp1 + tmp4) / 1000.0;
+            Dest -> Overlap = tmp5 / 1000.0;
+            
+            Ret = 1;
+            break;
+        }
+    }
+    
+    RDelete(& Dot, & Equ, & Com, & WordBuff, & LineBuff, & OtoFile);
+    
+    return Ret;
+}
+

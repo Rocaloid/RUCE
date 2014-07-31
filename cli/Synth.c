@@ -187,14 +187,18 @@ int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     Verbose("Time mapping for HNM composition...\n");
     _PMatch TimeMatch;
     RCall(_PMatch, Ctor)(& TimeMatch);
-    RCall(_PMatch, AddPair)(& TimeMatch, 0, 0);
-    if(Dest -> Size > SorcDB -> WaveSize)
+    RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> VOT, SorcDB -> VOT);
+    if(Dest -> Size > SorcDB -> WaveSize - SorcDB -> InvarRight
+        + SorcDB -> InvarLeft)
     {
         RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> InvarLeft,
             SorcDB -> InvarLeft);
         RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size - (SorcDB -> WaveSize
             - SorcDB -> InvarRight), SorcDB -> InvarRight);
-    }
+    }else
+        RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> InvarLeft,
+            (SorcDB -> WaveSize + SorcDB -> VOT) / 2);
+    
     RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcDB -> WaveSize);
     
     //Interpolate target HNM frames

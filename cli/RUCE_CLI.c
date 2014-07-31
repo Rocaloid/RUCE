@@ -48,19 +48,30 @@ int main(int ArgN, char** Arg)
     int DotPos = InStr(& FileName, & Dot);
     Left(& UnitName, & FileName, DotPos);
     
-    String RotoPath, PMPath;
-    RNew(String, & RotoPath, & PMPath);
+    String RotoPath, OtoPath, PMPath;
+    RNew(String, & RotoPath, & OtoPath, & PMPath);
     String_From(& RotoPath, & DirName);
+    String_From(& OtoPath, & DirName);
     String_From(& PMPath, & DirName);
     String_JoinChars(& RotoPath, "/Roto.json");
+    String_JoinChars(& OtoPath, "/oto.ini");
     String_JoinChars(& PMPath, "/PitchModel.json");
     
     RUCE_DB_Entry DBEntry;
     RUCE_DB_Entry_Ctor(& DBEntry);
+    RUCE_Oto_Entry OtoEntry;
+    RUCE_Oto_Entry_Ctor(& OtoEntry);
     int Ret = RUCE_DB_LoadEntry(& DBEntry, & UnitName, & DirName, & RotoPath);
     if(Ret < 1)
     {
         fprintf(stderr, "[Error] Cannot load unit '%s'.\n",
+            String_GetChars(& UnitName));
+        return 1;
+    }
+    Ret = RUCE_Oto_LoadEntry(& OtoEntry, & UnitName, & OtoPath);
+    if(Ret < 1)
+    {
+        fprintf(stderr, "[Error] Cannot find unit '%s' from oto.ini.\n",
             String_GetChars(& UnitName));
         return 1;
     }
@@ -71,6 +82,9 @@ int main(int ArgN, char** Arg)
     RCall(_Wave, Write)(& InWave, DBEntry.Wave, 0, DBEntry.WaveSize);
     InWave.SampleRate = DBEntry.Samprate;
     OutWave.SampleRate = DBEntry.Samprate;
+    /*
+    Para.LenRequire -= OtoEntry.Preutterance - 0.025;
+    printf("Recovered LenRequire: %f\n", Para.LenRequire);*/
     
     CSVP_PitchModel PMEntry;
     CSVP_PitchModel_Ctor(& PMEntry);
