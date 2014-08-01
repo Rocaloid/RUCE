@@ -27,6 +27,7 @@ install(FILES IO.h
               Roto.h
               RUDB.h
               Pitchbend.h
+              GetPara.h
               DESTINATION ${CMAKE_INSTALL_PREFIX}/include/RUCE/)
 
 install(TARGETS RUCE LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
