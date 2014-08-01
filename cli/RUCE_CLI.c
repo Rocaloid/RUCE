@@ -8,6 +8,13 @@
 #include <RUtil2.h>
 
 #define CWineDir "/home/sleepwalking/.wine"
+    
+#ifdef _WIN64
+#define _WIN
+#endif
+#ifdef _WIN32
+#define _WIN
+#endif
 
 int main(int ArgN, char** Arg)
 {
@@ -27,8 +34,13 @@ int main(int ArgN, char** Arg)
     RNew(String, & Input, & Output, & WineDir);
     String_SetChars(& WineDir, CWineDir);
     
+    #ifdef _WIN
+    String_From(& Input, & Para.Input);
+    String_From(& Output, & Para.Output);
+    #else
     WinePathToUnix(& Input, & Para.Input, & WineDir);
     WinePathToUnix(& Output, & Para.Output, & WineDir);
+    #endif
     
     printf("Input: %s, Output: %s\n",
         String_GetChars(& Input), String_GetChars(& Output));
