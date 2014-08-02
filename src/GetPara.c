@@ -19,7 +19,7 @@ RCtor(RUCE_ResamplerPara)
     
     This -> InvarLeft   = 0;
     This -> InvarRight  = 0;
-    This -> LenRequire  = 1000;
+    This -> LenRequire  = -1;
     This -> FixedLength = 0;
     This -> Velocity    = 0;
     This -> Volume      = 100;

@@ -20,7 +20,7 @@ int main(int ArgN, char** Arg)
 {
     RUCE_ResamplerPara Para;
     RUCE_ResamplerPara_Ctor(& Para);
-    printf("RUCE - Rocaloid UTAU Compatible Engine (1.0.0-alpha)\n");
+    printf("RUCE - Rocaloid UTAU Compatible Engine (1.0.0-alpha1)\n");
     printf("  License: GNU GPL v3 (http://www.gnu.org/licenses/gpl-3.0.txt)\n");
     printf("  www.rocaloid.org\n");
     
@@ -61,8 +61,11 @@ int main(int ArgN, char** Arg)
             String_GetChars(& Input), String_GetChars(& Output));
         printf("InvarLeft: %f, InvarRight: %f\n", Para.InvarLeft,
             Para.InvarRight);
-        printf("LenRequire: %f, FixedLength: %f\n", Para.LenRequire,
-            Para.FixedLength);
+        if(Para.LenRequire < 0)
+            printf("LenRequire: (keep), FixedLength: %f\n", Para.FixedLength);
+        else
+            printf("LenRequire: %f, FixedLength: %f\n", Para.LenRequire,
+                Para.FixedLength);
         printf("Velocity: %f, Modulation: %f\n", Para.Velocity,
             Para.Modulation);
         printf("Volume: %f\n", Para.Volume);
@@ -114,6 +117,8 @@ int main(int ArgN, char** Arg)
     RCall(_Wave, Write)(& InWave, DBEntry.Wave, 0, DBEntry.WaveSize);
     InWave.SampleRate = DBEntry.Samprate;
     OutWave.SampleRate = DBEntry.Samprate;
+    if(Para.LenRequire < 0)
+        Para.LenRequire = (Real)DBEntry.WaveSize / InWave.SampleRate;
     Para.LenRequire += Para.FlagPara.DeltaDuration;
     if(Para.FlagPara.DeltaDuration != 0)
         printf("Adjusted duartion = %f sec.\n", Para.LenRequire);

@@ -21,7 +21,6 @@ RClass(RUCE_ResamplerPara)
         int   Verbose;
     } FlagPara;
     
-    
     PMatch_Float_Float Freq;
 };
 
