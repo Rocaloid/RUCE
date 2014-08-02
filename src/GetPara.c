@@ -19,10 +19,10 @@ RCtor(RUCE_ResamplerPara)
     
     This -> InvarLeft   = 0;
     This -> InvarRight  = 0;
-    This -> LenRequire  = 0;
+    This -> LenRequire  = 1000;
     This -> FixedLength = 0;
     This -> Velocity    = 0;
-    This -> Volume      = 0;
+    This -> Volume      = 100;
     This -> Modulation  = 0;
     
     This -> FlagPara.Breathness    = 50;
