@@ -7,6 +7,12 @@ void WinePathToUnix(String* Dest, String* Sorc, String* WineDir)
     String TempStr;
     String_Ctor(& TempStr);
     
+    if(Sorc -> Data[1] != ':')
+    {
+        String_From(Dest, Sorc);
+        return;
+    }
+
     for(i = 0; i < String_GetLength(Sorc); i ++)
         if(Sorc -> Data[i] == '\\')
             Sorc -> Data[i] = '/';
