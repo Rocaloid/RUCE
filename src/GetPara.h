@@ -5,10 +5,23 @@
 
 RClass(RUCE_ResamplerPara)
 {
+    //Public
     String Input, Output;
+    
     float InvarLeft, InvarRight;
     float LenRequire, FixedLength;
     float Velocity, Volume, Modulation;
+    
+    struct
+    {
+        float Breathness;
+        float Gender;
+        float DeltaDuration;
+        float PhaseSync;
+        int   Verbose;
+    } FlagPara;
+    
+    
     PMatch_Float_Float Freq;
 };
 

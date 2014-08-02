@@ -44,7 +44,7 @@ static void InterpFetchHNMFrame(_HNMFrame* Dest, _List_HNMFrame* Sorc,
     RCall(_HNMFrame, From)(Dest, LHNM);
 }
 
-int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
+int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     CSVP_PitchModel* PM, RUCE_ResamplerPara* Para)
 {
     int i, j;
@@ -226,6 +226,41 @@ int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         CSVP_PitchConvertHNMFrame_Float(& TempCont, & TempHNM, PM, F0, 10000,
             SampleRate);
         
+        if(Para -> FlagPara.Breathness != 50.0)
+            RCall(CDSP2_VCAdd, Real)(TempCont.Noiz, TempCont.Noiz,
+                log(Para -> FlagPara.Breathness / 50.0),
+                WINSIZE / 2 + 1);
+        
+        if(Para -> FlagPara.Gender != 0)
+        {
+            _HNMContour NewCont;
+            RCall(_HNMContour, CtorSize)(& NewCont, WINSIZE);
+            Real GenderCoef = (Para -> FlagPara.Gender + 100.0) / 100.0;
+            Real SorcAnchor[2], DestAnchor[2];
+            
+            SorcAnchor[0] = 0;
+            DestAnchor[0] = 0;
+            if(GenderCoef > 1)
+            {
+                DestAnchor[1] = WINSIZE / 2 + 1;
+                SorcAnchor[1] = DestAnchor[1] / GenderCoef;
+            }else
+            {
+                SorcAnchor[1] = WINSIZE / 2 + 1;
+                DestAnchor[1] = SorcAnchor[1] * GenderCoef;
+            }
+            RCall(CDSP2_VSet, Real)(NewCont.Hmnc, -999, WINSIZE / 2 + 1);
+            RCall(CDSP2_VSet, Real)(NewCont.Noiz, -999, WINSIZE / 2 + 1);
+            
+            _MapStretch(NewCont.Hmnc, TempCont.Hmnc, DestAnchor, SorcAnchor,
+                2, WINSIZE / 2 + 1);
+            _MapStretch(NewCont.Noiz, TempCont.Noiz, DestAnchor, SorcAnchor,
+                2, WINSIZE / 2 + 1);
+            
+            RCall(_HNMContour, From)(& TempCont, & NewCont);
+            RCall(_HNMContour, Dtor)(& NewCont);
+        }
+        
         RCall(_HNMFrame, FromContour)(& TempHNM, & TempCont, F0, 8000);
         RCall(_HNMItersizer, Add)(& VowSynth, & TempHNM, Position);
         
@@ -233,7 +268,8 @@ int SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         {
             CSVP_PhaseSyncH_Float(& PhseList.Frames[Trans.LowerIndex], 0);
             CSVP_PhaseContract_Float(& PhseList.Frames[Trans.LowerIndex],
-                CSVP_PitchModel_GetPhseCoh(PM, F0));
+                CSVP_PitchModel_GetPhseCoh(PM, F0) *
+                Para -> FlagPara.PhaseSync);
             RCall(_HNMItersizer, AddPhase)(& VowSynth, & PhseList.Frames
                 [Trans.LowerIndex], Position);
         }
