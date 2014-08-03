@@ -10,6 +10,7 @@ void WinePathToUnix(String* Dest, String* Sorc, String* WineDir)
     if(Sorc -> Data[1] != ':')
     {
         String_From(Dest, Sorc);
+        String_Dtor(& TempStr);
         return;
     }
 
