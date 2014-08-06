@@ -20,7 +20,7 @@ int main(int ArgN, char** Arg)
 {
     RUCE_ResamplerPara Para;
     RUCE_ResamplerPara_Ctor(& Para);
-    printf("RUCE - Rocaloid UTAU Compatible Engine (1.0.0-alpha1)\n");
+    printf("RUCE - Rocaloid UTAU Compatible Engine (1.0.0-alpha2)\n");
     printf("  License: GNU GPL v3 (http://www.gnu.org/licenses/gpl-3.0.txt)\n");
     printf("  www.rocaloid.org\n");
     

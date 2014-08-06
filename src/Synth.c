@@ -214,6 +214,12 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_HNMContour, Ctor)(& TempCont);
     int Position = VowPulse.Frames[0];
     int Count = 1;
+    
+    Para -> FlagPara.Gender = Para -> FlagPara.Gender < -99.0 ? -99.0 :
+        Para -> FlagPara.Gender;
+    Para -> FlagPara.Gender = Para -> FlagPara.Gender >  99.0 ?  99.0 :
+        Para -> FlagPara.Gender;
+                
     while(Position < Dest -> Size - SorcDB -> HopSize)
     {
         //TODO: Add linear interpolation
@@ -236,12 +242,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
             _HNMContour NewCont;
             RCall(_HNMContour, CtorSize)(& NewCont, WINSIZE);
             
-            Para -> FlagPara.Gender = Para -> FlagPara.Gender < -99.0 ? -99.0 :
-                Para -> FlagPara.Gender;
-            Para -> FlagPara.Gender = Para -> FlagPara.Gender >  99.0 ?  99.0 :
-                Para -> FlagPara.Gender;
-            Para -> FlagPara.Gender *= -1.0;
-            Real GenderCoef = (Para -> FlagPara.Gender + 100.0) / 100.0;
+            Real GenderCoef = (100.0 - Para -> FlagPara.Gender) / 100.0;
             Real SorcAnchor[2], DestAnchor[2];
             
             SorcAnchor[0] = 0;
