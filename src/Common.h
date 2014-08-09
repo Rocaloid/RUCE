@@ -6,6 +6,8 @@
 #define _Spectrum CDSP2_Spectrum_Float
 #define _PSOLAItersizer CSVP_PSOLAItersizer_Float
 #define _HNMItersizer CSVP_HNMItersizer_Float
+#define _SinusoidIterlyzer CSVP_SinusoidIterlyzer_Float
+#define _SinusoidItersizer CSVP_SinusoidItersizer_Float
 #define _FWindow_T RFNL_FWindow_Gnrc_Float
 #define _FWindow CDSP2_FWindow_Float
 #define _DataFrame CDSP2_DataFrame_Float
