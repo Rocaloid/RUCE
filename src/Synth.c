@@ -1,5 +1,5 @@
 #include "Synth.h"
-
+/*
 static void HNMFrameAndPhaseFromWave(_HNMFrame* Dest, _DataFrame* DestPhse,
     _Wave* Sorc, Real F0, int Position)
 {
@@ -22,7 +22,7 @@ static void HNMFrameAndPhaseFromWave(_HNMFrame* Dest, _DataFrame* DestPhse,
     
     RDelete(& Spec1, & Spec2);
 }
-
+*/
 static void InterpFetchHNMFrame(_HNMFrame* Dest, _List_HNMFrame* Sorc,
     _Transition* Trans)
 {
@@ -65,17 +65,20 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     
     //Initialize waves
     Verbose("Initializing waves...\n");
-    _Wave ConWave, VowWave;
-    RNew(_Wave, & ConWave, & VowWave);
+    _Wave ConWave, VowWave, NozWave;
+    RNew(_Wave, & ConWave, & VowWave, & NozWave);
     Real SampleRate = Sorc -> SampleRate;
     ConWave.SampleRate = SampleRate;
     VowWave.SampleRate = SampleRate;
+    NozWave.SampleRate = SampleRate;
     int DestSize = Para -> LenRequire * SampleRate;
     RCall(_Wave, Resize)(& ConWave, DestSize);
     RCall(_Wave, Resize)(& VowWave, DestSize);
+    RCall(_Wave, Resize)(& NozWave, DestSize);
     RCall(_Wave, Resize)(Dest, DestSize);
     RCall(_Wave, SetWindow)(& ConWave, Window, WINSIZE);
     RCall(_Wave, SetWindow)(& VowWave, Window, WINSIZE);
+    RCall(_Wave, SetWindow)(& NozWave, Window, WINSIZE);
     RCall(_Wave, SetWindow)(Sorc, Window, WINSIZE);
     
     //Source HNM frames
@@ -170,6 +173,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_HNMItersizer, CtorSize)(& VowSynth, WINSIZE);
     RCall(_HNMItersizer, SetHopSize)(& VowSynth, SorcDB -> HopSize);
     RCall(_HNMItersizer, SetWave)(& VowSynth, & VowWave);
+    RCall(_HNMItersizer, SetNoizWave)(& VowSynth, & NozWave);
     
     _HNMFrame TempHNM;
     _HNMContour TempCont;
@@ -195,7 +199,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         
         CSVP_PitchConvertHNMFrame_Float(& TempCont, & TempHNM, PM, F0, 10000,
             SampleRate);
-        /*
+        
         if(Para -> FlagPara.Breathness != 50.0)
             RCall(CDSP2_VCAdd, Real)(TempCont.Noiz, TempCont.Noiz,
                 log(Para -> FlagPara.Breathness / 50.0),
@@ -230,8 +234,9 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
             
             RCall(_HNMContour, From)(& TempCont, & NewCont);
             RCall(_HNMContour, Dtor)(& NewCont);
-        }*/
+        }
         
+        //RCall(CDSP2_VCAdd, Real)(TempCont.Noiz, TempCont.Noiz, -5, WINSIZE / 2 + 1);
         RCall(_HNMFrame, FromContour)(& TempHNM, & TempCont, F0, 8000);
         RCall(_HNMItersizer, Add)(& VowSynth, & TempHNM, Position);
         
@@ -253,22 +258,31 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     //HNM synthesis
     Verbose("HNM synthesis...\n");
     VowSynth.Option.PhaseControl = 1;
-    int ConcatPos = TopOf(SAna.PulseList.Frames) - SorcDB -> HopSize;
-    int PhseIndex = CDSP2_List_Int_IndexBefore(& VowSynth.PulseList, ConcatPos);
-    printf("%d\n", ConcatPos);
+    int ConcatPos = SorcDB -> VOT - 1500;
+    int PhseIndex = CDSP2_List_Int_IndexAfter(& VowSynth.PulseList, ConcatPos);
     RCall(_HNMItersizer, SetPosition)(& VowSynth, ConcatPos);
     RCall(_HNMItersizer, SetInitPhase)(& VowSynth,
-        & PhseList.Frames[PhseList.Frames_Index / 2]);
+        & PhseList.Frames[PhseIndex]);
     RCall(_HNMItersizer, IterNextTo)(& VowSynth, Dest -> Size -
         SorcDB -> HopSize * 2);
     RCall(_HNMItersizer, PrevTo)(& VowSynth, VowSynth.PulseList.Frames[0] + 1);
     
     //Concatenation
     Verbose("Concatenating...\n");
-    for(i = 0; i < SorcDB -> HopSize; i ++)
-        ConWave.Data[ConcatPos + i] *= 1.0 - (Real)i / SorcDB -> HopSize;
+    int ConcatLen = 3000;
+    for(i = 0; i < ConcatLen; i ++)
+    {
+        ConWave.Data[ConcatPos + i] *= 1.0 - (Real)i / ConcatLen;
+        NozWave.Data[ConcatPos + i] *= (Real)i / ConcatLen;
+    }
+    RCall(CDSP2_VSet, Real)(NozWave.Data, 0, ConcatPos);
+    RCall(CDSP2_VSet, Real)(ConWave.Data + i + ConcatPos, 0,
+        ConWave.Size - i - ConcatPos);
     
-    RCall(CDSP2_VAdd, Real)(Dest -> Data, ConWave.Data, VowWave.Data,
+    RCall(_Wave, From)(Dest, & NozWave);
+    RCall(CDSP2_VAdd, Real)(Dest -> Data, Dest -> Data, ConWave.Data,
+        Dest -> Size);
+    RCall(CDSP2_VAdd, Real)(Dest -> Data, Dest -> Data, VowWave.Data,
         Dest -> Size);
     RCall(CDSP2_VCMul, Real)(Dest -> Data, Dest -> Data, Para -> Volume / 100.0,
         Dest -> Size);
@@ -277,7 +291,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RFree(Window);
     RCall(_SinusoidIterlyzer, Dtor)(& SAna);
     RCall(_PMatch, Dtor)(& F0List);
-    RDelete(& DyWin, & ConWave, & VowWave,
+    RDelete(& DyWin, & ConWave, & VowWave, & NozWave,
         & VowList, & PhseList, & VowPulse, & VowMatch, & TimeMatch,
         & VowSynth);
     
