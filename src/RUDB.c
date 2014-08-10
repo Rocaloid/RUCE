@@ -28,17 +28,12 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     }
     if(Header[0] != RUDB_Header)
     {
-        fprintf(stderr, "Bad Header 0x%08x\n", Header[0]);
         return -2;
     }
     if(Header[2] > RUDB_VERSION)
         return -3;
     if(Header[2] == 1) /* remove it after severval months */
-    {
-        fprintf(stderr, "We're not support RUDB version 1 any more.\n"
-                        "Update your rudb, plz!\n");
         return -32768;
-    }
     File_Read_Buffer(& Sorc, CBuffer, 4);
     if(strncmp(CBuffer, "DATA", 4))
         return -4;
@@ -52,12 +47,7 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     
     UInt CorrectCRC = CRC32Sum(Data, DataSize, 0);
     if(Header[1] != CorrectCRC)
-    {
-        fprintf(stderr, "[Error] Bad CRC32 checksum! "
-                        "Correct is 0x%08x, Got 0x%08x!\n", 
-                        CorrectCRC, Header[1]);
         return -6;
-    }
     memcpy(& (Dest -> HopSize), Data, 8);
     Data += 8;
     if(ReverseEndian)
@@ -146,7 +136,6 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
         }
         else
         {
-            fprintf(stderr, "Got bad block 0x%08x! Abort!\n", (*(UInt*)Data));
             Data += 4;
             return -23333;
         }
