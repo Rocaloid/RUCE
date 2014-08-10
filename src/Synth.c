@@ -1,5 +1,5 @@
-#include "Synth.h"
-
+﻿#include "Synth.h"
+/*
 static void HNMFrameAndPhaseFromWave(_HNMFrame* Dest, _DataFrame* DestPhse,
     _Wave* Sorc, Real F0, int Position)
 {
@@ -43,10 +43,12 @@ static void InterpFetchHNMFrame(_HNMFrame* Dest, _List_HNMFrame* Sorc,
         Dest -> Size / 2 + 1);
     RCall(_HNMFrame, From)(Dest, LHNM);
 }
+*/
 
 int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     CSVP_PitchModel* PM, RUCE_ResamplerPara* Para)
 {
+    /*
     int i, j;
     
     CDSP2_SetArch(CDSP2_Arch_Gnrc);
@@ -323,5 +325,5 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         & VowSynth);
     
     return 1;
+    */
 }
-

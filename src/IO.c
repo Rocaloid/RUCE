@@ -1,4 +1,4 @@
-#include "IO.h"
+﻿#include "IO.h"
 #include <RUtil2.h>
 #include <fnmatch.h>
 #include <stdint.h>
@@ -29,7 +29,6 @@ RDtor(RUCE_DB_Frame)
 RCtor(RUCE_DB_Entry)
 {
     Array_Ctor(RUCE_DB_Frame, This -> FrameList);
-    Array_Ctor(int, This -> PulseList);
     This -> Wave = NULL;
     RInit(RUCE_DB_Entry);
 }
@@ -37,7 +36,6 @@ RCtor(RUCE_DB_Entry)
 RDtor(RUCE_DB_Entry)
 {
     Array_ObjDtor(RUCE_DB_Frame, This -> FrameList);
-    Array_Dtor(int, This -> PulseList);
     Array_Dtor(RUCE_DB_Frame, This -> FrameList);
     if(This -> Wave)
         free(This -> Wave);
@@ -173,30 +171,6 @@ int RUCE_DB_LoadEntry (RUCE_DB_Entry* Dest, String* Sorc, String* Path,
     if(RUCE_RUDB_Load(Dest, & l) != 1)
         goto End;
     
-    WaveFile w;
-    WaveFile_Ctor(& w);
-    
-    String_Copy(& l, Path);
-    String_JoinChars(& l, "/");
-    String_Join(& l, Sorc);
-    String_JoinChars(& l, ".wav");
-    
-    /* Fetch Wavesize and wave */
-    
-    if(WaveFile_Open(& w, & l) != 1)
-        goto End;
-    if(w.Header.Channel != 1)
-        goto End;
-    Dest -> Samprate = w.Header.SamplePerSecond;
-    Dest -> WaveSize = w.Header.DataNum;
-    if(Dest -> Wave)
-        free(Dest -> Wave);
-    Dest -> Wave = RAlloc_Float(w.Header.DataNum);
-    WaveFile_FetchAllFloat(& w, Dest -> Wave);
-    
-    WaveFile_Close(& w);
-    
-    WaveFile_Dtor(& w);
     
     Ret = 1;
     
@@ -204,6 +178,38 @@ End:
     String_Dtor(& s);
     String_Dtor(& l);
     return Ret;
+}
+
+int RUCE_DB_LoadExternWave(RUCE_DB_Entry* Dest, String* Sorc, String* Path)
+{
+    WaveFile w;
+    String l;
+    String_Ctor(& l);
+    
+    WaveFile_Ctor(& w);
+    
+    String_Copy(& l, Path);
+    String_JoinChars(& l, "/");
+    String_Join(& l, Sorc);
+    String_JoinChars(& l, ".wav");
+    
+    /* Fetch WaveSize and wave */
+    
+    if(WaveFile_Open(& w, & l) != 1)
+        return -1;
+    if(w.Header.Channel != 1)
+        return -1;
+    Dest -> Samprate = w.Header.SamplePerSecond;
+    Dest -> WaveSize = w.Header.DataNum;
+    if(Dest -> Wave) free(Dest -> Wave);
+    Dest -> Wave = RAlloc_Float(w.Header.DataNum);
+    WaveFile_FetchAllFloat(& w, Dest -> Wave);
+    
+    WaveFile_Close(& w);
+    
+    WaveFile_Dtor(& w);
+    String_Dtor(& l);
+    return 1;
 }
 
 int RUCE_DB_RUDBWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path)
@@ -258,6 +264,7 @@ End:
 
 int RUCE_DB_WaveWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path)
 {
+    fprintf(stderr, "[WARNING] Only for debug!\n");
     int Ret = -1;
     String l;
     String_Ctor(& l);
@@ -294,11 +301,9 @@ End:
 void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
 {
     printf("RUCE_DB_Entry:\n"
-           "    HopSize = %d, NoizSize = %d, \n"
-           "    Frame count = %d, Pulse count = %d, \n"
+           "    HopSize = %d, NoizSize = %d, Frame count = %d\n"
            "    FRME\n", 
-           Sorc -> HopSize, Sorc -> NoizSize, 
-           Sorc -> FrameList_Index + 1, Sorc -> PulseList_Index + 1);
+           Sorc -> HopSize, Sorc -> NoizSize, Sorc -> FrameList_Index + 1);
     for(int i = 0; i <= Sorc -> FrameList_Index; ++ i)
     {
         printf("     |--Pos = %d, Cnt = %d\n", 
@@ -317,14 +322,13 @@ void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
         printf("\b\b]\n");
     }
     
-    printf("    PULS\n");
-    for(int i = 0; i <= Sorc -> PulseList_Index; ++ i)
-        printf("     |  #%d = %d\n", i, Sorc -> PulseList[i]);
+    printf("    WAVE\n");
+    printf("     |--WaveSize = %d, WaveSamprate = %d.\n", 
+           Sorc -> WaveSize, Sorc -> Samprate);
+    printf("     |  (WAVE DATA)\n");
     printf("    EOL3\n");
     
-    printf("    WaveSize = %d, WaveSamprate = %d, " 
-           "VOT = %d, InvarLeft = %d, InvarRight = %d.\n", 
-           Sorc -> WaveSize, Sorc -> Samprate, 
+    printf("VOT = %d, InvarLeft = %d, InvarRight = %d.\n", 
            Sorc -> VOT, Sorc -> InvarLeft, Sorc -> InvarRight);
 }
 
