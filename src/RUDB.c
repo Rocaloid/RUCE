@@ -23,11 +23,14 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     File_Read_Buffer(& Sorc, Header, 12);
     if(Header[0] != RUDB_Header)
     {
-        Endian_Switch_Array_UInt32(Header, 4);
+        Endian_Switch_Array_UInt32(Header, 3);
         ReverseEndian = 1;
     }
     if(Header[0] != RUDB_Header)
+    {
+        fprintf(stderr, "Bad Header 0x%08x\n", Header[0]);
         return -2;
+    }
     if(Header[2] > RUDB_VERSION)
         return -3;
     if(Header[2] == 1) /* remove it after severval months */
@@ -40,7 +43,7 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     if(strncmp(CBuffer, "DATA", 4))
         return -4;
     File_Read_Buffer(& Sorc, & DataSize, 8);
-    
+    if(ReverseEndian) Endian_Switch_UInt64(& DataSize);
     if(DataSize < 8)
         return -5;
     
