@@ -1,28 +1,5 @@
 #include "Synth.h"
-/*
-static void HNMFrameAndPhaseFromWave(_HNMFrame* Dest, _DataFrame* DestPhse,
-    _Wave* Sorc, Real F0, int Position)
-{
-    int WinSize = Sorc -> WinSize;
-    _Spectrum Spec1, Spec2;
-    RCall(_Spectrum, CtorSize)(& Spec1, WinSize);
-    RCall(_Spectrum, CtorSize)(& Spec2, WinSize);
-    
-    RCall(_Spectrum, FromWaveW)(& Spec1, Sorc, Position - WinSize / 2);
-    RCall(_Spectrum, FromWaveW)(& Spec2, Sorc, Position - WinSize / 2 + 1);
-    
-    Real NewF0 = RCall(CSVP_F0FromSuccSpectrum_Peak, Real)(& Spec1, & Spec2, 1,
-        F0 * 0.5, F0 * 1.7);
-    
-    if(NewF0 < 0) NewF0 = F0;
-    int HNum = 8000 / NewF0;
-    RCall(_HNMFrame, Resize)(Dest, WinSize, HNum);
-    RCall(_HNMFrame, FromSpectrumWithPhase)(Dest, DestPhse, & Spec1, NewF0,
-        HNum);
-    
-    RDelete(& Spec1, & Spec2);
-}
-*/
+
 static void InterpFetchHNMFrame(_HNMFrame* Dest, _List_HNMFrame* Sorc,
     _Transition* Trans)
 {
@@ -72,6 +49,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     VowWave.SampleRate = SampleRate;
     NozWave.SampleRate = SampleRate;
     int DestSize = Para -> LenRequire * SampleRate;
+    int SorcSize = TopOf(SorcDB -> FrameList).Position;
     RCall(_Wave, Resize)(& ConWave, DestSize);
     RCall(_Wave, Resize)(& VowWave, DestSize);
     RCall(_Wave, Resize)(& NozWave, DestSize);
@@ -131,7 +109,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     _PMatch F0List;
     RCall(_PMatch, Ctor)(& F0List);
     RCall(_List_HNMFrame, HToPMatch)(& VowList, & F0List, & VowPulse, 0);
-    
+    /*
     RCall(_SinusoidIterlyzer, SetHopSize)(& SAna, 128);
     RCall(_SinusoidIterlyzer, SetWave)(& SAna, Sorc);
     RCall(_SinusoidIterlyzer, SetPosition)(& SAna, SAna.LeftBound);
@@ -142,7 +120,8 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_SinusoidIterlyzer, IterNextTo)(& SAna, SAna.LeftBound + 2000);
     
     RCall(CSVP_NoiseTurbFromSinuList, Real)(& ConWave, Sorc,
-        & SAna.PulseList, & SAna.SinuList, & SAna.PhseList);
+        & SAna.PulseList, & SAna.SinuList, & SAna.PhseList);*/
+    RCall(_Wave, From)(& ConWave, Sorc);
     RCall(_Wave, Resize)(& ConWave, VowWave.Size);
     
     //Time scale
@@ -152,19 +131,18 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_PMatch, Ctor)(& TimeMatch);
     RCall(_PMatch, AddPair)(& TimeMatch, 0, 0);
     RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> VOT, SorcDB -> VOT);
-    
-    if(Dest -> Size > SorcDB -> WaveSize - SorcDB -> InvarRight
-        + SorcDB -> InvarLeft)
+    /*
+    if(Dest -> Size > SorcSize - SorcDB -> InvarRight + SorcDB -> InvarLeft)
     {
         RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> InvarLeft,
             SorcDB -> InvarLeft);
-        RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size - (SorcDB -> WaveSize
+        RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size - (SorcSize
             - SorcDB -> InvarRight), SorcDB -> InvarRight);
     }else
         RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> InvarLeft,
-            (SorcDB -> WaveSize + SorcDB -> VOT) / 2);
-    
-    RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcDB -> WaveSize);
+            (SorcSize + SorcDB -> VOT) / 2);
+    */
+    RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcSize);
     
     //Interpolate target HNM frames
     Verbose("Interpolating & pitch-scaling target HNM frames...\n");
@@ -298,4 +276,3 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     
     return 1;
 }
-

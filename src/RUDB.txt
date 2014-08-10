@@ -1,4 +1,4 @@
-0x42445552 (RUDB(LE) or BDUR(BE), (uint32))
+﻿0x42445552 (RUDB(LE) or BDUR(BE), (uint32))
 Data CRC32 chksum (uint32)
 RUDB Version (uint32)
 
@@ -13,11 +13,18 @@ Frame (FrameBlock)
 Frame (FrameBlock)
 ...
 
+/* ******* PULS HAS BEEN REMOVED ******* */
 PULS (4 chars)
 PulseCount (uint32)
 Pulse (int32)
 Pulse (int32)
 ...
+/* ******* PULS HAS BEEN REMOVED ******* */
+
+WAVE
+Samprate (uint32)
+SampleCount (uint32)
+Wave Data (depends on samplecnt)
 
 EOL3(4 chars, EOF mark, Optional)
 

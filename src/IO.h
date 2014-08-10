@@ -1,4 +1,4 @@
-#ifndef RUCE_IO_H
+﻿#ifndef RUCE_IO_H
 #define RUCE_IO_H
 
 #include <CVESVP.h>
@@ -27,9 +27,7 @@ RClass(RUCE_DB_Entry)
     int HopSize;
     int NoizSize;
     Array_Define(RUCE_DB_Frame, FrameList);
-    Array_Define(int, PulseList);
     
-    /* from wave */
     int WaveSize;
     int Samprate;
     float* Wave;
@@ -43,6 +41,7 @@ RClass(RUCE_DB_Entry)
 void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path);
 int RUCE_DB_LoadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path, 
                       String* RotoPath);
+int RUCE_DB_LoadExternWave(RUCE_DB_Entry* Dest, String* Sorc, String* Path);
 int RUCE_DB_RUDBWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path);
 int RUCE_DB_RotoWriteEntry(RUCE_DB_Entry* Sorc, String* Name, 
                            String* RotoPath);

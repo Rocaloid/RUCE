@@ -97,12 +97,14 @@ int main(int ArgN, char** Arg)
     RUCE_Oto_Entry OtoEntry;
     RUCE_Oto_Entry_Ctor(& OtoEntry);
     int Ret = RUCE_DB_LoadEntry(& DBEntry, & UnitName, & DirName, & RotoPath);
+    
     if(Ret < 1)
     {
         fprintf(stderr, "[Error] Cannot load unit '%s'.\n",
             String_GetChars(& UnitName));
         return 1;
     }
+    
     Ret = RUCE_Oto_LoadEntry(& OtoEntry, & UnitName, & OtoPath);
     if(Ret < 1)
     {
@@ -118,7 +120,8 @@ int main(int ArgN, char** Arg)
     InWave.SampleRate = DBEntry.Samprate;
     OutWave.SampleRate = DBEntry.Samprate;
     if(Para.LenRequire < 0)
-        Para.LenRequire = (Real)DBEntry.WaveSize / InWave.SampleRate;
+        Para.LenRequire = (Real)TopOf(DBEntry.FrameList).Position
+                        / InWave.SampleRate;
     Para.LenRequire += Para.FlagPara.DeltaDuration;
     if(Para.FlagPara.DeltaDuration != 0)
         printf("Adjusted duartion = %f sec.\n", Para.LenRequire);

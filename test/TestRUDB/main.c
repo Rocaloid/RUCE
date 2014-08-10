@@ -1,4 +1,4 @@
-#define WITH_ASSERT_ABORT
+﻿#define WITH_ASSERT_ABORT
 
 #include <RUtil2.h>
 #include <IO.h>
@@ -15,7 +15,10 @@ int main()
     
     printf("TestLoad...\n");
     
-    RAssert(RUCE_DB_LoadEntry(& t, & a, & b, & c) == 1, "Cannot Load Entry!");
+    int RUDBRet = RUCE_DB_LoadEntry(& t, & a, & b, & c);
+    RAssert(RUCE_DB_LoadExternWave(&t, & a, & b) == 1);
+    printf("RUDB_LoadDB returned %d.\n", RUDBRet);
+    RAssert(RUDBRet == 1, "Cannot Load Entry!");
     RUCE_DB_PrintEntry(& t);
     
     String_SetChars(& a, "b");
@@ -24,7 +27,6 @@ int main()
     
     RAssert(RUCE_DB_RUDBWriteEntry(& t, & a, & b) == 1, "Cannot Write RUDB Entry!");
     RAssert(RUCE_DB_RotoWriteEntry(& t, & a, & c) == 1, "Cannot Write Roto Entry!");
-    RAssert(RUCE_DB_WaveWriteEntry(& t, & a, & b) == 1, "Cannot Write Wave Entry!");
     
     RAssert(RUCE_DB_LoadEntry(& r, & a, & b, & c) == 1, "Cannot Load Entry which have be written!");
 

@@ -1,4 +1,4 @@
-#include "RUDB.h"
+﻿#include "RUDB.h"
 #include <stdio.h>
 #include <RUtil2.h>
 
@@ -10,7 +10,7 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     File Sorc;
     File_Ctor(& Sorc);
     if(! File_Open(& Sorc, Path, READONLY))
-        return -1;
+        return -250;
     
     int ReverseEndian = 0;
     
@@ -23,33 +23,42 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     File_Read_Buffer(& Sorc, Header, 12);
     if(Header[0] != RUDB_Header)
     {
-        Endian_Switch_Array_UInt32(Header, 4);
+        Endian_Switch_Array_UInt32(Header, 3);
         ReverseEndian = 1;
     }
     if(Header[0] != RUDB_Header)
+    {
+        //Bad Header
         return -2;
+    }
     if(Header[2] > RUDB_VERSION)
         return -3;
+    if(Header[2] == 1) /* remove it after severval months */
+    {
+        //Old version
+        return -32768;
+    }
     File_Read_Buffer(& Sorc, CBuffer, 4);
     if(strncmp(CBuffer, "DATA", 4))
         return -4;
-    
     File_Read_Buffer(& Sorc, & DataSize, 8);
-    
+    if(ReverseEndian) Endian_Switch_UInt64(& DataSize);
     if(DataSize < 8)
         return -5;
     
     char* Data = malloc(DataSize);
     File_Read_Buffer(& Sorc, Data, DataSize);
     
-    if(Header[1] != CRC32Sum(Data, DataSize, 0))
+    UInt CorrectCRC = CRC32Sum(Data, DataSize, 0);
+    if(Header[1] != CorrectCRC)
+    {
+        //Bad CRC32 checksum.
         return -6;
-    
+    }
     memcpy(& (Dest -> HopSize), Data, 8);
     Data += 8;
     if(ReverseEndian)
         Endian_Switch_Array_Int32(& (Dest -> HopSize), 2);
-    
     while(Data != Data + DataSize)
     {
         if(! strncmp(Data, "FRME", 4))
@@ -106,19 +115,26 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
                 }
             }
         }
-        else if(! strncmp(Data, "PULS", 4))
+        else if(! strncmp(Data, "WAVE", 4))
         {
             Data += 4;
-            memcpy(Header, Data, 4);
+            memcpy(& (Dest -> Samprate), Data, 4);
+            Data += 4;
+            memcpy(& (Dest -> WaveSize), Data, 4);
             Data += 4;
             if(ReverseEndian)
-                Endian_Switch_UInt32(Header);
-            int OldSize = Dest -> PulseList_Index + 1;
-            Array_Resize(int, Dest -> PulseList, Header[0] + OldSize);
-            memcpy(& (Dest -> PulseList[OldSize]), Data, Header[0] * 4);
-            Data += Header[0] * 4;
-            if(ReverseEndian)
-                Endian_Switch_Array_Int32(Dest -> PulseList, Header[0]);
+            {
+                Endian_Switch_Int32(& (Dest -> Samprate));
+                Endian_Switch_Int32(& (Dest -> WaveSize));
+            }
+            if(Dest -> Wave) free(Dest -> Wave);
+            Dest -> Wave = RAlloc_Float(Dest -> WaveSize);
+            UInt SizeToCp = Dest -> WaveSize * sizeof(float);
+            memcpy(Dest -> Wave, Data, SizeToCp);
+            Data += SizeToCp;
+            
+            if(ReverseEndian) 
+                Endian_Switch_Array_Float(Dest -> Wave, Dest -> WaveSize);
         }
         else if(! strncmp(Data, "EOL3", 4))
         {
@@ -127,8 +143,9 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
         }
         else
         {
+            //Bad block
             Data += 4;
-            return -23333;
+            return -200;
         }
     }
     
@@ -149,15 +166,15 @@ int RUCE_RUDB_Save(RUCE_DB_Entry* Sorc, String* Path)
     char* Data, * Curr;
     
     UInt FrameCnt = Sorc -> FrameList_Index + 1;
-    UInt PulseCnt = Sorc -> PulseList_Index + 1;
     
     /**
      * Calculate data size.
-     * HopSize, NoizSize, FRME, FrameCount, PULS, PulseCount, EOL3. (7 * 4)
+     * HopSize, NoizSize, FRME, FrameCount, WAVE, Samprate, SampCnt, EOL3. (8*4)
      * 3 * 4 bytes fixed + 4 * NoizSize + 12 * Count per frame.
-     * 4 * PulseCount.
+     * 8 + WaveSize * sizeof(float)
      */
-    Size += 28 + FrameCnt * (12 + 4 * Sorc -> NoizSize) + PulseCnt * 4;
+    Size += 32 + FrameCnt * (12 + 4 * Sorc -> NoizSize) + 
+                    Sorc -> WaveSize * sizeof(float);
     for(int i = 0; i < FrameCnt; ++ i)
         Size += 12 * (Sorc -> FrameList[i].Freq_Index + 1);
     
@@ -193,14 +210,17 @@ int RUCE_RUDB_Save(RUCE_DB_Entry* Sorc, String* Path)
         }
     }
     
-    if(PulseCnt)
+    if(Sorc -> WaveSize)
     {
-        memcpy(Curr, "PULS", 4);
+        memcpy(Curr, "WAVE", 4);
         Curr += 4;
-        memcpy(Curr, & (PulseCnt), 4);
+        memcpy(Curr, & (Sorc -> Samprate), 4);
         Curr += 4;
-        memcpy(Curr, Sorc -> PulseList, 4 * PulseCnt);
-        Curr += 4 * PulseCnt;
+        memcpy(Curr, & (Sorc -> WaveSize), 4);
+        Curr += 4;
+        UInt SizeToCp = Sorc -> WaveSize * sizeof(float);
+        memcpy(Curr, Sorc -> Wave, SizeToCp);
+        Curr += SizeToCp;
     }
     
     memcpy(Curr, "EOL3", 4);
