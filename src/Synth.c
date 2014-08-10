@@ -127,7 +127,6 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_SinusoidIterlyzer, Ctor)(& SAna);
     SAna.GenPhase = 1;
     SAna.LeftBound = SorcDB -> VOT + 1500;
-    SAna.GDOption.Iteration = 100;
     
     _PMatch F0List;
     RCall(_PMatch, Ctor)(& F0List);
@@ -153,7 +152,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_PMatch, Ctor)(& TimeMatch);
     RCall(_PMatch, AddPair)(& TimeMatch, 0, 0);
     RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> VOT, SorcDB -> VOT);
-    /*
+    
     if(Dest -> Size > SorcDB -> WaveSize - SorcDB -> InvarRight
         + SorcDB -> InvarLeft)
     {
@@ -164,7 +163,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     }else
         RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> InvarLeft,
             (SorcDB -> WaveSize + SorcDB -> VOT) / 2);
-    */
+    
     RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcDB -> WaveSize);
     
     //Interpolate target HNM frames
@@ -236,7 +235,6 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
             RCall(_HNMContour, Dtor)(& NewCont);
         }
         
-        //RCall(CDSP2_VCAdd, Real)(TempCont.Noiz, TempCont.Noiz, -5, WINSIZE / 2 + 1);
         RCall(_HNMFrame, FromContour)(& TempHNM, & TempCont, F0, 8000);
         RCall(_HNMItersizer, Add)(& VowSynth, & TempHNM, Position);
         
@@ -258,14 +256,17 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     //HNM synthesis
     Verbose("HNM synthesis...\n");
     VowSynth.Option.PhaseControl = 1;
-    int ConcatPos = SorcDB -> VOT - 1500;
+    int FirstPos  = VowSynth.PulseList.Frames[0];
+    int ConcatPos = SorcDB -> VOT - 1500 < FirstPos ?
+                    FirstPos : SorcDB -> VOT - 1500;
     int PhseIndex = CDSP2_List_Int_IndexAfter(& VowSynth.PulseList, ConcatPos);
     RCall(_HNMItersizer, SetPosition)(& VowSynth, ConcatPos);
     RCall(_HNMItersizer, SetInitPhase)(& VowSynth,
         & PhseList.Frames[PhseIndex]);
-    RCall(_HNMItersizer, IterNextTo)(& VowSynth, Dest -> Size -
-        SorcDB -> HopSize * 2);
-    RCall(_HNMItersizer, PrevTo)(& VowSynth, VowSynth.PulseList.Frames[0] + 1);
+    RCall(_HNMItersizer, IterNextTo)(& VowSynth,
+        TopOf(VowSynth.PulseList.Frames));
+    if(ConcatPos > FirstPos)
+    RCall(_HNMItersizer, PrevTo)(& VowSynth, FirstPos);
     
     //Concatenation
     Verbose("Concatenating...\n");
