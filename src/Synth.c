@@ -125,13 +125,21 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
             SorcDB -> InvarLeft);
         RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size - (SorcSize
             - SorcDB -> InvarRight), SorcDB -> InvarRight);
+    }else
+    {
+        Real Ratio = (Real)(SorcDB -> InvarLeft - SorcDB -> VOT)
+                   / (SorcDB -> InvarLeft - SorcDB -> VOT
+                     + (SorcSize - SorcDB -> InvarRight));
+        printf("Ratio: %f\n", Ratio);
+        int  P1    = SorcDB -> VOT + Ratio * (Dest -> Size - SorcDB -> VOT)
+                   * 0.9;
+        int  P2    = SorcDB -> VOT + Ratio * (Dest -> Size - SorcDB -> VOT);
+        printf("P1:%d P2:%d\n", P1, P2);
+        RCall(_PMatch, AddPair)(& TimeMatch, P1, SorcDB -> InvarLeft);
+        RCall(_PMatch, AddPair)(& TimeMatch, P2, SorcDB -> InvarRight);
     }
-    /*else
-        RCall(_PMatch, AddPair)(& TimeMatch, ,
-            (SorcSize ) / 2);
-    */
     RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcSize);
-    //RCall(_PMatch, Print)(& TimeMatch);
+    RCall(_PMatch, Print)(& TimeMatch);
     
     //Interpolate target HNM frames
     Verbose("Interpolating & pitch-scaling target HNM frames...\n");

@@ -8,7 +8,7 @@
 #include <RUtil2.h>
 
 #define CWineDir "/home/sleepwalking/.wine"
-    
+
 #ifdef _WIN64
 #define _WIN
 #endif
