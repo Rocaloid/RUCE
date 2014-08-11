@@ -99,28 +99,15 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(CDSP2_List_Int_ToPMatch, Real)(& VowPulse, & VowMatch);
     
     
-    //Aperiodic component separation
-    Verbose("Aperiodic component separation...\n");
-    _SinusoidIterlyzer SAna;
-    RCall(_SinusoidIterlyzer, Ctor)(& SAna);
-    SAna.GenPhase = 1;
-    SAna.LeftBound = SorcDB -> VOT + 1500;
-    
+    Verbose("Initializing HNM frames...\n");
+    /*
+        Unnecessary part.
+        We someday may need this F0 curve.
+    */
     _PMatch F0List;
     RCall(_PMatch, Ctor)(& F0List);
     RCall(_List_HNMFrame, HToPMatch)(& VowList, & F0List, & VowPulse, 0);
-    /*
-    RCall(_SinusoidIterlyzer, SetHopSize)(& SAna, 128);
-    RCall(_SinusoidIterlyzer, SetWave)(& SAna, Sorc);
-    RCall(_SinusoidIterlyzer, SetPosition)(& SAna, SAna.LeftBound);
-    RCall(_SinusoidIterlyzer, SetUpperFreq)(& SAna, 9000);
-    RCall(_SinusoidIterlyzer, SetPitch)(& SAna, & F0List);
     
-    RCall(_SinusoidIterlyzer, PrevTo)(& SAna, 0);
-    RCall(_SinusoidIterlyzer, IterNextTo)(& SAna, SAna.LeftBound + 2000);
-    
-    RCall(CSVP_NoiseTurbFromSinuList, Real)(& ConWave, Sorc,
-        & SAna.PulseList, & SAna.SinuList, & SAna.PhseList);*/
     RCall(_Wave, From)(& ConWave, Sorc);
     RCall(_Wave, Resize)(& ConWave, VowWave.Size);
     
@@ -131,18 +118,20 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_PMatch, Ctor)(& TimeMatch);
     RCall(_PMatch, AddPair)(& TimeMatch, 0, 0);
     RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> VOT, SorcDB -> VOT);
-    /*
+    
     if(Dest -> Size > SorcSize - SorcDB -> InvarRight + SorcDB -> InvarLeft)
     {
         RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> InvarLeft,
             SorcDB -> InvarLeft);
         RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size - (SorcSize
             - SorcDB -> InvarRight), SorcDB -> InvarRight);
-    }else
-        RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> InvarLeft,
-            (SorcSize + SorcDB -> VOT) / 2);
+    }
+    /*else
+        RCall(_PMatch, AddPair)(& TimeMatch, ,
+            (SorcSize ) / 2);
     */
     RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcSize);
+    //RCall(_PMatch, Print)(& TimeMatch);
     
     //Interpolate target HNM frames
     Verbose("Interpolating & pitch-scaling target HNM frames...\n");
@@ -163,7 +152,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         Para -> FlagPara.Gender;
     Para -> FlagPara.Gender = Para -> FlagPara.Gender >  99.0 ?  99.0 :
         Para -> FlagPara.Gender;
-                
+    
     while(Position < Dest -> Size - SorcDB -> HopSize)
     {
         //TODO: Add linear interpolation
@@ -268,7 +257,6 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     
     Verbose("Freeing memory...\n");
     RFree(Window);
-    RCall(_SinusoidIterlyzer, Dtor)(& SAna);
     RCall(_PMatch, Dtor)(& F0List);
     RDelete(& DyWin, & ConWave, & VowWave, & NozWave,
         & VowList, & PhseList, & VowPulse, & VowMatch, & TimeMatch,
