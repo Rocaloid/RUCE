@@ -7,12 +7,15 @@ endif()
 
 add_definitions(-std=gnu99 -Wall)
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES armv7l)
+    #Make it support armv7 platform
+    add_definitions(-march=armv7 -mfloat-abi=hard -mfpu=neon)
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64* OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES amd64*)
     add_definitions(-march=x86-64 -mtune=generic -mtune=core2 -mtune=core-avx-i)
-elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES i686* OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES i386*)
     add_definitions(-march=i686 -mtune=generic -mtune=core2 -mtune=core-avx-i)
 else()
-    message(FATAL_ERROR "Your system is unsupported!")
+    message(FATAL_ERROR ${CMAKE_SYSTEM_PROCESSOR}: "Your system is unsupported!")
 endif()
 
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
