@@ -42,8 +42,16 @@ if(IS_BIG_ENDIAN)
 endif()
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/FileCopy.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/Version.cmake)
+
 
 enable_testing()
 
 add_subdirectory(src)
 add_subdirectory(test)
+
+configure_file(
+"${CMAKE_CURRENT_SOURCE_DIR}/src/config.h.in"
+"${PROJECT_BINARY_DIR}/src/config.h"
+)
+
