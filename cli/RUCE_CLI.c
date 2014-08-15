@@ -8,8 +8,10 @@
 #include <RUtil2.h>
 #include <config.h>
 
-#define CWineDir "/home/sleepwalking/.wine"
-    
+#ifndef CWineDir
+    #define CWineDir "/home/sleepwalking/.wine"
+#define
+
 #ifdef _WIN64
 #define _WIN
 #endif
