@@ -10,7 +10,7 @@
 
 #ifndef CWineDir
     #define CWineDir "/home/sleepwalking/.wine"
-#define
+#endif
 
 #ifdef _WIN64
 #define _WIN
