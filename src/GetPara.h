@@ -18,6 +18,9 @@ RClass(RUCE_ResamplerPara)
         float Gender;
         float DeltaDuration;
         float PhaseSync;
+        
+        float DeltaSeg1;
+        float DeltaSeg2;
         int   Verbose;
     } FlagPara;
     

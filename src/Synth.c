@@ -21,6 +21,37 @@ static void InterpFetchHNMFrame(_HNMFrame* Dest, _List_HNMFrame* Sorc,
     RCall(_HNMFrame, From)(Dest, LHNM);
 }
 
+typedef struct
+{
+    Real P1, P2, P3;
+} Segmentation;
+
+static Segmentation Resegment(Segmentation Sorc, Real NP3, Real DP1, Real DP2)
+{
+    Segmentation Ret;
+    
+    Real P1, P2;
+    P1 = Sorc.P1;
+    P2 = NP3 - (Sorc.P3 - Sorc.P2);
+    
+    if(P2 < P1)
+        P1 = P2 = Sorc.P1 / (Sorc.P1 + Sorc.P2) * NP3;
+    
+    P1 += DP1;
+    P2 -= DP2;
+    
+    if(P2 < P1)
+    {
+        P1 = P2 = (P2 + P1) / 2.0;
+        if(P1 < 0) P1 = P2 = 0;
+    }
+    
+    Ret.P1 = P1;
+    Ret.P2 = P2;
+    Ret.P3 = NP3;
+    return Ret;
+}
+
 int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     CSVP_PitchModel* PM, RUCE_ResamplerPara* Para)
 {
@@ -119,25 +150,31 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_PMatch, AddPair)(& TimeMatch, 0, 0);
     RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> VOT, SorcDB -> VOT);
     
-    if(Dest -> Size > SorcSize - SorcDB -> InvarRight + SorcDB -> InvarLeft)
+    Segmentation Orig, Nseg;
+    Orig.P1 = (Real)(SorcDB -> InvarLeft  - SorcDB -> VOT) / SampleRate;
+    Orig.P2 = (Real)(SorcDB -> InvarRight - SorcDB -> VOT) / SampleRate;
+    Orig.P3 = (Real)(SorcSize - SorcDB -> VOT) / SampleRate;
+    
+    Nseg = Resegment(Orig, (Real)Dest -> Size / SampleRate,
+        Para -> FlagPara.DeltaSeg1, Para -> FlagPara.DeltaSeg2);
+    if(Nseg.P1 == Nseg.P2)
     {
-        RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> InvarLeft,
+        RCall(_PMatch, AddPair)(& TimeMatch,
+            SorcDB -> VOT + SampleRate * 0.9 * Nseg.P1,
             SorcDB -> InvarLeft);
-        RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size - (SorcSize
-            - SorcDB -> InvarRight), SorcDB -> InvarRight);
+        RCall(_PMatch, AddPair)(& TimeMatch,
+            SorcDB -> VOT + SampleRate * 1.1 * Nseg.P1,
+            SorcDB -> InvarRight);
     }else
     {
-        Real Ratio = (Real)(SorcDB -> InvarLeft - SorcDB -> VOT)
-                   / (SorcDB -> InvarLeft - SorcDB -> VOT
-                     + (SorcSize - SorcDB -> InvarRight));
-        printf("Ratio: %f\n", Ratio);
-        int  P1    = SorcDB -> VOT + Ratio * (Dest -> Size - SorcDB -> VOT)
-                   * 0.9;
-        int  P2    = SorcDB -> VOT + Ratio * (Dest -> Size - SorcDB -> VOT);
-        printf("P1:%d P2:%d\n", P1, P2);
-        RCall(_PMatch, AddPair)(& TimeMatch, P1, SorcDB -> InvarLeft);
-        RCall(_PMatch, AddPair)(& TimeMatch, P2, SorcDB -> InvarRight);
+        RCall(_PMatch, AddPair)(& TimeMatch,
+            SorcDB -> VOT + Nseg.P1 * SampleRate,
+            SorcDB -> InvarLeft);
+        RCall(_PMatch, AddPair)(& TimeMatch,
+            SorcDB -> VOT + Nseg.P2 * SampleRate,
+            SorcDB -> InvarRight);
     }
+    
     RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcSize);
     RCall(_PMatch, Print)(& TimeMatch);
     
@@ -272,3 +309,4 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     
     return 1;
 }
+

@@ -30,6 +30,8 @@ RCtor(RUCE_ResamplerPara)
     This -> FlagPara.DeltaDuration = 0;
     This -> FlagPara.PhaseSync     = 1;
     This -> FlagPara.Verbose       = 0;
+    This -> FlagPara.DeltaSeg1     = 0;
+    This -> FlagPara.DeltaSeg2     = 0;
     
     RInit(RUCE_ResamplerPara);
 }
@@ -160,6 +162,20 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
                         if(Value <= 0)
                             fprintf(stderr, "[Warning] Invalid gender parameter"
                                 ".\n");
+                    break;
+                    case 'S':
+                        if(i + 2 > FlagLen || (CFlags[i + 1] != '1' &&
+                           CFlags[i + 1] != '2'))
+                        {
+                            fprintf(stderr, "[Warning] Invalid segmentation " \
+                                "adjustment parameter.\n");
+                            break;
+                        }
+                        Value = atof(CFlags + i + 2);
+                        if(CFlags[i + 1] == '1')
+                            Dest -> FlagPara.DeltaSeg1 = Value;
+                        if(CFlags[i + 1] == '2')
+                            Dest -> FlagPara.DeltaSeg2 = Value;
                     break;
                     case 'd':
                         Dest -> FlagPara.DeltaDuration = Value;
