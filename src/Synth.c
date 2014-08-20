@@ -1,5 +1,19 @@
 #include "Synth.h"
 
+static void InterpHNMFrame(_HNMFrame* Dest, _HNMFrame* Sorc1, _HNMFrame* Sorc2,
+    Real Ratio)
+{
+    RCall(_HNMFrame, Resize)(Dest, Sorc1 -> Size, Sorc1 -> Hmnc.Size);
+    RCall(_Sinusoid, InterpFrom)(& Dest -> Hmnc,
+        & Sorc1 -> Hmnc, & Sorc2 -> Hmnc, Ratio);
+    
+    RCall(CDSP2_VSet,  Real)(Dest -> Noiz, 0, Dest -> Size / 2 + 1);
+    RCall(CDSP2_VFCMA, Real)(Dest -> Noiz, Sorc1 -> Noiz, 1.0 - Ratio,
+        Dest -> Size / 2 + 1);
+    RCall(CDSP2_VFCMA, Real)(Dest -> Noiz, Sorc2 -> Noiz, Ratio,
+        Dest -> Size / 2 + 1);
+}
+
 static void InterpFetchHNMFrame(_HNMFrame* Dest, _List_HNMFrame* Sorc,
     _Transition* Trans)
 {
@@ -9,16 +23,7 @@ static void InterpFetchHNMFrame(_HNMFrame* Dest, _List_HNMFrame* Sorc,
     _HNMFrame* LHNM = & Sorc -> Frames[LIndex];
     _HNMFrame* HHNM = & Sorc -> Frames[HIndex];
     
-    RCall(_HNMFrame, Resize)(Dest, LHNM -> Size, LHNM -> Hmnc.Size);
-    RCall(_Sinusoid, InterpFrom)(& Dest -> Hmnc, & LHNM -> Hmnc, & HHNM -> Hmnc,
-        Trans -> X);
-    
-    RCall(CDSP2_VSet,  Real)(Dest -> Noiz, 0, Dest -> Size / 2 + 1);
-    RCall(CDSP2_VFCMA, Real)(Dest -> Noiz, LHNM -> Noiz, 1.0 - Trans -> X,
-        Dest -> Size / 2 + 1);
-    RCall(CDSP2_VFCMA, Real)(Dest -> Noiz, HHNM -> Noiz, Trans -> X,
-        Dest -> Size / 2 + 1);
-    RCall(_HNMFrame, From)(Dest, LHNM);
+    InterpHNMFrame(Dest, LHNM, HHNM, Trans -> X);
 }
 
 typedef struct
@@ -262,8 +267,25 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         Position += SorcDB -> HopSize;
         Count ++;
     }
-    RCall(_HNMFrame, Dtor)(& TempHNM);
     RCall(_HNMContour, Dtor)(& TempCont);
+    
+    //Smoothen
+    #define DecayRate 0.8
+    #define DecayLen  5
+    int CenterPos = Nseg.P1 * SampleRate + SorcDB -> VOT;
+    int CenterIndex = CDSP2_List_Int_IndexAfter(
+                        & VowSynth.PulseList, CenterPos);
+    int LDecay = CenterIndex - DecayLen > 0 ? CenterIndex - 5 : 1;
+    int HDecay = CenterIndex + DecayLen < VowSynth.PulseList.Frames_Index
+               ? CenterIndex + DecayLen : VowSynth.PulseList.Frames_Index - 1;
+    for(i = LDecay; i < HDecay; i ++)
+    {
+        RCall(_HNMFrame, From)(& TempHNM, & VowSynth.HNMList.Frames[i]);
+        InterpHNMFrame(& VowSynth.HNMList.Frames[i    ],
+            & TempHNM, & VowSynth.HNMList.Frames[i - 1], DecayRate);
+    }
+    
+    RCall(_HNMFrame, Dtor)(& TempHNM);
     
     //HNM synthesis
     Verbose("HNM synthesis...\n");
