@@ -3,12 +3,12 @@
 #include <stdio.h>
 #include <RUtil2.h>
 
-void PrintUsage()
+void PrintUsage(char *FileName)
 {
-    printf("Usage: RUCE_CLI <input file> <output file> <pitch percent>\n"
+    printf("Usage: %s <input file> <output file> <pitch percent>\n"
            "                <velocity> [<flags> [<offset> <length require>\n"
            "                [<fixed length> [<end blank> [<volume>\n"
-           "                [<modulation> [<pitch bend>...]]]]]]]\n");
+           "                [<modulation> [<pitch bend>...]]]]]]]\n", FileName);
 }
 
 RCtor(RUCE_ResamplerPara)
@@ -218,7 +218,7 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
             break;
             
         default:
-            PrintUsage();
+            PrintUsage(argv[0]);
             Ret = -1;
     };
     

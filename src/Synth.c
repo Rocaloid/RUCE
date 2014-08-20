@@ -135,7 +135,8 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(CDSP2_List_Int_ToPMatch, Real)(& VowPulse, & VowMatch);
     
     
-    Verbose("Initializing HNM frames...\n");
+    Verbose("Initializing aperiodic component of %d samples...\n",
+        Sorc -> Size);
     /*
         Unnecessary part.
         We someday may need this F0 curve.
@@ -272,6 +273,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     //Smoothen
     #define DecayRate 0.8
     #define DecayLen  5
+    Verbose("Smoothening transition...\n");
     int CenterPos = Nseg.P1 * SampleRate + SorcDB -> VOT;
     int CenterIndex = CDSP2_List_Int_IndexAfter(
                         & VowSynth.PulseList, CenterPos);
@@ -289,6 +291,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     
     //HNM synthesis
     Verbose("HNM synthesis...\n");
+    Verbose("%d HNM frames.\n", VowSynth.PulseList.Frames_Index + 1);
     VowSynth.Option.PhaseControl = 1;
     int FirstPos  = VowSynth.PulseList.Frames[0];
     int ConcatPos = SorcDB -> VOT - 1500 < FirstPos ?
@@ -303,7 +306,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_HNMItersizer, PrevTo)(& VowSynth, FirstPos);
     
     //Concatenation
-    Verbose("Concatenating...\n");
+    Verbose("Concatenating at %d...\n", ConcatPos);
     int ConcatLen = 3000;
     for(i = 0; i < ConcatLen; i ++)
     {
