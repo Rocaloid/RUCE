@@ -51,7 +51,7 @@ add_subdirectory(src)
 add_subdirectory(test)
 
 configure_file(
-"${CMAKE_CURRENT_SOURCE_DIR}/src/config.h.in"
-"${PROJECT_BINARY_DIR}/src/config.h"
+"${CMAKE_CURRENT_SOURCE_DIR}/src/Config.h.in"
+"${PROJECT_BINARY_DIR}/src/Config.h"
 )
 

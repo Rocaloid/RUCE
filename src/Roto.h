@@ -9,10 +9,10 @@ RClass(RUCE_Roto_Entry)
     
     //Public
     String Name;
-    int VOT;
-    int InvarLeft;
-    int InvarRight;
-    int Overlap;
+    float VOT;
+    float InvarLeft;
+    float InvarRight;
+    float Overlap;
 };
 
 RClass(RUCE_Roto)

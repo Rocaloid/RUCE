@@ -152,33 +152,32 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     //X: Dest -> Y: Sorc
     Verbose("Time mapping for HNM composition...\n");
     _PMatch TimeMatch;
+    int VOTSample = SorcDB -> VOT / 1000.0 * SampleRate;
+    int ILSample  = SorcDB -> InvarLeft  / 1000.0 * SampleRate;
+    int IRSample  = SorcDB -> InvarRight / 1000.0 * SampleRate;
     RCall(_PMatch, Ctor)(& TimeMatch);
     RCall(_PMatch, AddPair)(& TimeMatch, 0, 0);
-    RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> VOT, SorcDB -> VOT);
+    RCall(_PMatch, AddPair)(& TimeMatch, VOTSample, VOTSample);
     
     Segmentation Orig, Nseg;
-    Orig.P1 = (Real)(SorcDB -> InvarLeft  - SorcDB -> VOT) / SampleRate;
-    Orig.P2 = (Real)(SorcDB -> InvarRight - SorcDB -> VOT) / SampleRate;
-    Orig.P3 = (Real)(SorcSize - SorcDB -> VOT) / SampleRate;
+    Orig.P1 = SorcDB -> InvarLeft  - SorcDB -> VOT;
+    Orig.P2 = SorcDB -> InvarRight - SorcDB -> VOT;
+    Orig.P3 = (Real)SorcSize / SampleRate - SorcDB -> VOT;
     
     Nseg = Resegment(Orig, (Real)Dest -> Size / SampleRate,
         Para -> FlagPara.DeltaSeg1, Para -> FlagPara.DeltaSeg2);
     if(Nseg.P1 == Nseg.P2)
     {
         RCall(_PMatch, AddPair)(& TimeMatch,
-            SorcDB -> VOT + SampleRate * 0.9 * Nseg.P1,
-            SorcDB -> InvarLeft);
+            VOTSample + SampleRate * 0.9 * Nseg.P1, ILSample);
         RCall(_PMatch, AddPair)(& TimeMatch,
-            SorcDB -> VOT + SampleRate * 1.1 * Nseg.P1,
-            SorcDB -> InvarRight);
+            VOTSample + SampleRate * 1.1 * Nseg.P1, IRSample);
     }else
     {
         RCall(_PMatch, AddPair)(& TimeMatch,
-            SorcDB -> VOT + Nseg.P1 * SampleRate,
-            SorcDB -> InvarLeft);
+            VOTSample + Nseg.P1 * SampleRate, ILSample);
         RCall(_PMatch, AddPair)(& TimeMatch,
-            SorcDB -> VOT + Nseg.P2 * SampleRate,
-            SorcDB -> InvarRight);
+            VOTSample + Nseg.P2 * SampleRate, IRSample);
     }
     
     RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcSize);
@@ -274,7 +273,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     #define DecayRate 0.8
     #define DecayLen  5
     Verbose("Smoothening transition...\n");
-    int CenterPos = Nseg.P1 * SampleRate + SorcDB -> VOT;
+    int CenterPos = Nseg.P1 * SampleRate + VOTSample;
     int CenterIndex = CDSP2_List_Int_IndexAfter(
                         & VowSynth.PulseList, CenterPos);
     int LDecay = CenterIndex - DecayLen > 0 ? CenterIndex - 5 : 1;
@@ -294,8 +293,8 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     Verbose("%d HNM frames.\n", VowSynth.PulseList.Frames_Index + 1);
     VowSynth.Option.PhaseControl = 1;
     int FirstPos  = VowSynth.PulseList.Frames[0];
-    int ConcatPos = SorcDB -> VOT - 1500 < FirstPos ?
-                    FirstPos : SorcDB -> VOT - 1500;
+    int ConcatPos = VOTSample - 1500 < FirstPos ?
+                    FirstPos : VOTSample - 1500;
     int PhseIndex = CDSP2_List_Int_IndexAfter(& VowSynth.PulseList, ConcatPos);
     RCall(_HNMItersizer, SetPosition)(& VowSynth, ConcatPos);
     RCall(_HNMItersizer, SetInitPhase)(& VowSynth,

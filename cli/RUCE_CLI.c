@@ -6,7 +6,7 @@
 #include "Common.h"
 #include <CVESVP.h>
 #include <RUtil2.h>
-#include <config.h>
+#include "Config.h"
 
 #ifndef CWineDir
     #define CWineDir "~/.wine"
