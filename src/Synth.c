@@ -38,6 +38,7 @@ static Segmentation Resegment(Segmentation Sorc, Real NP3, Real DP1, Real DP2)
     Real P1, P2;
     P1 = Sorc.P1;
     P2 = NP3 - (Sorc.P3 - Sorc.P2);
+    printf("Sorc.P3 %f, Sorc.P2 %f, NP3 %f.\n", Sorc.P3, Sorc.P2, NP3);
     
     if(P2 < P1)
         P1 = P2 = Sorc.P1 / (Sorc.P1 + Sorc.P2) * NP3;
@@ -160,11 +161,12 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_PMatch, AddPair)(& TimeMatch, VOTSample, VOTSample);
     
     Segmentation Orig, Nseg;
-    Orig.P1 = SorcDB -> InvarLeft  - SorcDB -> VOT;
-    Orig.P2 = SorcDB -> InvarRight - SorcDB -> VOT;
-    Orig.P3 = (Real)SorcSize / SampleRate - SorcDB -> VOT;
+    Orig.P1 = (SorcDB -> InvarLeft  - SorcDB -> VOT) / 1000.0;
+    Orig.P2 = (SorcDB -> InvarRight - SorcDB -> VOT) / 1000.0;
+    Orig.P3 = (Real)SorcSize / SampleRate - SorcDB -> VOT / 1000.0;
     
-    Nseg = Resegment(Orig, (Real)Dest -> Size / SampleRate,
+    Nseg = Resegment(Orig,
+        (Real)Dest -> Size / SampleRate - SorcDB -> VOT / 1000.0,
         Para -> FlagPara.DeltaSeg1, Para -> FlagPara.DeltaSeg2);
     if(Nseg.P1 == Nseg.P2)
     {
