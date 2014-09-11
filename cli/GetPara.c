@@ -11,39 +11,7 @@ void PrintUsage(char *FileName)
            "                [<modulation> [<pitch bend>...]]]]]]]\n", FileName);
 }
 
-RCtor(RUCE_ResamplerPara)
-{
-    String_Ctor(& This -> Input);
-    String_Ctor(& This -> Output);
-    PMatch_Float_Float_Ctor(& This -> Freq);
-    
-    This -> InvarLeft   = 0;
-    This -> InvarRight  = 0;
-    This -> LenRequire  = -1;
-    This -> FixedLength = 0;
-    This -> Velocity    = 0;
-    This -> Volume      = 100;
-    This -> Modulation  = 0;
-    
-    This -> FlagPara.Breathness    = 50;
-    This -> FlagPara.Gender        = 0;
-    This -> FlagPara.DeltaDuration = 0;
-    This -> FlagPara.PhaseSync     = 1;
-    This -> FlagPara.Verbose       = 0;
-    This -> FlagPara.DeltaSeg1     = 0;
-    This -> FlagPara.DeltaSeg2     = 0;
-    
-    RInit(RUCE_ResamplerPara);
-}
-
-RDtor(RUCE_ResamplerPara)
-{
-    String_Dtor(& This -> Input);
-    String_Dtor(& This -> Output);
-    PMatch_Float_Float_Dtor(& This -> Freq);
-}
-
-int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
+int RUCE_ParsePara(RUCE_UnitParam* Dest, int argc, char** argv)
 {
     int i;
     int Ret = 1;
@@ -162,6 +130,18 @@ int RUCE_ParsePara(RUCE_ResamplerPara* Dest, int argc, char** argv)
                         if(Value <= 0)
                             fprintf(stderr, "[Warning] Invalid gender parameter"
                                 ".\n");
+                    break;
+                    case 'm':
+                        Dest -> FlagPara.SmoothenRate  = Value;
+                        if(Value < 0 || Value > 1)
+                            fprintf(stderr, "[Warning] Invalid smoothen rate "
+                                "parameter.\n");
+                    break;
+                    case 'r':
+                        Dest -> FlagPara.SmoothenRadius = Value;
+                        if(Value <= 0)
+                            fprintf(stderr, "[Warning] Invalid smoothen radius "
+                                "parameter.\n");
                     break;
                     case 'S':
                         if(i + 2 > FlagLen || (CFlags[i + 1] != '1' &&

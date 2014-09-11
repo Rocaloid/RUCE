@@ -4,6 +4,8 @@
 #include "WineUtil.h"
 #include "Synth.h"
 #include "Common.h"
+#include "Synth.h"
+
 #include <CVESVP.h>
 #include <RUtil2.h>
 #include "Config.h"
@@ -21,8 +23,8 @@
 
 int main(int ArgN, char** Arg)
 {
-    RUCE_ResamplerPara Para;
-    RUCE_ResamplerPara_Ctor(& Para);
+    RUCE_UnitParam Para;
+    RUCE_UnitParam_Ctor(& Para);
     printf("RUCE - Rocaloid UTAU Compatible Engine ("RUCE_VERSION_STRING")\n");
     printf("  License: GNU GPL v3 (http://www.gnu.org/licenses/gpl-3.0.txt)\n");
     printf("  www.rocaloid.org\n");
