@@ -133,9 +133,6 @@ int RUCE_ParsePara(RUCE_UnitParam* Dest, int argc, char** argv)
                     break;
                     case 'c':
                         Dest -> FlagPara.CStretch      = Value;
-                        if(Value <= 0)
-                            fprintf(stderr, "[Warning] Invalid consonant "
-                                "stretch parameter.\n");
                     break;
                     case 'm':
                         Dest -> FlagPara.SmoothenRate  = Value;
