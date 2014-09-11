@@ -55,9 +55,8 @@ static void StretchConsonant(_Wave* Dest, _Wave* Sorc, int VOT, int DestOrigin)
     {
         SorcAnch[i] = (VOT / 2 + VOT * i) / NAnch;
         DestAnch[i] = (DestLen / 2 + DestLen * i) / NAnch + DestOrigin;
-        printf("%d -> %d\n", SorcAnch[i], DestAnch[i]);
     }
-    int FirstAnch;
+    int FirstAnch = 0;
     for(i = 0; i < NAnch; i ++)
         if(DestAnch[i] > 0)
         {
@@ -192,9 +191,11 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_PMatch, Ctor)(& F0List);
     RCall(_List_HNMFrame, HToPMatch)(& VowList, & F0List, & VowPulse, 0);
     
-    //RCall(_Wave, From)(& ConWave, Sorc);
+    int StretchSample = Para -> FlagPara.CStretch * SampleRate;
+    Verbose("Stretching aperiodic component, %d -> %d...\n", VOTSample,
+        VOTSample + StretchSample);
     RCall(_Wave, Resize)(& ConWave, VowWave.Size);
-    StretchConsonant(& ConWave, Sorc, VOTSample, -1000);
+    StretchConsonant(& ConWave, Sorc, VOTSample, -StretchSample);
     
     //Time scale
     //X: Dest -> Y: Sorc

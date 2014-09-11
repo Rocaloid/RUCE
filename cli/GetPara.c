@@ -131,6 +131,12 @@ int RUCE_ParsePara(RUCE_UnitParam* Dest, int argc, char** argv)
                             fprintf(stderr, "[Warning] Invalid gender parameter"
                                 ".\n");
                     break;
+                    case 'c':
+                        Dest -> FlagPara.CStretch      = Value;
+                        if(Value <= 0)
+                            fprintf(stderr, "[Warning] Invalid consonant "
+                                "stretch parameter.\n");
+                    break;
                     case 'm':
                         Dest -> FlagPara.SmoothenRate  = Value;
                         if(Value < 0 || Value > 1)
