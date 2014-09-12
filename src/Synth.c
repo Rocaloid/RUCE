@@ -301,6 +301,13 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         }
         
         RCall(_HNMFrame, FromContour)(& TempHNM, & TempCont, F0, 8000);
+        if(Para -> FlagPara.Breathness > 50.0)
+        {
+            //Attenuate harmonic component
+            RCall(CDSP2_VCMul, Real)(TempHNM.Hmnc.Ampl, TempHNM.Hmnc.Ampl,
+                (100.0 - Para -> FlagPara.Breathness) / 50.0,
+                TempHNM.Hmnc.Size);
+        }
         RCall(_HNMItersizer, Add)(& VowSynth, & TempHNM, Position);
         
         if(Count % 10 == 0)
