@@ -358,6 +358,12 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     
     //Concatenation
     Verbose("Concatenating at %d...\n", ConcatPos);
+    int COffset = Para -> FlagPara.COffset * SampleRate;
+    Real* Temp = RCall(RAlloc, Real)(ConWave.Size);
+    RCall(_Wave, Read)(& ConWave, Temp, 0, ConWave.Size);
+    RCall(CDSP2_VSet, Real)(ConWave.Data, 0, ConWave.Size);
+    RCall(_Wave, Write)(& ConWave, Temp, COffset, ConWave.Size);
+    RFree(Temp);
     for(i = 0; i < ConcatLen; i ++)
     {
         ConWave.Data[ConcatPos + i] *= 1.0 - (Real)i / ConcatLen;
@@ -374,8 +380,9 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         ConWave.Size - ConcatLen - ConcatPos);
     
     RCall(_Wave, From)(Dest, & NozWave);
+    
     RCall(CDSP2_VAdd, Real)(Dest -> Data, Dest -> Data, ConWave.Data,
-        ConWave.Size);
+        ConWave.Size < Dest -> Size ? ConWave.Size : Dest -> Size);
     RCall(CDSP2_VAdd, Real)(Dest -> Data, Dest -> Data, VowWave.Data,
         Dest -> Size);
     RCall(CDSP2_VCMul, Real)(Dest -> Data, Dest -> Data, Para -> Volume / 100.0,

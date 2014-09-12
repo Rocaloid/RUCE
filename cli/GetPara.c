@@ -134,6 +134,9 @@ int RUCE_ParsePara(RUCE_UnitParam* Dest, int argc, char** argv)
                     case 'c':
                         Dest -> FlagPara.CStretch      = Value;
                     break;
+                    case 'o':
+                        Dest -> FlagPara.COffset       = Value;
+                    break;
                     case 'm':
                         Dest -> FlagPara.SmoothenRate  = Value;
                         if(Value < 0 || Value > 1)

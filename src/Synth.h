@@ -23,6 +23,7 @@ RClass(RUCE_UnitParam)
         float PhaseSync;
         
         float CStretch;
+        float COffset;
         float DeltaSeg1;
         float DeltaSeg2;
         float SmoothenRate;

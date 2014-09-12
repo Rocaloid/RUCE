@@ -20,6 +20,7 @@ RCtor(RUCE_UnitParam)
     This -> FlagPara.PhaseSync     = 1;
     This -> FlagPara.Verbose       = 0;
     This -> FlagPara.CStretch      = 0;
+    This -> FlagPara.COffset       = 0;
     This -> FlagPara.DeltaSeg1     = 0;
     This -> FlagPara.DeltaSeg2     = 0;
     This -> FlagPara.SmoothenRate  = 0.6;
