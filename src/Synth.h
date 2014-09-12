@@ -22,6 +22,7 @@ RClass(RUCE_UnitParam)
         float DeltaDuration;
         float PhaseSync;
         
+        float CLoudness;
         float CStretch;
         float COffset;
         float DeltaSeg1;

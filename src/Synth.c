@@ -365,12 +365,18 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     
     //Concatenation
     Verbose("Concatenating at %d...\n", ConcatPos);
+    
+    //Shift unvoiced consonant
     int COffset = Para -> FlagPara.COffset * SampleRate;
     Real* Temp = RCall(RAlloc, Real)(ConWave.Size);
     RCall(_Wave, Read)(& ConWave, Temp, 0, ConWave.Size);
     RCall(CDSP2_VSet, Real)(ConWave.Data, 0, ConWave.Size);
+    if(Para -> FlagPara.CLoudness != 1.0)
+        RCall(CDSP2_VCMul, Real)(Temp, Temp, Para -> FlagPara.CLoudness,
+            ConWave.Size);
     RCall(_Wave, Write)(& ConWave, Temp, COffset, ConWave.Size);
     RFree(Temp);
+    
     for(i = 0; i < ConcatLen; i ++)
     {
         ConWave.Data[ConcatPos + i] *= 1.0 - (Real)i / ConcatLen;
