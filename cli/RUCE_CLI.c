@@ -1,4 +1,3 @@
-#include "Roto.h"
 #include "IO.h"
 #include "GetPara.h"
 #include "WineUtil.h"
@@ -82,15 +81,13 @@ int main(int ArgN, char** Arg)
     DirFromFilePath(& DirName, & Input);
     BaseFromFilePath(& FileName, & Input);
     
-    int DotPos = InStr(& FileName, & Dot);
+    int DotPos = InStrRev(& FileName, & Dot);
     Left(& UnitName, & FileName, DotPos);
     
-    String RotoPath, OtoPath, PMPath;
-    RNew(String, & RotoPath, & OtoPath, & PMPath);
-    String_From(& RotoPath, & DirName);
+    String OtoPath, PMPath;
+    RNew(String, & OtoPath, & PMPath);
     String_From(& OtoPath, & DirName);
     String_From(& PMPath, & DirName);
-    String_JoinChars(& RotoPath, "/Roto.json");
     String_JoinChars(& OtoPath, "/oto.ini");
     String_JoinChars(& PMPath, "/PitchModel.json");
     
@@ -101,7 +98,7 @@ int main(int ArgN, char** Arg)
     RUCE_DB_Entry_Ctor(& DBEntry);
     RUCE_Oto_Entry OtoEntry;
     RUCE_Oto_Entry_Ctor(& OtoEntry);
-    int Ret = RUCE_DB_LoadEntry(& DBEntry, & UnitName, & DirName, & RotoPath);
+    int Ret = RUCE_DB_LoadEntry(& DBEntry, & UnitName, & DirName);
     
     if(Ret < 1)
     {
@@ -147,7 +144,7 @@ int main(int ArgN, char** Arg)
     }
     
     RDelete(& DBEntry, & InWave, & OutWave, & PMEntry, & OtoEntry);
-    RDelete(& DirName, & FileName, & Dot, & UnitName, & RotoPath, & PMPath,
+    RDelete(& DirName, & FileName, & Dot, & UnitName, & PMPath,
         & OtoPath);
     RDelete(& Para, & Input, & Output, & WineDir);
     return 0;

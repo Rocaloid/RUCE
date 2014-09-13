@@ -1,4 +1,4 @@
-﻿#include "RUDB.h"
+#include "RUDB.h"
 #include <stdio.h>
 #include <RUtil2.h>
 
@@ -33,10 +33,26 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     }
     if(Header[2] > RUDB_VERSION)
         return -3;
-    if(Header[2] == 1) /* remove it after severval months */
+    if(Header[2] == 1) // Remove it after severval months
     {
         //Old version
         return -32768;
+    }
+    if(Header[2] >= 3) // VOT, InvarLR are packed in RUDB
+    {
+        float VOT, InvarLeft, InvarRight;
+        File_Read_Buffer(& Sorc, & VOT, 4);
+        File_Read_Buffer(& Sorc, & InvarLeft, 4);
+        File_Read_Buffer(& Sorc, & InvarRight, 4);
+        if(ReverseEndian)
+        {
+            Endian_Switch_Float(& VOT);
+            Endian_Switch_Float(& InvarLeft);
+            Endian_Switch_Float(& InvarRight);
+        }
+        Dest -> VOT = VOT;
+        Dest -> InvarLeft = InvarLeft;
+        Dest -> InvarRight = InvarRight;
     }
     File_Read_Buffer(& Sorc, CBuffer, 4);
     if(strncmp(CBuffer, "DATA", 4))
@@ -167,12 +183,12 @@ int RUCE_RUDB_Save(RUCE_DB_Entry* Sorc, String* Path)
     
     UInt FrameCnt = Sorc -> FrameList_Index + 1;
     
-    /**
-     * Calculate data size.
-     * HopSize, NoizSize, FRME, FrameCount, WAVE, Samprate, SampCnt, EOL3. (8*4)
-     * 3 * 4 bytes fixed + 4 * NoizSize + 12 * Count per frame.
-     * 8 + WaveSize * sizeof(float)
-     */
+    /*
+      Calculate data size.
+      HopSize, NoizSize, FRME, FrameCount, WAVE, Samprate, SampCnt, EOL3. (8*4)
+      3 * 4 bytes fixed + 4 * NoizSize + 12 * Count per frame.
+      8 + WaveSize * sizeof(float)
+    */
     Size += 32 + FrameCnt * (12 + 4 * Sorc -> NoizSize) + 
                     Sorc -> WaveSize * sizeof(float);
     for(int i = 0; i < FrameCnt; ++ i)
@@ -226,11 +242,14 @@ int RUCE_RUDB_Save(RUCE_DB_Entry* Sorc, String* Path)
     memcpy(Curr, "EOL3", 4);
     
     int CRC = CRC32Sum(Data, Size, 0);
-    File_Write_Buffer(& Dest, (char *)(& RUDB_Header), 4);
-    File_Write_Buffer(& Dest, (char *)(& CRC), 4);
-    File_Write_Buffer(& Dest, (char *)(& _RUDB_Version_), 4);
+    File_Write_Buffer(& Dest, (char*)(& RUDB_Header), 4);
+    File_Write_Buffer(& Dest, (char*)(& CRC), 4);
+    File_Write_Buffer(& Dest, (char*)(& _RUDB_Version_), 4);
+    File_Write_Buffer(& Dest, (char*)(& Sorc -> VOT), 4);
+    File_Write_Buffer(& Dest, (char*)(& Sorc -> InvarLeft), 4);
+    File_Write_Buffer(& Dest, (char*)(& Sorc -> InvarRight), 4);
     File_Write_Buffer(& Dest, "DATA", 4);
-    File_Write_Buffer(& Dest, (char *)(& Size), 8);
+    File_Write_Buffer(& Dest, (char*)(& Size), 8);
     File_Write_Buffer(& Dest, Data, Size);
     
     File_Close(& Dest);
@@ -240,3 +259,4 @@ int RUCE_RUDB_Save(RUCE_DB_Entry* Sorc, String* Path)
     
     return 1;
 }
+

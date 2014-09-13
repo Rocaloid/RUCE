@@ -3,7 +3,7 @@
 
 #include "IO.h"
 
-#define RUDB_VERSION 2
+#define RUDB_VERSION 3
 
 int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path);
 int RUCE_RUDB_Save(RUCE_DB_Entry* Sorc, String* Path);

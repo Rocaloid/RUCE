@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <memory.h>
-#include "Roto.h"
 #include "RUDB.h"
 #include "../external/cJSON/cJSON.h"
 
@@ -136,8 +135,7 @@ void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path)
     String_Dtor(& PMContent);
 }
 
-int RUCE_DB_LoadEntry (RUCE_DB_Entry* Dest, String* Sorc, String* Path,
-    String* RotoPath)
+int RUCE_DB_LoadEntry (RUCE_DB_Entry* Dest, String* Sorc, String* Path)
 {
     int Ret = -1;
     String s, l;
@@ -145,24 +143,6 @@ int RUCE_DB_LoadEntry (RUCE_DB_Entry* Dest, String* Sorc, String* Path,
     String_Ctor(& s);
     String_Ctor(& l);
     
-    /* Load Roto */
-    
-    RUCE_Roto       o;
-    RUCE_Roto_Entry e;
-    if(RUCE_Roto_CtorLoad(& o, RotoPath) != 1)
-        goto End;
-    RUCE_Roto_Entry_Ctor(& e);
-    
-    RUCE_Roto_GetEntry(& o, & e, Sorc);
-    Dest -> VOT = e.VOT;
-    Dest -> InvarLeft = e.InvarLeft;
-    Dest -> InvarRight = e.InvarRight;
-    
-    RUCE_Roto_Entry_Dtor(& e);
-    RUCE_Roto_Dtor(& o);
-    
-    /* Load RUDB. */
-
     String_Copy(& l, Path);
     String_JoinChars(& l, "/");
     String_Join(& l, Sorc);
@@ -170,7 +150,6 @@ int RUCE_DB_LoadEntry (RUCE_DB_Entry* Dest, String* Sorc, String* Path,
     
     if(RUCE_RUDB_Load(Dest, & l) != 1)
         goto End;
-    
     
     Ret = 1;
     
@@ -229,36 +208,6 @@ int RUCE_DB_RUDBWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path)
     
 End:
     String_Dtor(& l);
-    return Ret;
-}
-
-int RUCE_DB_RotoWriteEntry(RUCE_DB_Entry* Sorc, String* Name, String* RotoPath)
-{
-    int Ret = -1;
-    
-    RUCE_Roto       o;
-    RUCE_Roto_Entry e;
-    
-    if(RUCE_Roto_CtorLoad(& o, RotoPath) != 1)
-        RUCE_Roto_Ctor(& o);
-    
-    RUCE_Roto_Entry_Ctor(& e);
-    
-    String_Copy(& e.Name, Name);
-    e.VOT = Sorc -> VOT;
-    e.InvarLeft = Sorc -> InvarLeft;
-    e.InvarRight = Sorc -> InvarRight;
-    
-    RUCE_Roto_SetEntry(& o, & e);
-    
-    if(RUCE_Roto_Write(& o, RotoPath) != 1)
-        goto End;
-    
-    Ret = 1;
-    
-End:
-    RUCE_Roto_Entry_Dtor(& e);
-    RUCE_Roto_Dtor(& o);
     return Ret;
 }
 
@@ -328,7 +277,7 @@ void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
     printf("     |  (WAVE DATA)\n");
     printf("    EOL3\n");
     
-    printf("VOT = %d, InvarLeft = %d, InvarRight = %d.\n", 
+    printf("VOT = %f, InvarLeft = %f, InvarRight = %f.\n", 
            Sorc -> VOT, Sorc -> InvarLeft, Sorc -> InvarRight);
 }
 

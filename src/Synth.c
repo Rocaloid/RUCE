@@ -178,10 +178,9 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     VowPulse.Frames_Index = FrameNum - 1;
     RCall(CDSP2_List_Int_ToPMatch, Real)(& VowPulse, & VowMatch);
     
-    
     Verbose("Initializing aperiodic composition of %d samples...\n",
         Sorc -> Size);
-    int VOTSample = SorcDB -> VOT / 1000.0 * SampleRate;
+    int VOTSample = SorcDB -> VOT * SampleRate;
     /*
         Unnecessary part.
         We someday may need this F0 curve.
@@ -200,19 +199,19 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     //X: Dest -> Y: Sorc
     Verbose("Time mapping for HNM composition...\n");
     _PMatch TimeMatch;
-    int ILSample  = SorcDB -> InvarLeft  / 1000.0 * SampleRate;
-    int IRSample  = SorcDB -> InvarRight / 1000.0 * SampleRate;
+    int ILSample  = SorcDB -> InvarLeft  * SampleRate;
+    int IRSample  = SorcDB -> InvarRight * SampleRate;
     RCall(_PMatch, Ctor)(& TimeMatch);
     RCall(_PMatch, AddPair)(& TimeMatch, -StretchSample, 0);
     RCall(_PMatch, AddPair)(& TimeMatch, VOTSample, VOTSample);
     
     Segmentation Orig, Nseg;
-    Orig.P1 = (SorcDB -> InvarLeft  - SorcDB -> VOT) / 1000.0;
-    Orig.P2 = (SorcDB -> InvarRight - SorcDB -> VOT) / 1000.0;
-    Orig.P3 = (Real)SorcSize / SampleRate - SorcDB -> VOT / 1000.0;
+    Orig.P1 = SorcDB -> InvarLeft  - SorcDB -> VOT;
+    Orig.P2 = SorcDB -> InvarRight - SorcDB -> VOT;
+    Orig.P3 = (Real)SorcSize / SampleRate - SorcDB -> VOT;
     
     Nseg = Resegment(Orig,
-        (Real)Dest -> Size / SampleRate - SorcDB -> VOT / 1000.0,
+        (Real)Dest -> Size / SampleRate - SorcDB -> VOT,
         Para -> FlagPara.DeltaSeg1, Para -> FlagPara.DeltaSeg2);
     if(Nseg.P1 == Nseg.P2)
     {
