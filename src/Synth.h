@@ -8,6 +8,7 @@
 
 RClass(RUCE_UnitParam)
 {
+    RInherit(RObject);
     //Public
     String Input, Output;
     

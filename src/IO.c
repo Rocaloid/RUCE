@@ -1,4 +1,4 @@
-﻿#include "IO.h"
+#include "IO.h"
 #include <RUtil2.h>
 #include <fnmatch.h>
 #include <stdint.h>
@@ -267,8 +267,9 @@ void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
         }
         printf("     |  Noiz = [");
         for(int j = 0; j < Sorc -> NoizSize; ++ j)
-            printf("%f, ", Sorc -> FrameList[i].Noiz[j]);
-        printf("\b\b]\n");
+            printf("%f%s", Sorc -> FrameList[i].Noiz[j],
+                j < Sorc -> NoizSize - 1 ? ", " : "");
+        printf("]\n");
     }
     
     printf("    WAVE\n");
