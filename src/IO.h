@@ -51,21 +51,5 @@ void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc);
     } \
     } while(0)
 
-RClass(RUCE_Oto_Entry)
-{
-    RInherit(RObject);
-    
-    //Public
-    String UnitName;
-    String Symbol;
-    float  LeftBound;
-    float  RightBound;
-    float  InvarLeft;
-    float  Preutterance;
-    float  Overlap;
-};
-
-int RUCE_Oto_LoadEntry(RUCE_Oto_Entry* Dest, String* Sorc, String* OtoPath);
-
 #endif
 

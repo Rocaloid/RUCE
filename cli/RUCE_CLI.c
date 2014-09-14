@@ -84,11 +84,9 @@ int main(int ArgN, char** Arg)
     int DotPos = InStrRev(& FileName, & Dot);
     Left(& UnitName, & FileName, DotPos);
     
-    String OtoPath, PMPath;
-    RNew(String, & OtoPath, & PMPath);
-    String_From(& OtoPath, & DirName);
+    String PMPath;
+    RNew(String, & PMPath);
     String_From(& PMPath, & DirName);
-    String_JoinChars(& OtoPath, "/oto.ini");
     String_JoinChars(& PMPath, "/PitchModel.json");
     
     printf("DirName: %s\n", String_GetChars(& DirName));
@@ -96,8 +94,6 @@ int main(int ArgN, char** Arg)
     
     RUCE_DB_Entry DBEntry;
     RUCE_DB_Entry_Ctor(& DBEntry);
-    RUCE_Oto_Entry OtoEntry;
-    RUCE_Oto_Entry_Ctor(& OtoEntry);
     int Ret = RUCE_DB_LoadEntry(& DBEntry, & UnitName, & DirName);
     
     if(Ret < 1)
@@ -107,13 +103,6 @@ int main(int ArgN, char** Arg)
         return 1;
     }
     
-    Ret = RUCE_Oto_LoadEntry(& OtoEntry, & UnitName, & OtoPath);
-    if(Ret < 1)
-    {
-        fprintf(stderr, "[Error] Cannot find unit '%s' from oto.ini.\n",
-            String_GetChars(& UnitName));
-        return 1;
-    }
     
     _Wave InWave, OutWave;
     RNew(_Wave, & InWave, & OutWave);
@@ -143,9 +132,8 @@ int main(int ArgN, char** Arg)
         return 1;
     }
     
-    RDelete(& DBEntry, & InWave, & OutWave, & PMEntry, & OtoEntry);
-    RDelete(& DirName, & FileName, & Dot, & UnitName, & PMPath,
-        & OtoPath);
+    RDelete(& DBEntry, & InWave, & OutWave, & PMEntry);
+    RDelete(& DirName, & FileName, & Dot, & UnitName, & PMPath);
     RDelete(& Para, & Input, & Output, & WineDir);
     return 0;
 }
