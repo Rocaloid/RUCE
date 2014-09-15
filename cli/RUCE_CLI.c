@@ -1,4 +1,5 @@
 #include "IO.h"
+#include "RUDB.h"
 #include "GetPara.h"
 #include "WineUtil.h"
 #include "Synth.h"
@@ -75,14 +76,16 @@ int main(int ArgN, char** Arg)
         printf("Volume: %f\n", Para.Volume);
     }
     
-    String DirName, FileName, Dot, UnitName;
-    RNew(String, & DirName, & FileName, & Dot, & UnitName);
+    String DirName, FileName, Dot, UnitName, RUDBName;
+    RNew(String, & DirName, & FileName, & Dot, & UnitName, & RUDBName);
     String_SetChars(& Dot, ".");
     DirFromFilePath(& DirName, & Input);
     BaseFromFilePath(& FileName, & Input);
     
     int DotPos = InStrRev(& FileName, & Dot);
     Left(& UnitName, & FileName, DotPos);
+    String_From(& RUDBName, & UnitName);
+    String_JoinChars(& RUDBName, ".rudb");
     
     String PMPath;
     RNew(String, & PMPath);
@@ -94,7 +97,7 @@ int main(int ArgN, char** Arg)
     
     RUCE_DB_Entry DBEntry;
     RUCE_DB_Entry_Ctor(& DBEntry);
-    int Ret = RUCE_DB_LoadEntry(& DBEntry, & UnitName, & DirName);
+    int Ret = RUCE_RUDB_Load(& DBEntry, & RUDBName);
     
     if(Ret < 1)
     {
@@ -133,7 +136,7 @@ int main(int ArgN, char** Arg)
     }
     
     RDelete(& DBEntry, & InWave, & OutWave, & PMEntry);
-    RDelete(& DirName, & FileName, & Dot, & UnitName, & PMPath);
+    RDelete(& DirName, & FileName, & Dot, & UnitName, & RUDBName, & PMPath);
     RDelete(& Para, & Input, & Output, & WineDir);
     return 0;
 }

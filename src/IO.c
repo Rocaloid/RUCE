@@ -135,10 +135,12 @@ void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path)
     String_Dtor(& PMContent);
 }
 
-int RUCE_DB_LoadEntry (RUCE_DB_Entry* Dest, String* Sorc, String* Path)
+int RUCE_DB_LoadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path)
 {
     int Ret = -1;
     String s, l;
+    
+    fprintf(stderr, "[Warning] RUCE_DB_LoadEntry is deprecated.\n");
     
     String_Ctor(& s);
     String_Ctor(& l);
@@ -213,7 +215,6 @@ End:
 
 int RUCE_DB_WaveWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path)
 {
-    fprintf(stderr, "[WARNING] Only for debug!\n");
     int Ret = -1;
     String l;
     String_Ctor(& l);
