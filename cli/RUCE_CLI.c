@@ -84,7 +84,9 @@ int main(int ArgN, char** Arg)
     
     int DotPos = InStrRev(& FileName, & Dot);
     Left(& UnitName, & FileName, DotPos);
-    String_From(& RUDBName, & UnitName);
+    String_From(& RUDBName, & DirName);
+    String_JoinChars(& RUDBName, "/");
+    String_Join(& RUDBName, & UnitName);
     String_JoinChars(& RUDBName, ".rudb");
     
     String PMPath;

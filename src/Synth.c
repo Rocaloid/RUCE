@@ -331,7 +331,8 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     int CenterPos = Nseg.P1 * SampleRate + VOTSample;
     int CenterIndex = CDSP2_List_Int_IndexAfter(
                         & VowSynth.PulseList, CenterPos);
-    int LDecay = CenterIndex - DecayLen > 0 ? CenterIndex - 5 : 1;
+    CenterIndex = CenterIndex < DecayLen ? DecayLen : CenterIndex;
+    int LDecay = CenterIndex - DecayLen > 0 ? CenterIndex - DecayLen : 1;
     int HDecay = CenterIndex + DecayLen < VowSynth.PulseList.Frames_Index
                ? CenterIndex + DecayLen : VowSynth.PulseList.Frames_Index - 1;
     for(i = LDecay; i < HDecay; i ++)
