@@ -360,7 +360,6 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         & PhseList.Frames[PhseIndex]);
     RCall(_HNMItersizer, IterNextTo)(& VowSynth,
         TopOf(VowSynth.PulseList.Frames));
-    if(ConcatPos > FirstPos)
     RCall(_HNMItersizer, PrevTo)(& VowSynth, FirstPos);
     
     //Concatenation
