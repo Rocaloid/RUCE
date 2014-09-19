@@ -40,17 +40,22 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     }
     if(Header[2] >= 3) // VOT, InvarLR are packed in RUDB
     {
-        float VOT, InvarLeft, InvarRight;
+        float VOT, SOT, InvarLeft, InvarRight;
         File_Read_Buffer(& Sorc, & VOT, 4);
+        SOT = VOT;
+        if(Header[2] >= 4)
+            File_Read_Buffer(& Sorc, & SOT, 4);
         File_Read_Buffer(& Sorc, & InvarLeft, 4);
         File_Read_Buffer(& Sorc, & InvarRight, 4);
         if(ReverseEndian)
         {
             Endian_Switch_Float(& VOT);
+            Endian_Switch_Float(& SOT);
             Endian_Switch_Float(& InvarLeft);
             Endian_Switch_Float(& InvarRight);
         }
         Dest -> VOT = VOT;
+        Dest -> SOT = SOT;
         Dest -> InvarLeft = InvarLeft;
         Dest -> InvarRight = InvarRight;
     }
@@ -246,6 +251,7 @@ int RUCE_RUDB_Save(RUCE_DB_Entry* Sorc, String* Path)
     File_Write_Buffer(& Dest, (char*)(& CRC), 4);
     File_Write_Buffer(& Dest, (char*)(& _RUDB_Version_), 4);
     File_Write_Buffer(& Dest, (char*)(& Sorc -> VOT), 4);
+    File_Write_Buffer(& Dest, (char*)(& Sorc -> SOT), 4);
     File_Write_Buffer(& Dest, (char*)(& Sorc -> InvarLeft), 4);
     File_Write_Buffer(& Dest, (char*)(& Sorc -> InvarRight), 4);
     File_Write_Buffer(& Dest, "DATA", 4);

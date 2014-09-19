@@ -31,7 +31,8 @@ RClass(RUCE_DB_Entry)
     int Samprate;
     float* Wave;
     
-    float VOT;
+    float VOT; //Voice Onset Time
+    float SOT; //Sinusoidal Onset Time
     float InvarLeft;
     float InvarRight;
 };
