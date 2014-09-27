@@ -1,5 +1,5 @@
-﻿#ifndef RUCE_IO_H
-#define RUCE_IO_H
+﻿#ifndef RUCE_DATA_H
+#define RUCE_DATA_H
 
 #include <CVESVP.h>
 #include <RUtil2.h>
