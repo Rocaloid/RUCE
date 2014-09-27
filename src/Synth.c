@@ -181,6 +181,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     Verbose("Initializing aperiodic composition of %d samples...\n",
         Sorc -> Size);
     int VOTSample = SorcDB -> VOT * SampleRate;
+    int SOTSample = SorcDB -> SOT * SampleRate;
     /*
         Unnecessary part.
         We someday may need this F0 curve.
@@ -350,7 +351,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     VowSynth.Option.PhaseControl = 1;
     int ConcatLen = 3000;
     int FirstPos  = VowSynth.PulseList.Frames[0];
-    int ConcatPos = VOTSample < FirstPos ? FirstPos : VOTSample;
+    int ConcatPos = SOTSample < FirstPos + 1 ? FirstPos + 1 : SOTSample;
     if(ConcatPos > DestSize - ConcatLen) ConcatPos = DestSize - ConcatLen;
     if(ConcatLen > Sorc -> Size - ConcatPos)
         ConcatLen = Sorc -> Size - ConcatPos;

@@ -1,7 +1,7 @@
 ﻿#ifndef RUCE_RUDB_H
 #define RUCE_RUDB_H
 
-#include "IO.h"
+#include "RUCEData.h"
 
 #define RUDB_VERSION 4
 

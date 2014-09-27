@@ -1,7 +1,7 @@
 #ifndef RUCE_SYNTH_H
 #define RUCE_SYNTH_H
 
-#include "IO.h"
+#include "RUCEData.h"
 #include <CVESVP.h>
 #include <RUtil2.h>
 #include "Common.h"
