@@ -229,7 +229,8 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     }
     
     RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcSize);
-    RCall(_PMatch, Print)(& TimeMatch);
+    if(Para -> FlagPara.Verbose)
+        RCall(_PMatch, Print)(& TimeMatch);
     
     //Interpolate target HNM frames
     Verbose("Interpolating & pitch-scaling target HNM frames...\n");
