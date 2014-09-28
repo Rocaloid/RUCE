@@ -1,28 +1,5 @@
 #include "Synth.h"
 
-static void HNMFrameAndPhaseFromWave(_HNMFrame* Dest, _DataFrame* DestPhse,
-    _Wave* Sorc, Real F0, int Position)
-{
-    int WinSize = Sorc -> WinSize;
-    _Spectrum Spec1, Spec2;
-    RCall(_Spectrum, CtorSize)(& Spec1, WinSize);
-    RCall(_Spectrum, CtorSize)(& Spec2, WinSize);
-    
-    RCall(_Spectrum, FromWaveW)(& Spec1, Sorc, Position - WinSize / 2);
-    RCall(_Spectrum, FromWaveW)(& Spec2, Sorc, Position - WinSize / 2 + 1);
-    
-    Real NewF0 = RCall(CSVP_F0FromSuccSpectrum_Peak, Real)(& Spec1, & Spec2, 1,
-        F0 * 0.5, F0 * 1.7);
-    
-    if(NewF0 < 0) NewF0 = F0;
-    int HNum = 8000 / NewF0;
-    RCall(_HNMFrame, Resize)(Dest, WinSize, HNum);
-    RCall(_HNMFrame, FromSpectrumWithPhase)(Dest, DestPhse, & Spec1, NewF0,
-        HNum);
-    
-    RDelete(& Spec1, & Spec2);
-}
-
 static void InterpFetchHNMFrame(_HNMFrame* Dest, _List_HNMFrame* Sorc,
     _Transition* Trans)
 {
@@ -32,20 +9,100 @@ static void InterpFetchHNMFrame(_HNMFrame* Dest, _List_HNMFrame* Sorc,
     _HNMFrame* LHNM = & Sorc -> Frames[LIndex];
     _HNMFrame* HHNM = & Sorc -> Frames[HIndex];
     
-    RCall(_HNMFrame, Resize)(Dest, LHNM -> Size, LHNM -> Hmnc.Size);
-    RCall(_Sinusoid, InterpFrom)(& Dest -> Hmnc, & LHNM -> Hmnc, & HHNM -> Hmnc,
-        Trans -> X);
+    RCall(_HNMFrame, InterpFrom)(Dest, LHNM, HHNM, Trans -> X);
+}
+
+typedef struct
+{
+    Real P1, P2, P3;
+} Segmentation;
+
+static Segmentation Resegment(Segmentation Sorc, Real NP3, Real DP1, Real DP2)
+{
+    Segmentation Ret;
     
-    RCall(CDSP2_VSet,  Real)(Dest -> Noiz, 0, Dest -> Size / 2 + 1);
-    RCall(CDSP2_VFCMA, Real)(Dest -> Noiz, LHNM -> Noiz, 1.0 - Trans -> X,
-        Dest -> Size / 2 + 1);
-    RCall(CDSP2_VFCMA, Real)(Dest -> Noiz, HHNM -> Noiz, Trans -> X,
-        Dest -> Size / 2 + 1);
-    RCall(_HNMFrame, From)(Dest, LHNM);
+    Real P1, P2;
+    P1 = Sorc.P1;
+    P2 = NP3 - (Sorc.P3 - Sorc.P2);
+    //printf("Sorc.P3 %f, Sorc.P2 %f, NP3 %f.\n", Sorc.P3, Sorc.P2, NP3);
+    
+    if(P2 < P1)
+        P1 = P2 = Sorc.P1 / (Sorc.P1 + Sorc.P2) * NP3;
+    
+    P1 += DP1;
+    P2 -= DP2;
+    
+    if(P2 < P1)
+    {
+        P1 = P2 = (P2 + P1) / 2.0;
+        if(P1 < 0) P1 = P2 = 0;
+    }
+    
+    Ret.P1 = P1;
+    Ret.P2 = P2;
+    Ret.P3 = NP3;
+    return Ret;
+}
+
+static void StretchConsonant(_Wave* Dest, _Wave* Sorc, int VOT, int DestOrigin)
+{
+    #define NAnch 4
+    int SorcAnch[NAnch];
+    int DestAnch[NAnch];
+    int i;
+    int DestLen = VOT - DestOrigin;
+    for(i = 0; i < NAnch; i ++)
+    {
+        SorcAnch[i] = (VOT / 2 + VOT * i) / NAnch;
+        DestAnch[i] = (DestLen / 2 + DestLen * i) / NAnch + DestOrigin;
+    }
+    int FirstAnch = 0;
+    for(i = 0; i < NAnch; i ++)
+        if(DestAnch[i] > 0)
+        {
+            FirstAnch = i;
+            break;
+        }
+    if(DestAnch[FirstAnch] <= 0) return;
+    /*
+    ] 1|  2  |  3  |  4  | 5
+    ]    |    |    |    |
+    ]-------------------------------
+    */
+    RCall(_Wave, Resize)(Dest, Sorc -> Size);
+    Real* Temp = RCall(RAlloc, Real)(Sorc -> Size);
+    RCall(CDSP2_VSet, Real)(Temp, 0, Sorc -> Size);
+    // Region 1
+    RCall(_Wave, Read)(Sorc, Temp, SorcAnch[FirstAnch] - DestAnch[FirstAnch],
+        DestAnch[FirstAnch]);
+    RCall(CDSP2_VCopy, Real)(Dest -> Data, Temp, DestAnch[FirstAnch]);
+    
+    // Region 2 to 4
+    for(i = FirstAnch; i < NAnch - 1; i ++)
+    {
+        //For each anchor point
+        int j;
+        for(j = DestAnch[i]; j < DestAnch[i + 1]; j ++)
+        {
+            Real R = (Real)(j - DestAnch[i]) / (DestAnch[i + 1] - DestAnch[i]);
+            Dest -> Data[j] = Sorc -> Data[j - DestAnch[i] + SorcAnch[i]]
+                * (1.0 - R)
+                + Sorc -> Data[j - DestAnch[i + 1] + SorcAnch[i + 1]]
+                * R;
+        }
+    }
+    
+    // Region 5
+    RCall(_Wave, Read)(Sorc, Temp, SorcAnch[NAnch - 1], Sorc -> Size -
+        SorcAnch[NAnch - 1]);
+    RCall(CDSP2_VCopy, Real)(Dest -> Data + DestAnch[NAnch - 1],
+        Temp, Sorc -> Size - DestAnch[NAnch - 1]);
+    
+    RFree(Temp);
 }
 
 int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
-    CSVP_PitchModel* PM, RUCE_ResamplerPara* Para)
+    CSVP_PitchModel* PM, RUCE_UnitParam* Para)
 {
     int i, j;
     
@@ -65,83 +122,22 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     
     //Initialize waves
     Verbose("Initializing waves...\n");
-    _Wave ConWave, VowWave;
-    RNew(_Wave, & ConWave, & VowWave);
+    _Wave ConWave, VowWave, NozWave;
+    RNew(_Wave, & ConWave, & VowWave, & NozWave);
     Real SampleRate = Sorc -> SampleRate;
     ConWave.SampleRate = SampleRate;
     VowWave.SampleRate = SampleRate;
+    NozWave.SampleRate = SampleRate;
     int DestSize = Para -> LenRequire * SampleRate;
+    int SorcSize = TopOf(SorcDB -> FrameList).Position;
     RCall(_Wave, Resize)(& ConWave, DestSize);
     RCall(_Wave, Resize)(& VowWave, DestSize);
+    RCall(_Wave, Resize)(& NozWave, DestSize);
     RCall(_Wave, Resize)(Dest, DestSize);
     RCall(_Wave, SetWindow)(& ConWave, Window, WINSIZE);
     RCall(_Wave, SetWindow)(& VowWave, Window, WINSIZE);
+    RCall(_Wave, SetWindow)(& NozWave, Window, WINSIZE);
     RCall(_Wave, SetWindow)(Sorc, Window, WINSIZE);
-    
-    //Initialize PSOLA-based consonant synthesis
-    Verbose("Initializing PSOLA-based consonant synthesis...\n");
-    _PSOLAItersizer ConSynth;
-    RCall(_PSOLAItersizer, Ctor)(& ConSynth);
-    RCall(_PSOLAItersizer, SetWave)(& ConSynth, & ConWave);
-    RCall(_PSOLAItersizer, SetPosition)(& ConSynth, 0);
-    RCall(_PSOLAItersizer, SetWindow)(& ConSynth, & DyWin);
-    
-    //Source PSOLA frames
-    Verbose("Initializing source PSOLA frames...\n");
-    _List_DataFrame ConList;
-    _List_Int       ConPulse;
-    _PMatch         ConMatch;
-    
-    RCall(_List_DataFrame, Ctor)(& ConList);
-    RCall(_List_Int, Ctor)(& ConPulse);
-    RCall(_PMatch, Ctor)(& ConMatch);
-    
-    for(i = 0; i <= SorcDB -> PulseList_Index; i ++)
-        RCall(_List_Int, Add)(& ConPulse, SorcDB -> PulseList[i]);
-    RCall(_List_DataFrame, FromWave)(& ConList, Sorc, & ConPulse);
-    RCall(CDSP2_List_Int_ToPMatch, Real)(& ConPulse, & ConMatch);
-    
-    //Frequency remapping
-    Verbose("Frequency remapping...\n");
-    int VOTIndex;
-    Real VOTTime = (Real)SorcDB -> VOT / SampleRate;
-    Array_IncFind(VOTIndex, Real, Para -> Freq.X, VOTTime);
-    if(VOTIndex > 1)
-    {
-        Real StableFreq = RCall(_PMatch, Query)(& Para -> Freq, VOTTime).Y;
-        
-        Array_RemoveRange(Real, Para -> Freq.X, 0, VOTIndex - 1);
-        Array_RemoveRange(Real, Para -> Freq.Y, 0, VOTIndex - 1);
-        
-        Real ConFreq = SampleRate / (Real)(ConPulse.Frames[1] -
-            ConPulse.Frames[0]);
-        
-        RCall(_PMatch, AddPair)(& Para -> Freq, VOTTime, StableFreq);
-        
-        if(VOTTime > 0.05)
-        {
-            RCall(_PMatch, AddPair)(& Para -> Freq, 0, ConFreq);
-            RCall(_PMatch, AddPair)(& Para -> Freq, VOTTime - 0.02, ConFreq);
-        }else
-            RCall(_PMatch, AddPair)(& Para -> Freq, 0, ConFreq);
-    }
-    
-    //Accumulative reconstruction
-    Verbose("Pulse accumulative reconstruction...\n");
-    Real ExactPos = 0;
-    while(ExactPos < SorcDB -> VOT + 4000)
-    {
-        //TODO: Add linear interpolation on DataFrames
-        _Transition Trans = RCall(_PMatch, Query)(& ConMatch, ExactPos);
-        Real Freq = RCall(_PMatch, Query)(& Para -> Freq, ExactPos / SampleRate)
-            .Y;
-        RCall(_PSOLAItersizer, Add)(& ConSynth, & ConList.Frames
-            [Trans.LowerIndex], ExactPos);
-        ExactPos += SampleRate / Freq;
-    }
-    
-    Verbose("PSOLA-based consonant synthesis...\n");
-    RCall(_PSOLAItersizer, IterNextTo)(& ConSynth, SorcDB -> VOT + 4000);
     
     //Source HNM frames
     Verbose("Initializing HNM frames...\n");
@@ -182,24 +178,59 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     VowPulse.Frames_Index = FrameNum - 1;
     RCall(CDSP2_List_Int_ToPMatch, Real)(& VowPulse, & VowMatch);
     
+    Verbose("Initializing aperiodic composition of %d samples...\n",
+        Sorc -> Size);
+    int VOTSample = SorcDB -> VOT * SampleRate;
+    int SOTSample = SorcDB -> SOT * SampleRate;
+    /*
+        Unnecessary part.
+        We someday may need this F0 curve.
+    */
+    _PMatch F0List;
+    RCall(_PMatch, Ctor)(& F0List);
+    RCall(_List_HNMFrame, HToPMatch)(& VowList, & F0List, & VowPulse, 0);
+    
+    int StretchSample = Para -> FlagPara.CStretch * SampleRate;
+    Verbose("Stretching aperiodic composition, %d -> %d...\n", VOTSample,
+        VOTSample + StretchSample);
+    RCall(_Wave, Resize)(& ConWave, VowWave.Size);
+    StretchConsonant(& ConWave, Sorc, VOTSample, - StretchSample);
+    
     //Time scale
     //X: Dest -> Y: Sorc
     Verbose("Time mapping for HNM composition...\n");
     _PMatch TimeMatch;
+    int ILSample  = SorcDB -> InvarLeft  * SampleRate;
+    int IRSample  = SorcDB -> InvarRight * SampleRate;
     RCall(_PMatch, Ctor)(& TimeMatch);
-    RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> VOT, SorcDB -> VOT);
-    if(Dest -> Size > SorcDB -> WaveSize - SorcDB -> InvarRight
-        + SorcDB -> InvarLeft)
-    {
-        RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> InvarLeft,
-            SorcDB -> InvarLeft);
-        RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size - (SorcDB -> WaveSize
-            - SorcDB -> InvarRight), SorcDB -> InvarRight);
-    }else
-        RCall(_PMatch, AddPair)(& TimeMatch, SorcDB -> InvarLeft,
-            (SorcDB -> WaveSize + SorcDB -> VOT) / 2);
+    RCall(_PMatch, AddPair)(& TimeMatch, -StretchSample, 0);
+    RCall(_PMatch, AddPair)(& TimeMatch, VOTSample, VOTSample);
     
-    RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcDB -> WaveSize);
+    Segmentation Orig, Nseg;
+    Orig.P1 = SorcDB -> InvarLeft  - SorcDB -> VOT;
+    Orig.P2 = SorcDB -> InvarRight - SorcDB -> VOT;
+    Orig.P3 = (Real)SorcSize / SampleRate - SorcDB -> VOT;
+    
+    Nseg = Resegment(Orig,
+        (Real)Dest -> Size / SampleRate - SorcDB -> VOT,
+        Para -> FlagPara.DeltaSeg1, Para -> FlagPara.DeltaSeg2);
+    if(Nseg.P1 == Nseg.P2)
+    {
+        RCall(_PMatch, AddPair)(& TimeMatch,
+            VOTSample + SampleRate * 0.9 * Nseg.P1, ILSample);
+        RCall(_PMatch, AddPair)(& TimeMatch,
+            VOTSample + SampleRate * 1.1 * Nseg.P1, IRSample);
+    }else
+    {
+        RCall(_PMatch, AddPair)(& TimeMatch,
+            VOTSample + Nseg.P1 * SampleRate, ILSample);
+        RCall(_PMatch, AddPair)(& TimeMatch,
+            VOTSample + Nseg.P2 * SampleRate, IRSample);
+    }
+    
+    RCall(_PMatch, AddPair)(& TimeMatch, Dest -> Size, SorcSize);
+    if(Para -> FlagPara.Verbose)
+        RCall(_PMatch, Print)(& TimeMatch);
     
     //Interpolate target HNM frames
     Verbose("Interpolating & pitch-scaling target HNM frames...\n");
@@ -207,6 +238,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
     RCall(_HNMItersizer, CtorSize)(& VowSynth, WINSIZE);
     RCall(_HNMItersizer, SetHopSize)(& VowSynth, SorcDB -> HopSize);
     RCall(_HNMItersizer, SetWave)(& VowSynth, & VowWave);
+    RCall(_HNMItersizer, SetNoizWave)(& VowSynth, & NozWave);
     
     _HNMFrame TempHNM;
     _HNMContour TempCont;
@@ -219,8 +251,8 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         Para -> FlagPara.Gender;
     Para -> FlagPara.Gender = Para -> FlagPara.Gender >  99.0 ?  99.0 :
         Para -> FlagPara.Gender;
-                
-    while(Position < Dest -> Size - SorcDB -> HopSize)
+    
+    while(Position < Dest -> Size)
     {
         //TODO: Add linear interpolation
         int SorcPosition = (int)RCall(_PMatch, Query)(& TimeMatch, Position).Y;
@@ -229,6 +261,7 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
             / SampleRate).Y;
         
         InterpFetchHNMFrame(& TempHNM, & VowList, & Trans);
+        
         CSVP_PitchConvertHNMFrame_Float(& TempCont, & TempHNM, PM, F0, 10000,
             SampleRate);
         
@@ -269,6 +302,13 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         }
         
         RCall(_HNMFrame, FromContour)(& TempHNM, & TempCont, F0, 8000);
+        if(Para -> FlagPara.Breathness > 50.0)
+        {
+            //Attenuate harmonic component
+            RCall(CDSP2_VCMul, Real)(TempHNM.Hmnc.Ampl, TempHNM.Hmnc.Ampl,
+                (100.0 - Para -> FlagPara.Breathness) / 50.0,
+                TempHNM.Hmnc.Size);
+        }
         RCall(_HNMItersizer, Add)(& VowSynth, & TempHNM, Position);
         
         if(Count % 10 == 0)
@@ -283,43 +323,90 @@ int RUCE_SynthUnit(_Wave* Dest, _Wave* Sorc, RUCE_DB_Entry* SorcDB,
         Position += SorcDB -> HopSize;
         Count ++;
     }
-    RCall(_HNMFrame, Dtor)(& TempHNM);
     RCall(_HNMContour, Dtor)(& TempCont);
     
-    //Concatenation HNM analysis
-    Verbose("Concatenative PSOLA-HNM & initial phase analysis...\n");
-    int ConcatPos = VowSynth.PulseList.Frames[1];
-    Real ConcatF0 = RCall(_PMatch, Query)(& Para -> Freq,
-        (Real)ConcatPos / SampleRate).Y;
-    HNMFrameAndPhaseFromWave(& VowSynth.HNMList.Frames[1],
-        & PhseList.Frames[0], & ConWave, ConcatF0, ConcatPos);
+    //Smoothen
+    Verbose("Smoothening transition...\n");
+    float DecayRate = Para -> FlagPara.SmoothenRate;
+    int   DecayLen  = Para -> FlagPara.SmoothenRadius
+                    / 2.0 * SampleRate / SorcDB -> HopSize;
+    int CenterPos = Nseg.P1 * SampleRate + VOTSample;
+    int CenterIndex = CDSP2_List_Int_IndexAfter(
+                        & VowSynth.PulseList, CenterPos);
+    CenterIndex = CenterIndex < DecayLen ? DecayLen : CenterIndex;
+    int LDecay = CenterIndex - DecayLen > 0 ? CenterIndex - DecayLen : 1;
+    int HDecay = CenterIndex + DecayLen < VowSynth.PulseList.Frames_Index
+               ? CenterIndex + DecayLen : VowSynth.PulseList.Frames_Index - 1;
+    for(i = LDecay; i < HDecay; i ++)
+    {
+        RCall(_HNMFrame, From)(& TempHNM, & VowSynth.HNMList.Frames[i]);
+        RCall(_HNMFrame, InterpFrom)(& VowSynth.HNMList.Frames[i],
+            & TempHNM, & VowSynth.HNMList.Frames[i - 1], DecayRate);
+    }
+    
+    RCall(_HNMFrame, Dtor)(& TempHNM);
     
     //HNM synthesis
     Verbose("HNM synthesis...\n");
+    Verbose("%d HNM frames.\n", VowSynth.PulseList.Frames_Index + 1);
     VowSynth.Option.PhaseControl = 1;
+    int ConcatLen = 3000;
+    int FirstPos  = VowSynth.PulseList.Frames[0];
+    int ConcatPos = SOTSample < FirstPos + 1 ? FirstPos + 1 : SOTSample;
+    if(ConcatPos > DestSize - ConcatLen) ConcatPos = DestSize - ConcatLen;
+    if(ConcatLen > Sorc -> Size - ConcatPos)
+        ConcatLen = Sorc -> Size - ConcatPos;
+    int PhseIndex = CDSP2_List_Int_IndexAfter(& VowSynth.PulseList, ConcatPos);
     RCall(_HNMItersizer, SetPosition)(& VowSynth, ConcatPos);
-    RCall(_HNMItersizer, SetInitPhase)(& VowSynth, & PhseList.Frames[0]);
-    RCall(_HNMItersizer, IterNextTo)(& VowSynth, Dest -> Size -
-        SorcDB -> HopSize * 2);
+    RCall(_HNMItersizer, SetInitPhase)(& VowSynth,
+        & PhseList.Frames[PhseIndex]);
+    RCall(_HNMItersizer, IterNextTo)(& VowSynth,
+        TopOf(VowSynth.PulseList.Frames));
+    RCall(_HNMItersizer, PrevTo)(& VowSynth, FirstPos);
     
     //Concatenation
-    Verbose("Concatenating...\n");
-    for(i = 0; i < SorcDB -> HopSize; i ++)
+    Verbose("Concatenating at %d...\n", ConcatPos);
+    
+    //Shift unvoiced consonant
+    int COffset = Para -> FlagPara.COffset * SampleRate;
+    Real* Temp = RCall(RAlloc, Real)(ConWave.Size);
+    RCall(_Wave, Read)(& ConWave, Temp, 0, ConWave.Size);
+    RCall(CDSP2_VSet, Real)(ConWave.Data, 0, ConWave.Size);
+    if(Para -> FlagPara.CLoudness != 1.0)
+        RCall(CDSP2_VCMul, Real)(Temp, Temp, Para -> FlagPara.CLoudness,
+            ConWave.Size);
+    RCall(_Wave, Write)(& ConWave, Temp, COffset, ConWave.Size);
+    RFree(Temp);
+    
+    for(i = 0; i < ConcatLen; i ++)
     {
-        VowWave.Data[ConcatPos + i] *= (Real)i / SorcDB -> HopSize;
-        ConWave.Data[ConcatPos + i] *= 1.0 - (Real)i / SorcDB -> HopSize;
+        ConWave.Data[ConcatPos + i] *= 1.0 - (Real)i / ConcatLen;
+        NozWave.Data[ConcatPos + i] *= (Real)i / ConcatLen;
     }
-    RCall(CDSP2_VSet, Real)(ConWave.Data + ConcatPos + i, 0,
-        ConWave.Size - i - ConcatPos);
-    RCall(CDSP2_VAdd, Real)(Dest -> Data, ConWave.Data, VowWave.Data,
+    //End tapering
+    for(i = 0; i < 300; i ++)
+    {
+        VowWave.Data[FirstPos + i] *= (Real) i / 300.0;
+        VowWave.Data[TopOf(VowSynth.PulseList.Frames) - i] *= (Real)i / 300.0;
+    }
+    RCall(CDSP2_VSet, Real)(NozWave.Data, 0, ConcatPos);
+    RCall(CDSP2_VSet, Real)(ConWave.Data + ConcatLen + ConcatPos, 0,
+        ConWave.Size - ConcatLen - ConcatPos);
+    
+    RCall(_Wave, From)(Dest, & NozWave);
+    
+    RCall(CDSP2_VAdd, Real)(Dest -> Data, Dest -> Data, ConWave.Data,
+        ConWave.Size < Dest -> Size ? ConWave.Size : Dest -> Size);
+    RCall(CDSP2_VAdd, Real)(Dest -> Data, Dest -> Data, VowWave.Data,
         Dest -> Size);
     RCall(CDSP2_VCMul, Real)(Dest -> Data, Dest -> Data, Para -> Volume / 100.0,
         Dest -> Size);
     
     Verbose("Freeing memory...\n");
     RFree(Window);
-    RDelete(& DyWin, & ConWave, & VowWave, & ConSynth, & ConList, & ConPulse,
-        & ConMatch, & VowList, & PhseList, & VowPulse, & VowMatch, & TimeMatch,
+    RCall(_PMatch, Dtor)(& F0List);
+    RDelete(& DyWin, & ConWave, & VowWave, & NozWave,
+        & VowList, & PhseList, & VowPulse, & VowMatch, & TimeMatch,
         & VowSynth);
     
     return 1;

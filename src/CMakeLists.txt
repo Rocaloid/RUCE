@@ -25,14 +25,15 @@ target_link_libraries(RUCE_CLI m)
 
 install(FILES RUCE.h
               DESTINATION ${CMAKE_INSTALL_PREFIX}/include/)
-install(FILES IO.h
-              Roto.h
+install(FILES RUCEData.h
               RUDB.h
               Pitchbend.h
-              GetPara.h
+              Synth.h
+              Common.h
               DESTINATION ${CMAKE_INSTALL_PREFIX}/include/RUCE/)
 
 install(TARGETS RUCE LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS RUCE_CLI RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 

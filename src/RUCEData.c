@@ -1,10 +1,9 @@
-#include "IO.h"
+#include "RUCEData.h"
 #include <RUtil2.h>
 #include <fnmatch.h>
 #include <stdint.h>
 #include <string.h>
 #include <memory.h>
-#include "Roto.h"
 #include "RUDB.h"
 #include "../external/cJSON/cJSON.h"
 
@@ -29,7 +28,6 @@ RDtor(RUCE_DB_Frame)
 RCtor(RUCE_DB_Entry)
 {
     Array_Ctor(RUCE_DB_Frame, This -> FrameList);
-    Array_Ctor(int, This -> PulseList);
     This -> Wave = NULL;
     RInit(RUCE_DB_Entry);
 }
@@ -37,7 +35,6 @@ RCtor(RUCE_DB_Entry)
 RDtor(RUCE_DB_Entry)
 {
     Array_ObjDtor(RUCE_DB_Frame, This -> FrameList);
-    Array_Dtor(int, This -> PulseList);
     Array_Dtor(RUCE_DB_Frame, This -> FrameList);
     if(This -> Wave)
         free(This -> Wave);
@@ -138,33 +135,16 @@ void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path)
     String_Dtor(& PMContent);
 }
 
-int RUCE_DB_LoadEntry (RUCE_DB_Entry* Dest, String* Sorc, String* Path,
-    String* RotoPath)
+int RUCE_DB_LoadEntry(RUCE_DB_Entry* Dest, String* Sorc, String* Path)
 {
     int Ret = -1;
     String s, l;
     
+    fprintf(stderr, "[Warning] RUCE_DB_LoadEntry is deprecated.\n");
+    
     String_Ctor(& s);
     String_Ctor(& l);
     
-    /* Load Roto */
-    
-    RUCE_Roto       o;
-    RUCE_Roto_Entry e;
-    if(RUCE_Roto_CtorLoad(& o, RotoPath) != 1)
-        goto End;
-    RUCE_Roto_Entry_Ctor(& e);
-    
-    RUCE_Roto_GetEntry(& o, & e, Sorc);
-    Dest -> VOT = e.VOT;
-    Dest -> InvarLeft = e.InvarLeft;
-    Dest -> InvarRight = e.InvarRight;
-    
-    RUCE_Roto_Entry_Dtor(& e);
-    RUCE_Roto_Dtor(& o);
-    
-    /* Load RUDB. */
-
     String_Copy(& l, Path);
     String_JoinChars(& l, "/");
     String_Join(& l, Sorc);
@@ -173,7 +153,20 @@ int RUCE_DB_LoadEntry (RUCE_DB_Entry* Dest, String* Sorc, String* Path,
     if(RUCE_RUDB_Load(Dest, & l) != 1)
         goto End;
     
+    Ret = 1;
+    
+End:
+    String_Dtor(& s);
+    String_Dtor(& l);
+    return Ret;
+}
+
+int RUCE_DB_LoadExternWave(RUCE_DB_Entry* Dest, String* Sorc, String* Path)
+{
     WaveFile w;
+    String l;
+    String_Ctor(& l);
+    
     WaveFile_Ctor(& w);
     
     String_Copy(& l, Path);
@@ -181,29 +174,23 @@ int RUCE_DB_LoadEntry (RUCE_DB_Entry* Dest, String* Sorc, String* Path,
     String_Join(& l, Sorc);
     String_JoinChars(& l, ".wav");
     
-    /* Fetch Wavesize and wave */
+    /* Fetch WaveSize and wave */
     
     if(WaveFile_Open(& w, & l) != 1)
-        goto End;
+        return -1;
     if(w.Header.Channel != 1)
-        goto End;
+        return -1;
     Dest -> Samprate = w.Header.SamplePerSecond;
     Dest -> WaveSize = w.Header.DataNum;
-    if(Dest -> Wave)
-        free(Dest -> Wave);
+    if(Dest -> Wave) free(Dest -> Wave);
     Dest -> Wave = RAlloc_Float(w.Header.DataNum);
     WaveFile_FetchAllFloat(& w, Dest -> Wave);
     
     WaveFile_Close(& w);
     
     WaveFile_Dtor(& w);
-    
-    Ret = 1;
-    
-End:
-    String_Dtor(& s);
     String_Dtor(& l);
-    return Ret;
+    return 1;
 }
 
 int RUCE_DB_RUDBWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path)
@@ -223,36 +210,6 @@ int RUCE_DB_RUDBWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path)
     
 End:
     String_Dtor(& l);
-    return Ret;
-}
-
-int RUCE_DB_RotoWriteEntry(RUCE_DB_Entry* Sorc, String* Name, String* RotoPath)
-{
-    int Ret = -1;
-    
-    RUCE_Roto       o;
-    RUCE_Roto_Entry e;
-    
-    if(RUCE_Roto_CtorLoad(& o, RotoPath) != 1)
-        RUCE_Roto_Ctor(& o);
-    
-    RUCE_Roto_Entry_Ctor(& e);
-    
-    String_Copy(& e.Name, Name);
-    e.VOT = Sorc -> VOT;
-    e.InvarLeft = Sorc -> InvarLeft;
-    e.InvarRight = Sorc -> InvarRight;
-    
-    RUCE_Roto_SetEntry(& o, & e);
-    
-    if(RUCE_Roto_Write(& o, RotoPath) != 1)
-        goto End;
-    
-    Ret = 1;
-    
-End:
-    RUCE_Roto_Entry_Dtor(& e);
-    RUCE_Roto_Dtor(& o);
     return Ret;
 }
 
@@ -294,11 +251,9 @@ End:
 void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
 {
     printf("RUCE_DB_Entry:\n"
-           "    HopSize = %d, NoizSize = %d, \n"
-           "    Frame count = %d, Pulse count = %d, \n"
+           "    HopSize = %d, NoizSize = %d, Frame count = %d\n"
            "    FRME\n", 
-           Sorc -> HopSize, Sorc -> NoizSize, 
-           Sorc -> FrameList_Index + 1, Sorc -> PulseList_Index + 1);
+           Sorc -> HopSize, Sorc -> NoizSize, Sorc -> FrameList_Index + 1);
     for(int i = 0; i <= Sorc -> FrameList_Index; ++ i)
     {
         printf("     |--Pos = %d, Cnt = %d\n", 
@@ -313,87 +268,18 @@ void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
         }
         printf("     |  Noiz = [");
         for(int j = 0; j < Sorc -> NoizSize; ++ j)
-            printf("%f, ", Sorc -> FrameList[i].Noiz[j]);
-        printf("\b\b]\n");
+            printf("%f%s", Sorc -> FrameList[i].Noiz[j],
+                j < Sorc -> NoizSize - 1 ? ", " : "");
+        printf("]\n");
     }
     
-    printf("    PULS\n");
-    for(int i = 0; i <= Sorc -> PulseList_Index; ++ i)
-        printf("     |  #%d = %d\n", i, Sorc -> PulseList[i]);
+    printf("    WAVE\n");
+    printf("     |--WaveSize = %d, WaveSamprate = %d.\n", 
+           Sorc -> WaveSize, Sorc -> Samprate);
+    printf("     |  (WAVE DATA)\n");
     printf("    EOL3\n");
     
-    printf("    WaveSize = %d, WaveSamprate = %d, " 
-           "VOT = %d, InvarLeft = %d, InvarRight = %d.\n", 
-           Sorc -> WaveSize, Sorc -> Samprate, 
+    printf("VOT = %f, InvarLeft = %f, InvarRight = %f.\n", 
            Sorc -> VOT, Sorc -> InvarLeft, Sorc -> InvarRight);
-}
-
-RCtor(RUCE_Oto_Entry)
-{
-    String_Ctor(& This -> UnitName);
-    String_Ctor(& This -> Symbol);
-    RInit(RUCE_Oto_Entry);
-}
-
-RDtor(RUCE_Oto_Entry)
-{
-    String_Dtor(& This -> UnitName);
-    String_Dtor(& This -> Symbol);
-}
-
-int RUCE_Oto_LoadEntry(RUCE_Oto_Entry* Dest, String* Sorc, String* OtoPath)
-{
-    File OtoFile;
-    File_Ctor(& OtoFile);
-    
-    if(! File_Open(& OtoFile, OtoPath, READONLY))
-    {
-        File_Dtor(& OtoFile);
-        return 0;
-    }
-    
-    int Ret = 0;
-    
-    String LineBuff, WordBuff;
-    String_FromChars(Dot, ".");
-    String_FromChars(Equ, "=");
-    String_FromChars(Com, ",");
-    String_Ctor(& LineBuff);
-    String_Ctor(& WordBuff);
-    
-    int FileLen = File_GetLength(& OtoFile);
-    while(File_GetPosition(& OtoFile) < FileLen - 1)
-    {
-        File_ReadLine(& OtoFile, & LineBuff);
-        int Pos = InStr(& LineBuff, & Dot);
-        Left(& WordBuff, & LineBuff, Pos);
-        if(String_Equal(& WordBuff, Sorc))
-        {
-            int EndPos;
-            String_From(& Dest -> UnitName, Sorc);
-            Pos = InStr(& LineBuff, & Equ) + 1;
-            EndPos = InStrFrom(& LineBuff, & Com, Pos) - 1;
-            if(Pos != EndPos)
-                Mid(& Dest -> Symbol, & LineBuff, Pos, EndPos - Pos);
-            MidFrom(& WordBuff, & LineBuff, EndPos + 2);
-            
-            float tmp1, tmp2, tmp3, tmp4, tmp5;
-            sscanf(String_GetChars(& WordBuff), "%f,%f,%f,%f,%f",
-                & tmp1, & tmp2, & tmp3, & tmp4, & tmp5);
-            
-            Dest -> LeftBound = tmp1 / 1000.0;
-            Dest -> InvarLeft = (tmp1 + tmp2) / 1000.0;
-            Dest -> RightBound = tmp3 / 1000.0;
-            Dest -> Preutterance = (tmp1 + tmp4) / 1000.0;
-            Dest -> Overlap = tmp5 / 1000.0;
-            
-            Ret = 1;
-            break;
-        }
-    }
-    
-    RDelete(& Dot, & Equ, & Com, & WordBuff, & LineBuff, & OtoFile);
-    
-    return Ret;
 }
 

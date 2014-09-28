@@ -1,3 +1,8 @@
+/*
+  Obsoleted.
+*/
+
+
 #define  __CSVP_Install
 
 #include <CVESVP/PSOLA.h>

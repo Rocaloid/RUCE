@@ -1,15 +1,17 @@
-#include "Roto.h"
-#include "IO.h"
+#include "RUCEData.h"
+#include "RUDB.h"
 #include "GetPara.h"
 #include "WineUtil.h"
 #include "Synth.h"
 #include "Common.h"
+#include "Synth.h"
+
 #include <CVESVP.h>
 #include <RUtil2.h>
-#include <config.h>
+#include "Config.h"
 
 #ifndef CWineDir
-    #define CWineDir "/home/sleepwalking/.wine"
+    #define CWineDir "~/.wine"
 #endif
 
 #ifdef _WIN64
@@ -21,8 +23,8 @@
 
 int main(int ArgN, char** Arg)
 {
-    RUCE_ResamplerPara Para;
-    RUCE_ResamplerPara_Ctor(& Para);
+    RUCE_UnitParam Para;
+    RUCE_UnitParam_Ctor(& Para);
     printf("RUCE - Rocaloid UTAU Compatible Engine ("RUCE_VERSION_STRING")\n");
     printf("  License: GNU GPL v3 (http://www.gnu.org/licenses/gpl-3.0.txt)\n");
     printf("  www.rocaloid.org\n");
@@ -74,22 +76,22 @@ int main(int ArgN, char** Arg)
         printf("Volume: %f\n", Para.Volume);
     }
     
-    String DirName, FileName, Dot, UnitName;
-    RNew(String, & DirName, & FileName, & Dot, & UnitName);
+    String DirName, FileName, Dot, UnitName, RUDBName;
+    RNew(String, & DirName, & FileName, & Dot, & UnitName, & RUDBName);
     String_SetChars(& Dot, ".");
     DirFromFilePath(& DirName, & Input);
     BaseFromFilePath(& FileName, & Input);
     
-    int DotPos = InStr(& FileName, & Dot);
+    int DotPos = InStrRev(& FileName, & Dot);
     Left(& UnitName, & FileName, DotPos);
+    String_From(& RUDBName, & DirName);
+    String_JoinChars(& RUDBName, "/");
+    String_Join(& RUDBName, & UnitName);
+    String_JoinChars(& RUDBName, ".rudb");
     
-    String RotoPath, OtoPath, PMPath;
-    RNew(String, & RotoPath, & OtoPath, & PMPath);
-    String_From(& RotoPath, & DirName);
-    String_From(& OtoPath, & DirName);
+    String PMPath;
+    RNew(String, & PMPath);
     String_From(& PMPath, & DirName);
-    String_JoinChars(& RotoPath, "/Roto.json");
-    String_JoinChars(& OtoPath, "/oto.ini");
     String_JoinChars(& PMPath, "/PitchModel.json");
     
     printf("DirName: %s\n", String_GetChars(& DirName));
@@ -97,22 +99,15 @@ int main(int ArgN, char** Arg)
     
     RUCE_DB_Entry DBEntry;
     RUCE_DB_Entry_Ctor(& DBEntry);
-    RUCE_Oto_Entry OtoEntry;
-    RUCE_Oto_Entry_Ctor(& OtoEntry);
-    int Ret = RUCE_DB_LoadEntry(& DBEntry, & UnitName, & DirName, & RotoPath);
+    int Ret = RUCE_RUDB_Load(& DBEntry, & RUDBName);
+    
     if(Ret < 1)
     {
         fprintf(stderr, "[Error] Cannot load unit '%s'.\n",
             String_GetChars(& UnitName));
         return 1;
     }
-    Ret = RUCE_Oto_LoadEntry(& OtoEntry, & UnitName, & OtoPath);
-    if(Ret < 1)
-    {
-        fprintf(stderr, "[Error] Cannot find unit '%s' from oto.ini.\n",
-            String_GetChars(& UnitName));
-        return 1;
-    }
+    
     
     _Wave InWave, OutWave;
     RNew(_Wave, & InWave, & OutWave);
@@ -121,7 +116,8 @@ int main(int ArgN, char** Arg)
     InWave.SampleRate = DBEntry.Samprate;
     OutWave.SampleRate = DBEntry.Samprate;
     if(Para.LenRequire < 0)
-        Para.LenRequire = (Real)DBEntry.WaveSize / InWave.SampleRate;
+        Para.LenRequire = (Real)TopOf(DBEntry.FrameList).Position
+                        / InWave.SampleRate;
     Para.LenRequire += Para.FlagPara.DeltaDuration;
     if(Para.FlagPara.DeltaDuration != 0)
         printf("Adjusted duartion = %f sec.\n", Para.LenRequire);
@@ -141,9 +137,8 @@ int main(int ArgN, char** Arg)
         return 1;
     }
     
-    RDelete(& DBEntry, & InWave, & OutWave, & PMEntry, & OtoEntry);
-    RDelete(& DirName, & FileName, & Dot, & UnitName, & RotoPath, & PMPath,
-        & OtoPath);
+    RDelete(& DBEntry, & InWave, & OutWave, & PMEntry);
+    RDelete(& DirName, & FileName, & Dot, & UnitName, & RUDBName, & PMPath);
     RDelete(& Para, & Input, & Output, & WineDir);
     return 0;
 }
