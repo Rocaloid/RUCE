@@ -17,15 +17,50 @@ int RUCE_ParsePara(RUCE_UnitParam* Dest, int argc, char** argv)
     int Ret = 1;
     int CLV = argc;
     int EnablePitchConv = 1;
+    float Tempo;
+    float Freq;
     
     String PP, PBD;
     RNew(String, & PP, & PBD);
+    if(CLV > 13)
+    {//Resolving Cadencii Style PitchBend
+        String_SetChars(& PBD, argv[12]);
+        String QChar;
+        RNew(String, & QChar);
+        String_SetChars(& QChar, "Q");
+        int QPos = InStrRev(& PBD, & QChar);
+        RDelete(& QChar);
+        if(QPos != -1)
+        {
+            Tempo = atof(String_GetChars(& PBD) + QPos + 1);
+            if(Tempo <= 0)
+            {
+                fprintf(stderr, "[Error] Invalid tempo as '%s'.\n", argv[12]);
+                Ret = 0;
+                goto RExit;
+            }
+            String_SetChars(& PP, argv[3]);
+            Freq = Tune_SPNToFreq_Float(& PP);
+            
+            for(i = 0; i < (CLV - 13); ++ i)
+            {
+                float PitchCent = atof(argv[13 + i]);
+                PMatch_Float_Float_AddPair(&Dest -> Freq,
+                    Tune_BeatToTime_Float(Tempo, (((float)i) / 96.0f)),
+                    Tune_AddCentToFreq_Float(Freq, PitchCent));
+            }
+         /* printf("Detected Cadencii Style PitchBend,
+                Tempo = %f, Points = %d\n", Tempo, CLV - 13); */
+            CLV = 12;
+            EnablePitchConv = 0;
+        }
+    }
     switch(CLV)
     {
         case 14:
             String_SetChars(& PP, argv[3]);
             String_SetChars(& PBD, argv[13]);
-            float Tempo = atof(argv[12] + 1);
+            Tempo = atof(argv[12] + 1);
             if(Tempo <= 0)
             {
                 fprintf(stderr, "[Error] Invalid tempo as '%s'.\n", argv[12]);
@@ -34,16 +69,18 @@ int RUCE_ParsePara(RUCE_UnitParam* Dest, int argc, char** argv)
             }
             int DataNum = RUCE_Pitchbend_GetLength(& PBD);
             short* Data = RAlloc(DataNum * sizeof(short));
-            float Freq = Tune_SPNToFreq_Float(& PP);
+            Freq = Tune_SPNToFreq_Float(& PP);
             RUCE_Pitchbend_Decode(Data, & PBD);
             for(i = 0; i < DataNum; ++ i)
             {
                 Data[i] = Data[i] > 2048 ? Data[i] - 4096 : Data[i];
-                PMatch_Float_Float_AddPair(& Dest -> Freq, 
+                PMatch_Float_Float_AddPair(& Dest -> Freq,
                     Tune_BeatToTime_Float(Tempo, (((float)i) / 96.0f)),
                     Tune_AddCentToFreq_Float(Freq, Data[i]));
             }
             RFree(Data);
+            /* printf("Detected UTAU Style PitchBend, Tempo = %f
+                 , Points = %d\n", Tempo, DataNum);*/
             EnablePitchConv = 0; // Disable standalone pitch conv.
             CLV -= 2;
         
@@ -213,7 +250,8 @@ int RUCE_ParsePara(RUCE_UnitParam* Dest, int argc, char** argv)
             PrintUsage(argv[0]);
             Ret = -1;
     };
-    
+    RExit:
+
     RDelete(& PP, & PBD);
     return Ret;
 }
