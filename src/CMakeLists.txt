@@ -26,9 +26,6 @@ target_link_libraries(RUCE_CLI m)
 install(FILES RUCE.h
               DESTINATION ${CMAKE_INSTALL_PREFIX}/include/)
 install(FILES RUCEData.h
-              RUDB.h
-              Pitchbend.h
-              Synth.h
               Common.h
               DESTINATION ${CMAKE_INSTALL_PREFIX}/include/RUCE/)
 
