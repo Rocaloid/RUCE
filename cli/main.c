@@ -41,8 +41,18 @@ int main()
     RUCE_SessionAppendEvent(Main, RUCE_EBRE, 0, 0.5);
     RUCE_SessionAppendEvent(Main, RUCE_EGEN, 0, 0.5);
     
-    RUCE_SessionSynthInit(Main, 1.45);
-
+    RUCE_SessionSynthInit(Main, 0);
+    
+    float* Output = RAlloc_Float(44100);
+    
+    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 0.5));
+    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 1.3));
+    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 2.0));
+    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 2.9));
+    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 3.5));
+    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 4.0));
+    
+    RFree(Output);
     RUCE_DestroySynthSession(Main);
     
     return 1;

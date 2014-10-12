@@ -161,7 +161,7 @@ int RUCE_SessionAppendEvent(RUCE_Session* Session, int Type, double Time,
 
 int RUCE_SessionSynthInit(RUCE_Session* Session, double TimeStart)
 {
-    //Remove notes ends before TimeStart.
+    //Remove notes end before TimeStart.
     int RmIndex, i;
     RmIndex = -1;
     for(i = 0; i <= Session -> TimeList_Index; i ++)
@@ -188,19 +188,58 @@ int RUCE_SessionSynthInit(RUCE_Session* Session, double TimeStart)
         return -1;
     
     Modify(int, Session -> SynthHead) = TimeStart * Session -> SampleRate;
-    RCall(InfWave, Relocate)((InfWave*)Session -> Buffer, Session -> SynthHead);
+    RCall(InfWave, Relocate)(Session -> Buffer, Session -> SynthHead);
     
     return 1;
 }
+
+#define Sample2Sec(x) ((double)(x) / Session -> SampleRate)
+#define Sec2Sample(x) (Session -> SampleRate * (x))
+#define T(n) (Session -> TimeList[n])
+#define D(n) (Session -> NoteList[n].Duration)
 
 // Synthesize to a certain time point(Time) and dump audio into DestBuffer.
 // Returns number of samples dumped into DestBuffer for success, 0 or negative
 //   integer for failure.
 //   0: Undocumented error.
-//  -1: Invalid TimeStart.
+//  -1: Invalid Time.
 //  -2: Synthesis succeeded, but one or more notes are not pronounced.
-int RUCE_SessionSynthStep(RUCE_Session* Session, RUCE_FPTYPE* DestBuffer,
-    double Time);
+int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
+    double Time)
+{
+    printf("SynthHead before this step: %d\n", Session -> SynthHead);
+    int i = 0;
+    while(Sample2Sec(Session -> SynthHead) < Time)
+    {
+        //Initiate untouched area with zeros.
+        int DestHead = Sec2Sample(T(i) + D(i));
+        int DestLen  = DestHead - Session -> SynthHead;
+        RCall(CDSP2_VSet, Real)(
+            RCall(InfWave, GetUnsafePtr)(Session -> Buffer) + Session ->
+            SynthHead, 0, DestLen);
+        
+        //Synthesize unvoiced part.
+        
+        //Synthesize voiced part.
+        
+        Modify(int, Session -> SynthHead) = DestHead;
+        i ++;
+    }
+    
+    int N = i - 1;
+    if(N >= 0)
+    {
+        for(i = 0; i <= N; i ++)
+            RUCE_Note_Dtor(& Session -> NoteList[i]);
+        Array_RemoveRange(double, Session -> TimeList, 0, N);
+        Array_RemoveRange(RUCE_Note, Session -> NoteList, 0, N);
+    }
+    
+    printf("SynthHead after this step: %d\n", Session -> SynthHead);
+    
+    RCall(InfWave, Submit)(Session -> Buffer, Sec2Sample(Time));
+    return RCall(InfWave, Dump)(Session -> Buffer, DestBuffer);
+}
 
 // Close the RUCE_Session object, but do not destruct it.
 // Returns 1 for success, 0 for failure.
@@ -209,8 +248,7 @@ int RUCE_SessionSynthFin(RUCE_Session* Session);
 // Synthesize a single RUCE_Note object.
 // Returns 1 for success, 0 or negative integer for failure.
 //   0: Undocumented error.
-//  -1: Invalid TimeStart.
 //  -2: The duration is too long.
-int RUCE_SessionSynthNote(RUCE_Session* Session, RUCE_FPTYPE* DestBuffer,
+int RUCE_SessionSynthNote(RUCE_Session* Session, Real* DestBuffer,
     RUCE_Note* SorcNote);
 

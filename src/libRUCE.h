@@ -184,7 +184,7 @@ int RUCE_SessionSynthInit(RUCE_Session* Session, double TimeStart);
 // Returns number of samples dumped into DestBuffer for success, 0 or negative
 //   integer for failure.
 //   0: Undocumented error.
-//  -1: Invalid TimeStart.
+//  -1: Invalid Time.
 //  -2: Synthesis succeeded, but one or more notes are not pronounced.
 int RUCE_SessionSynthStep(RUCE_Session* Session, RUCE_FPTYPE* DestBuffer,
     double Time);
@@ -196,7 +196,6 @@ int RUCE_SessionSynthFin(RUCE_Session* Session);
 // Synthesize a single RUCE_Note object.
 // Returns 1 for success, 0 or negative integer for failure.
 //   0: Undocumented error.
-//  -1: Invalid TimeStart.
 //  -2: The duration is too long.
 int RUCE_SessionSynthNote(RUCE_Session* Session, RUCE_FPTYPE* DestBuffer,
     RUCE_Note* SorcNote);
