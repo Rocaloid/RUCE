@@ -1,9 +1,9 @@
 #include "RUCEData.h"
 #include "Soundbank.h"
 
-void* RUCE_CreateLoadSoundbank(char* Directory)
+RUCE_Soundbank* RUCE_CreateLoadSoundbank(char* Directory)
 {
-    RUCE_Soundbank* Ret = (RUCE_Soundbank*)malloc(sizeof(RUCE_Soundbank));
+    _RUCE_Soundbank* Ret = (_RUCE_Soundbank*)malloc(sizeof(_RUCE_Soundbank));
     String_Ctor(& Ret -> Directory);
     String_SetChars(& Ret -> Directory, Directory);
     CSVP_PitchModel_Ctor(& Ret -> PMDefault);
@@ -26,14 +26,34 @@ void* RUCE_CreateLoadSoundbank(char* Directory)
     End:
     File_Dtor(& PMFile);
     String_Dtor(& PMContent);
-    return (void*)Ret;
+    return (RUCE_Soundbank*)Ret;
 }
 
 int RUCE_DestroySoundbank(RUCE_Soundbank* Soundbank)
 {
-    String_Dtor(& Soundbank -> Directory);
-    CSVP_PitchModel_Dtor(& Soundbank -> PMDefault);
+    _RUCE_Soundbank* Bank = Soundbank;
+    String_Dtor(& Bank -> Directory);
+    CSVP_PitchModel_Dtor(& Bank -> PMDefault);
     free(Soundbank);
     return 1;
+}
+
+int RUCE_SoundbankLoadEntry(RUCE_DB_Entry* Dest, RUCE_Soundbank* Bank,
+    String* Name)
+{
+    String RudbPath;
+    String_Ctor(& RudbPath);
+    _RUCE_Soundbank* _Bank = Bank;
+    
+    String_From(& RudbPath, & _Bank -> Directory);
+    String_JoinChars(& RudbPath, "/");
+    String_Join(& RudbPath, Name);
+    String_JoinChars(& RudbPath, ".rudb");
+    
+    int Ret = RUCE_RUDB_Load(Dest, & RudbPath);
+    printf("Load %s, Ret=%d\n", String_GetChars(& RudbPath), Ret);
+    
+    String_Dtor(& RudbPath);
+    return Ret;
 }
 

@@ -1,5 +1,5 @@
 #include "libRUCE.h"
-#include <CVEDSP2.h>
+#include "Synth.h"
 #include <RUtil2.h>
 #include "Common.h"
 #include "Config.h"
@@ -197,6 +197,7 @@ int RUCE_SessionSynthInit(RUCE_Session* Session, double TimeStart)
 #define Sec2Sample(x) (Session -> SampleRate * (x))
 #define T(n) (Session -> TimeList[n])
 #define D(n) (Session -> NoteList[n].Duration)
+#define N(n) (Session -> NoteList[n])
 
 // Synthesize to a certain time point(Time) and dump audio into DestBuffer.
 // Returns number of samples dumped into DestBuffer for success, 0 or negative
@@ -208,7 +209,14 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
     double Time)
 {
     printf("SynthHead before this step: %d\n", Session -> SynthHead);
-    int i = 0;
+    Wave UnvoicedWave, VoicedWave;
+    RUCE_DB_Entry DBEntry;
+    String UnitName;
+    RNew(Wave, & UnvoicedWave, & VoicedWave);
+    RUCE_DB_Entry_Ctor(& DBEntry);
+    String_Ctor(& UnitName);
+    
+    int i = 0, Ret = 1;
     while(Sample2Sec(Session -> SynthHead) < Time)
     {
         //Initiate untouched area with zeros.
@@ -218,13 +226,32 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             RCall(InfWave, GetUnsafePtr)(Session -> Buffer) + Session ->
             SynthHead, 0, DestLen);
         
+        String_SetChars(& UnitName, N(i).Lyric);
+        if(RUCE_SoundbankLoadEntry(& DBEntry, Session -> Soundbank, & UnitName)
+            != 1)
+        {
+            Ret = -2;
+            goto SkipSynth;
+        }
+        
         //Synthesize unvoiced part.
+        double UnvoicedAlign = N(i).CParamSet.DurConsonant
+                             - N(i).CParamSet.OffsetConsonant;
+        if(RUCE_UnvoicedSynth(& UnvoicedWave, & Session -> NoteList[i],
+            & DBEntry) != 1)
+            Ret = -2;
+        else
+            RCall(InfWave, Add)(Session -> Buffer, UnvoicedWave.Data,
+                Sec2Sample(T(i) - UnvoicedAlign), UnvoicedWave.Size);
         
         //Synthesize voiced part.
         
+    SkipSynth:
         Modify(int, Session -> SynthHead) = DestHead;
         i ++;
     }
+    
+    RDelete(& UnvoicedWave, & VoicedWave, & DBEntry, & UnitName);
     
     int N = i - 1;
     if(N >= 0)
@@ -238,7 +265,10 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
     printf("SynthHead after this step: %d\n", Session -> SynthHead);
     
     RCall(InfWave, Submit)(Session -> Buffer, Sec2Sample(Time));
-    return RCall(InfWave, Dump)(Session -> Buffer, DestBuffer);
+    if(Ret < 1)
+        return Ret;
+    else
+        return RCall(InfWave, Dump)(Session -> Buffer, DestBuffer);
 }
 
 // Close the RUCE_Session object, but do not destruct it.

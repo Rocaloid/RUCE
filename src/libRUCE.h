@@ -1,3 +1,6 @@
+#ifndef RUCE_LIBRUCE_H
+#define RUCE_LIBRUCE_H
+
 /*
   libRUCE API Version 0.0.2
   This header is designed to be included without direct dependency on RUtil2.
@@ -13,6 +16,7 @@
   
   2014.10.8-0.0.2
     RUCE_SoundBank --> RUCE_Soundbank.
+    Add more descriptions to RUCE_SessionSynthStep.
 */
 
 //-----Macros-----
@@ -185,7 +189,8 @@ int RUCE_SessionSynthInit(RUCE_Session* Session, double TimeStart);
 //   integer for failure.
 //   0: Undocumented error.
 //  -1: Invalid Time.
-//  -2: Synthesis succeeded, but one or more notes are not pronounced.
+//  -2: Synthesis succeeded, but one or more notes are not pronounced. Run
+//      RUCE_SessionSynthStep again to get the audio output.
 int RUCE_SessionSynthStep(RUCE_Session* Session, RUCE_FPTYPE* DestBuffer,
     double Time);
 
@@ -199,4 +204,6 @@ int RUCE_SessionSynthFin(RUCE_Session* Session);
 //  -2: The duration is too long.
 int RUCE_SessionSynthNote(RUCE_Session* Session, RUCE_FPTYPE* DestBuffer,
     RUCE_Note* SorcNote);
+
+#endif
 

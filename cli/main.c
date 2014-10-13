@@ -15,6 +15,10 @@ int main()
     char*  Notes_Lyric[] = {"a", "la", "la", "ka", "kuan"};
     
     RUCE_Session* Main = RUCE_CreateSynthSession(44100, 44100 * 30);
+    RUCE_Soundbank* Bank = RUCE_CreateLoadSoundbank(
+        "/tmp/SoundbankBuilder/home/Cyan-RUCE-Source-master");
+    RUCE_SessionSetSoundbank(Main, Bank);
+    
     if(! Main)
     {
         fprintf(stderr, "[Error] Cannot create synth session!\n");
@@ -54,6 +58,7 @@ int main()
     
     RFree(Output);
     RUCE_DestroySynthSession(Main);
+    RUCE_DestroySoundbank(Bank);
     
     return 1;
 }
