@@ -211,6 +211,7 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
     printf("SynthHead before this step: %d\n", Session -> SynthHead);
     Wave UnvoicedWave, VoicedWave;
     RUCE_DB_Entry DBEntry;
+    CSVP_PitchModel PMEntry;
     String UnitName;
     RNew(Wave, & UnvoicedWave, & VoicedWave);
     RUCE_DB_Entry_Ctor(& DBEntry);
@@ -226,6 +227,7 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             RCall(InfWave, GetUnsafePtr)(Session -> Buffer) + Session ->
             SynthHead, 0, DestLen);
         
+        CSVP_PitchModel_Ctor(& PMEntry);
         String_SetChars(& UnitName, N(i).Lyric);
         if(RUCE_SoundbankLoadEntry(& DBEntry, Session -> Soundbank, & UnitName)
             != 1)
@@ -233,6 +235,8 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             Ret = -2;
             goto SkipSynth;
         }
+        RUCE_SoundbankLoadPitchModel(& PMEntry, Session -> Soundbank,
+            & UnitName);
         
         //Synthesize unvoiced part.
         double UnvoicedAlign = N(i).CParamSet.DurConsonant
@@ -247,6 +251,7 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         //Synthesize voiced part.
         
     SkipSynth:
+        CSVP_PitchModel_Dtor(& PMEntry);
         Modify(int, Session -> SynthHead) = DestHead;
         i ++;
     }

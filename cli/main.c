@@ -16,7 +16,7 @@ int main()
     
     RUCE_Session* Main = RUCE_CreateSynthSession(44100, 44100 * 30);
     RUCE_Soundbank* Bank = RUCE_CreateLoadSoundbank(
-        "/tmp/SoundbankBuilder/home/Cyan-RUCE-Source-master");
+        "/tmp/SoundbankBuilder/home/Cyan-RUCE-Source-masters");
     RUCE_SessionSetSoundbank(Main, Bank);
     
     if(! Main)
@@ -47,7 +47,7 @@ int main()
     
     RUCE_SessionSynthInit(Main, 0);
     
-    float* Output = RAlloc_Float(44100);
+    float* Output = RAlloc_Float(44100 * 10);
     
     printf("%d\n", RUCE_SessionSynthStep(Main, Output, 0.5));
     printf("%d\n", RUCE_SessionSynthStep(Main, Output, 1.3));

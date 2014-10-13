@@ -37,16 +37,13 @@ RClass(RUCE_DB_Entry)
     float  InvarRight;
 };
 
-void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path);
-
-int  RUCE_DB_RUDBWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path);
-int  RUCE_DB_LoadExternWave(RUCE_DB_Entry* Dest, String* Sorc, String* Path);
-int  RUCE_DB_WaveWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path);
-void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc);
+int RUCE_PitchModelFromJSONEntries(CSVP_PitchModel* Dest, void* Entries,
+    String* Name);
 
 #define RUDB_VERSION 4
 int  RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path);
 int  RUCE_RUDB_Save(RUCE_DB_Entry* Sorc, String* Path);
+void RUCE_RUDB_Print(RUCE_DB_Entry* Sorc);
 
 #define _JSON_SafeRead(Name) do {\
     cJSON* Name = cJSON_GetObjectItem(Entry, _S(Name)); \

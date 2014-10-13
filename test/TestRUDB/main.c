@@ -5,32 +5,29 @@
 
 int main()
 {
-    
-    String_FromChars(a, "a");
-    String_FromChars(b, "./");
+    String_FromChars(a, "./a.rudb");
     RUCE_DB_Entry t, r;
     RUCE_DB_Entry_Ctor(& t);
     RUCE_DB_Entry_Ctor(& r);
     
     printf("TestLoad...\n");
     
-    int RUDBRet = RUCE_DB_LoadEntry(& t, & a, & b);
-    RAssert(RUCE_DB_LoadExternWave(&t, & a, & b) == 1);
-    printf("RUDB_LoadDB returned %d.\n", RUDBRet);
-    RAssert(RUDBRet == 1, "Cannot Load Entry!");
-    RUCE_DB_PrintEntry(& t);
+    int RUDBRet = RUCE_RUDB_Load(& t, & a);
+    printf("RUDB_RUDB_Load returned %d.\n", RUDBRet);
+    RAssert(RUDBRet == 1, "Cannot Load Entry!\n");
+    RUCE_RUDB_Print(& t);
     
-    String_SetChars(& a, "b");
+    String_SetChars(& a, "./b.rudb");
     
-    printf("\nTestWrite...\n");
+    printf("TestWrite...\n");
     
-    RAssert(RUCE_DB_RUDBWriteEntry(& t, & a, & b) == 1, "Cannot Write RUDB Entry!");
+    RAssert(RUCE_RUDB_Save(& t, & a) == 1, "Cannot Write RUDB Entry!");
     
-    RAssert(RUCE_DB_LoadEntry(& r, & a, & b) == 1, "Cannot Load Entry which have be written!");
-
-    RUCE_DB_PrintEntry(& r);
+    RAssert(RUCE_RUDB_Load(& r, & a) == 1, "Cannot Load Entry which have"
+        "been written!");
     
-    String_Dtor(& b);
+    RUCE_RUDB_Print(& r);
+    
     String_Dtor(& a);
     RUCE_DB_Entry_Dtor(& r);
     RUCE_DB_Entry_Dtor(& t);

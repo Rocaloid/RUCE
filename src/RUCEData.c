@@ -59,22 +59,40 @@ RDtor(RUCE_DB_Entry)
     } \
     } while(0)
 
-static int _RUCE_PitchModelFromJSON(CSVP_PitchModel* Dest, cJSON* Entry,
-    cJSON* Top)
+static cJSON* RUCE_GetPitchModelJSONEntry(cJSON* Entries, String* Name)
+{
+    int EntryNum = cJSON_GetArraySize(Entries);
+    int i;
+    cJSON* Match = NULL;
+    for(i = 0; i < EntryNum; i ++)
+    {
+        cJSON* Entry = cJSON_GetArrayItem(Entries, i);
+        char* Wildcard = cJSON_GetObjectItem(Entry, "Wildcard") -> valuestring;
+        if(! fnmatch(Wildcard, String_GetChars(Name), 0))
+        {
+            //matched
+            Match = Entry;
+        }
+    }
+    return Match;
+}
+
+static int _RUCE_PitchModelFromJSONEntries(CSVP_PitchModel* Dest,
+    cJSON* Entries, cJSON* Entry)
 {
     int i;
     cJSON* Inherit = cJSON_GetObjectItem(Entry, "Inherit");
     if(Inherit && strcmp(Inherit -> valuestring, "none") != 0)
     {
-        int EntryNum = cJSON_GetArraySize(Top);
+        int EntryNum = cJSON_GetArraySize(Entries);
         for(i = 0; i < EntryNum; i ++)
         {
-            cJSON* Sub = cJSON_GetArrayItem(Top, i);
+            cJSON* Sub = cJSON_GetArrayItem(Entries, i);
             char* Wildcard = cJSON_GetObjectItem(Sub, "Wildcard")
                           -> valuestring;
             if(! strcmp(Wildcard, Inherit -> valuestring))
             {
-                _RUCE_PitchModelFromJSON(Dest, Sub, Top);
+                _RUCE_PitchModelFromJSONEntries(Dest, Entries, Sub);
                 break;
             }
         }
@@ -96,132 +114,11 @@ static int _RUCE_PitchModelFromJSON(CSVP_PitchModel* Dest, cJSON* Entry,
     return 1;
 }
 
-void RUCE_LoadPitchModel(CSVP_PitchModel* Dest, String* Sorc, String* Path)
+int RUCE_PitchModelFromJSONEntries(CSVP_PitchModel* Dest, void* Entries,
+    String* Name)
 {
-    cJSON* Root, *Entries;
-    File PMFile;
-    String PMContent;
-    String_Ctor(& PMContent);
-    File_Ctor(& PMFile);
-    
-    if(! File_Open(& PMFile, Path, READONLY)) goto End;
-    File_Read_String(& PMFile, & PMContent);
-    
-    Root = cJSON_Parse(String_GetChars(& PMContent));
-    Entries = cJSON_GetObjectItem(Root, "Entries");
-    
-    int EntryNum = cJSON_GetArraySize(Entries);
-    int i;
-    cJSON* Match = NULL;
-    for(i = 0; i < EntryNum; i ++)
-    {
-        cJSON* Entry = cJSON_GetArrayItem(Entries, i);
-        char* Wildcard = cJSON_GetObjectItem(Entry, "Wildcard") -> valuestring;
-        if(! fnmatch(Wildcard, String_GetChars(Sorc), 0))
-        {
-            //matched
-            Match = Entry;
-        }
-    }
-    
-    if(Match)
-    {
-        _RUCE_PitchModelFromJSON(Dest, Match, Entries);
-    }
-    
-    cJSON_Delete(Root);
-    
-    End:
-    File_Close(& PMFile);
-    File_Dtor(& PMFile);
-    String_Dtor(& PMContent);
-}
-
-int RUCE_DB_LoadExternWave(RUCE_DB_Entry* Dest, String* Sorc, String* Path)
-{
-    WaveFile w;
-    String l;
-    String_Ctor(& l);
-    
-    WaveFile_Ctor(& w);
-    
-    String_Copy(& l, Path);
-    String_JoinChars(& l, "/");
-    String_Join(& l, Sorc);
-    String_JoinChars(& l, ".wav");
-    
-    /* Fetch WaveSize and wave */
-    
-    if(WaveFile_Open(& w, & l) != 1)
-        return -1;
-    if(w.Header.Channel != 1)
-        return -1;
-    Dest -> Samprate = w.Header.SamplePerSecond;
-    Dest -> WaveSize = w.Header.DataNum;
-    if(Dest -> ApWave) free(Dest -> ApWave);
-    Dest -> ApWave = RAlloc_Float(w.Header.DataNum);
-    WaveFile_FetchAllFloat(& w, Dest -> ApWave);
-    
-    WaveFile_Close(& w);
-    
-    WaveFile_Dtor(& w);
-    String_Dtor(& l);
-    return 1;
-}
-
-int RUCE_DB_RUDBWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path)
-{
-    int Ret = -1;
-    String l;
-    String_Ctor(& l);
-    
-    String_Copy(& l, Path);
-    String_JoinChars(& l, "/");
-    String_Join(& l, Dest);
-    String_JoinChars(& l, ".rudb");
-    if(RUCE_RUDB_Save(Sorc, & l) != 1)
-        goto End;
-    
-    Ret = 1;
-    
-End:
-    String_Dtor(& l);
-    return Ret;
-}
-
-int RUCE_DB_WaveWriteEntry(RUCE_DB_Entry* Sorc, String* Dest, String* Path)
-{
-    int Ret = -1;
-    String l;
-    String_Ctor(& l);
-    
-    String_Copy(& l, Path);
-    String_JoinChars(& l, "/");
-    String_Join(& l, Dest);
-    String_JoinChars(& l, ".wav");
-    
-    WaveFile w;
-    WaveFile_Ctor(& w);
-    
-    w.Header.Channel = 1;
-    w.Header.SamplePerSecond = Sorc -> Samprate;
-    w.Header.BytePerSecond = Sorc -> Samprate * 4;
-    w.Header.BlockAlign = 1;
-    w.Header.BitPerSample = 32;
-    
-    if(WaveFile_Save(& w, & l) != 1)
-        goto End;
-    
-    WaveFile_WriteAllFloat(& w, Sorc -> ApWave, Sorc -> WaveSize);
-    
-    WaveFile_FinishWrite(& w);
-    
-    Ret = 1;
-    
-End:
-    WaveFile_Dtor(& w);
-    String_Dtor(& l);
-    return Ret;
+    cJSON* Entry = RUCE_GetPitchModelJSONEntry(Entries, Name);
+    return _RUCE_PitchModelFromJSONEntries(Dest, Entries, Entry);
 }
 
 int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
@@ -229,13 +126,19 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     File Sorc;
     File_Ctor(& Sorc);
     if(! File_Open(& Sorc, Path, READONLY))
-        return -250;
+    {
+        File_Dtor(& Sorc);
+        return 0;
+    }
     
     int ReverseEndian = 0;
     
     int64_t FLen = File_GetLength(& Sorc);
     if(FLen < 48)
+    {
+        File_Dtor(& Sorc);
         return -1;
+    }
     char CBuffer[8];
     uint32_t Header[4];
     uint64_t DataSize;
@@ -248,14 +151,19 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     if(Header[0] != RUDB_Header)
     {
         //Bad Header
+        File_Dtor(& Sorc);
         return -2;
     }
     if(Header[2] > RUDB_VERSION)
+    {
+        File_Dtor(& Sorc);
         return -3;
+    }
     if(Header[2] == 1) // Remove it after severval months
     {
         //Old version
-        return -32768;
+        File_Dtor(& Sorc);
+        return -3;
     }
     if(Header[2] >= 3) // VOT, InvarLR are packed in RUDB
     {
@@ -280,19 +188,27 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
     }
     File_Read_Buffer(& Sorc, CBuffer, 4);
     if(strncmp(CBuffer, "DATA", 4))
+    {
+        File_Dtor(& Sorc);
         return -4;
+    }
     File_Read_Buffer(& Sorc, & DataSize, 8);
     if(ReverseEndian) Endian_Switch_UInt64(& DataSize);
     if(DataSize < 8)
+    {
+        File_Dtor(& Sorc);
         return -5;
-    
+    }
     char* Data = malloc(DataSize);
+    char* DataHead = Data;
     File_Read_Buffer(& Sorc, Data, DataSize);
     
     UInt CorrectCRC = CRC32Sum(Data, DataSize, 0);
     if(Header[1] != CorrectCRC)
     {
         //Bad CRC32 checksum.
+        free(DataHead);
+        File_Dtor(& Sorc);
         return -6;
     }
     memcpy(& (Dest -> HopSize), Data, 8);
@@ -316,7 +232,11 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
             {
                 RUCE_DB_Frame_Ctor(& (Dest -> FrameList[i]));
                 if(strncmp(Data, "FRMB", 4))
-                    return -255;
+                {
+                    free(DataHead);
+                    File_Dtor(& Sorc);
+                    return -7;
+                }
                 Data += 4;
                 memcpy(& (Dest -> FrameList[i].Position), Data, 4);
                 Data += 4;
@@ -385,11 +305,13 @@ int RUCE_RUDB_Load(RUCE_DB_Entry* Dest, String* Path)
         {
             //Bad block
             Data += 4;
-            return -200;
+            free(DataHead);
+            File_Dtor(& Sorc);
+            return -8;
         }
     }
     
-    free(Data - DataSize);
+    free(DataHead);
     File_Close(& Sorc);
     File_Dtor(& Sorc);
     return 1;
@@ -485,7 +407,7 @@ int RUCE_RUDB_Save(RUCE_DB_Entry* Sorc, String* Path)
     return 1;
 }
 
-void RUCE_DB_PrintEntry(RUCE_DB_Entry* Sorc)
+void RUCE_RUDB_Print(RUCE_DB_Entry* Sorc)
 {
     printf("RUCE_DB_Entry:\n"
            "    HopSize = %d, NoizSize = %d, Frame count = %d\n"

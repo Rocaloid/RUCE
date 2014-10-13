@@ -23,6 +23,8 @@ typedef struct
 
 int RUCE_SoundbankLoadEntry(RUCE_DB_Entry* Dest, RUCE_Soundbank* Bank,
     String* Name);
+int RUCE_SoundbankLoadPitchModel(CSVP_PitchModel* Dest, RUCE_Soundbank* Bank,
+    String* Name);
 
 #endif
 
