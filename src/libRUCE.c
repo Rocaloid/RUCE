@@ -227,6 +227,7 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             RCall(InfWave, GetUnsafePtr)(Session -> Buffer) + Session ->
             SynthHead, 0, DestLen);
         
+        //Load PitchModel & DBEntry
         CSVP_PitchModel_Ctor(& PMEntry);
         String_SetChars(& UnitName, N(i).Lyric);
         if(RUCE_SoundbankLoadEntry(& DBEntry, Session -> Soundbank, & UnitName)
@@ -239,14 +240,14 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             & UnitName);
         
         //Synthesize unvoiced part.
-        double UnvoicedAlign = N(i).CParamSet.DurConsonant
-                             - N(i).CParamSet.OffsetConsonant;
-        if(RUCE_UnvoicedSynth(& UnvoicedWave, & Session -> NoteList[i],
-            & DBEntry) != 1)
+        int SampleAlign = RUCE_UnvoicedSynth(& UnvoicedWave,
+            & Session -> NoteList[i], & DBEntry);
+        if(SampleAlign < 1)
             Ret = -2;
         else
             RCall(InfWave, Add)(Session -> Buffer, UnvoicedWave.Data,
-                Sec2Sample(T(i) - UnvoicedAlign), UnvoicedWave.Size);
+                Sec2Sample(T(i) + N(i).CParamSet.OffsetConsonant) - SampleAlign,
+                UnvoicedWave.Size);
         
         //Synthesize voiced part.
         

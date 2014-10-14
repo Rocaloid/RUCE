@@ -12,11 +12,12 @@ int main()
     int i;
     double Notes_Time[] = {1  , 1.5, 2, 3, 3.5};
     double Notes_Dur[]  = {0.4, 0.5, 1, 0.5, 1};
+    double Notes_DurC[] = {0.05, 0.05, 0.1, 0.1, 0.05};
     char*  Notes_Lyric[] = {"a", "la", "la", "ka", "kuan"};
     
     RUCE_Session* Main = RUCE_CreateSynthSession(44100, 44100 * 30);
     RUCE_Soundbank* Bank = RUCE_CreateLoadSoundbank(
-        "/tmp/SoundbankBuilder/home/Cyan-RUCE-Source-masters");
+        "/tmp/SoundbankBuilder/home/Cyan-RUCE-Source-master");
     RUCE_SessionSetSoundbank(Main, Bank);
     
     if(! Main)
@@ -28,6 +29,7 @@ int main()
     {
         RUCE_Note* Note = RUCE_CreateNote();
         Note -> Duration = Notes_Dur[i];
+        Note -> CParamSet.DurConsonant = Notes_DurC[i];
         strcpy(Note -> Lyric, Notes_Lyric[i]);
         if(RUCE_SessionAppendNote(Main, Note, Notes_Time[i]) != 1)
             fprintf(stderr, "[Error] Cannot append note at %f\n",
