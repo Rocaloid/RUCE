@@ -1,5 +1,7 @@
 #include "libRUCE.h"
+#include <CVEDSP2.h>
 #include <RUtil2.h>
+#include "Common.h"
 
 int main()
 {
@@ -51,12 +53,25 @@ int main()
     
     float* Output = RAlloc_Float(44100 * 10);
     
-    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 0.5));
-    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 1.3));
-    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 2.0));
-    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 2.9));
-    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 3.5));
-    printf("%d\n", RUCE_SessionSynthStep(Main, Output, 4.0));
+    Wave OutWave;
+    RCall(Wave, CtorSize)(& OutWave, 44100 * 10);
+    double Head = 0;
+    int OutHead = 0;
+    while(Head < 4)
+    {
+        int Ret = RUCE_SessionSynthStep(Main, Output, Head + 0.5);
+        printf("%d\n", Ret);
+        if(Ret == -2)
+            Ret = RUCE_SessionSynthStep(Main, Output, Head + 0.5);
+        for(i = 0; i < Ret; i ++)
+            OutWave.Data[OutHead + i] = Output[i];
+        OutHead += Ret;
+        Head += 0.2;
+    }
+    String_FromChars(OutPath, "/tmp/out.wav");
+    RCall(Wave, ToFile)(& OutWave, & OutPath);
+    
+    RDelete(& OutWave, & OutPath);
     
     RFree(Output);
     RUCE_DestroySynthSession(Main);

@@ -214,12 +214,17 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
     CSVP_PitchModel PMEntry;
     String UnitName;
     RNew(Wave, & UnvoicedWave, & VoicedWave);
-    RUCE_DB_Entry_Ctor(& DBEntry);
     String_Ctor(& UnitName);
     
     int i = 0, Ret = 1;
-    while(Sample2Sec(Session -> SynthHead) < Time)
+    int AlignHead = Session -> SynthHead;
+    if(Session -> TimeList_Index >= 0 && AlignHead > Sec2Sample(T(0)))
+        AlignHead = Sec2Sample(T(0));
+    while(Sample2Sec(AlignHead) < Time + 0.5)
     {
+        if(i > Session -> NoteList_Index)
+            break;
+        
         //Initiate untouched area with zeros.
         int DestHead = Sec2Sample(T(i) + D(i));
         int DestLen  = DestHead - Session -> SynthHead;
@@ -229,6 +234,7 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         
         //Load PitchModel & DBEntry
         CSVP_PitchModel_Ctor(& PMEntry);
+        RUCE_DB_Entry_Ctor(& DBEntry);
         String_SetChars(& UnitName, N(i).Lyric);
         if(RUCE_SoundbankLoadEntry(& DBEntry, Session -> Soundbank, & UnitName)
             != 1)
@@ -248,19 +254,21 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             RCall(InfWave, Add)(Session -> Buffer, UnvoicedWave.Data,
                 Sec2Sample(T(i) + N(i).CParamSet.OffsetConsonant) - SampleAlign,
                 UnvoicedWave.Size);
-        
+        printf("%d\n", (int)(Sec2Sample(T(i) + N(i).CParamSet.OffsetConsonant) - SampleAlign));
         //Synthesize voiced part.
         
     SkipSynth:
         CSVP_PitchModel_Dtor(& PMEntry);
+        RUCE_DB_Entry_Dtor(& DBEntry);
+        AlignHead = Sec2Sample(T(i));
         Modify(int, Session -> SynthHead) = DestHead;
         i ++;
     }
     
-    RDelete(& UnvoicedWave, & VoicedWave, & DBEntry, & UnitName);
+    RDelete(& UnvoicedWave, & VoicedWave, & UnitName);
     
     int N = i - 1;
-    if(N >= 0)
+    if(N >= 0 && N <= Session -> NoteList_Index)
     {
         for(i = 0; i <= N; i ++)
             RUCE_Note_Dtor(& Session -> NoteList[i]);
@@ -268,8 +276,10 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         Array_RemoveRange(RUCE_Note, Session -> NoteList, 0, N);
     }
     
+    
     printf("SynthHead after this step: %d\n", Session -> SynthHead);
     
+    printf("Submit: %d\n", (int)Sec2Sample(Time));
     RCall(InfWave, Submit)(Session -> Buffer, Sec2Sample(Time));
     if(Ret < 1)
         return Ret;

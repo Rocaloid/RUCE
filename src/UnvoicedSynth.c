@@ -80,6 +80,6 @@ int RUCE_UnvoicedSynth(Wave* Dest, RUCE_Note* SorcNote, RUCE_DB_Entry* SorcDB)
         StretchConsonant(Dest, & Sorc, DurSample, Shift, VOTSample - DurSample);
     
     RCall(Wave, Dtor)(& Sorc);
-    return 1;
+    return max(DurSample, VOTSample);
 }
 
