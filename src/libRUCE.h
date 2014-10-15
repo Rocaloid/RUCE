@@ -2,7 +2,7 @@
 #define RUCE_LIBRUCE_H
 
 /*
-  libRUCE API Version 0.0.2
+  libRUCE API Version 0.1.0
   This header is designed to be included without direct dependency on RUtil2.
   
   2014.9.9-0.0.0
@@ -17,6 +17,10 @@
   2014.10.8-0.0.2
     RUCE_SoundBank --> RUCE_Soundbank.
     Add more descriptions to RUCE_SessionSynthStep.
+  
+  2014.10.15-0.1.0
+    Add internal session configuration to RUCE_Session.
+    Add verbose control.
 */
 
 //-----Macros-----
@@ -32,8 +36,8 @@
 
 // API version of this header.
 #define RUCE_APIMAJOR 0
-#define RUCE_APIMINOR 0
-#define RUCE_APIREVISION 2
+#define RUCE_APIMINOR 1
+#define RUCE_APIREVISION 0
 
 //-----Structures-----
 /*
@@ -104,6 +108,8 @@ typedef struct
     void* AmplMatch;
     void* BreMatch;
     void* GenderMatch;
+    
+    void* Config;
 } RUCE_Session;
 
 //-----Functions-----
@@ -111,6 +117,14 @@ typedef struct
 // Get the version of libRUCE.
 // You do not have to destruct RUCE_Version.
 const RUCE_Version* RUCE_GetVersion();
+
+// Show diagnostic log through stderr.
+// Verbose Level:
+// <= 0: No verbose
+//    1: Errors only
+//    2: Warnings
+// >= 3: Other information
+void RUCE_SetVerboseLevel(int Level);
 
 // Allocate and construct a RUCE_Note object.
 // Return NULL if failed.

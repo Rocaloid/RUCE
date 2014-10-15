@@ -17,6 +17,7 @@
 #define HNMContour CSVP_HNMContour_Float
 #define List_DataFrame CDSP2_List_DataFrame_Float
 #define List_HNMFrame CSVP_List_HNMFrame_Float
+#define List_HNMContour CSVP_List_HNMContour_Float
 #define List_Int CDSP2_List_Int
 #undef  PMatch
 #define PMatch PMatch_Float_Float
@@ -24,7 +25,6 @@
 #define MapStretch CDSP2_MapStretch_Linear_Float_Float
 
 #define WINSIZE 2048
-#define Verbose(...) printf(__VA_ARGS__)
 
 #endif
 

@@ -1,10 +1,25 @@
 #include "libRUCE.h"
 #include "Synth.h"
+#include "SessionConfig.h"
 #include <RUtil2.h>
 #include "Common.h"
 #include "Config.h"
 
 #define Modify(Type, Name) (*((Type*)(& (Name))))
+int _RUCE_VerboseLevel = 2;
+
+RCtor(RUCE_SessionConfig)
+{
+    This -> Window = RCall(RAlloc, Real)(2048);
+    This -> WinSize = 2048;
+    RCall(CDSP2_GenHanning, Real)(This -> Window, 2048);
+    RInit(RUCE_SessionConfig);
+}
+
+RDtor(RUCE_SessionConfig)
+{
+    RFree(This -> Window);
+}
 
 const RUCE_Version Version = {
     RUCE_VERSION_MAJOR, RUCE_VERSION_MINOR, RUCE_VERSION_REVISION,
@@ -16,17 +31,17 @@ const RUCE_Version* RUCE_GetVersion()
     return & Version;
 }
 
+void RUCE_SetVerboseLevel(int Level)
+{
+    _RUCE_VerboseLevel = Level;
+}
+
 RUCE_Note* RUCE_CreateNote()
 {
     RUCE_Note* Ret = (RUCE_Note*)malloc(sizeof(RUCE_Note));
-    if(! Ret) return NULL;
+    
     Ret -> Duration = 0;
     Ret -> Lyric = (char*)malloc(RUCE_LYRICSIZE);
-    if(! Ret -> Lyric)
-    {
-        free(Ret);
-        return NULL;
-    }
     memset(Ret -> Lyric, 0, RUCE_LYRICSIZE);
     Ret -> CParamSet.DeltaOnset = 0;
     Ret -> CParamSet.DeltaDuration = 0;
@@ -36,6 +51,7 @@ RUCE_Note* RUCE_CreateNote()
     Ret -> CParamSet.OffsetConsonant = 0;
     Ret -> CParamSet.AmplConsonant = 0;
     Ret -> PhaseSync = 1.0;
+    
     return Ret;
 }
 
@@ -62,17 +78,14 @@ int RUCE_DestroyNote(RUCE_Note* Note)
 RUCE_Session* RUCE_CreateSynthSession(int SampleRate, int BufferSize)
 {
     RUCE_Session* Ret = (RUCE_Session*)malloc(sizeof(RUCE_Session));
-    if(! Ret) return NULL;
+    Ret -> Config = (RUCE_SessionConfig*)malloc(sizeof(RUCE_SessionConfig));
+    RUCE_SessionConfig_Ctor(Ret -> Config);
     
     Ret -> Buffer = RAlloc_Class(InfWave, 1);
-    if(! Ret -> Buffer) return NULL;
     Ret -> FreqMatch = RAlloc_Class(PMatch, 1);
     Ret -> AmplMatch = RAlloc_Class(PMatch, 1);
     Ret -> BreMatch  = RAlloc_Class(PMatch, 1);
     Ret -> GenderMatch = RAlloc_Class(PMatch, 1);
-    if(Ret -> FreqMatch == NULL || Ret -> AmplMatch == NULL ||
-       Ret -> BreMatch == NULL  || Ret -> GenderMatch == NULL)
-        return NULL;
     
     RCall(PMatch, Ctor)(Ret -> FreqMatch);
     RCall(PMatch, Ctor)(Ret -> AmplMatch);
@@ -81,12 +94,10 @@ RUCE_Session* RUCE_CreateSynthSession(int SampleRate, int BufferSize)
     
     Modify(int, Ret -> SampleRate) = SampleRate;
     Modify(int, Ret -> SynthHead)  = 0;
-    Ret -> Soundbank = NULL;
     
     RCall(InfWave, CtorSize)(Ret -> Buffer, BufferSize);
     Array_Ctor(RUCE_Note, Ret -> NoteList);
     Array_Ctor(double, Ret -> TimeList);
-    if(Ret -> NoteList == NULL || Ret -> TimeList == NULL) return NULL;
     
     return Ret;
 }
@@ -94,6 +105,9 @@ RUCE_Session* RUCE_CreateSynthSession(int SampleRate, int BufferSize)
 int RUCE_DestroySynthSession(RUCE_Session* Session)
 {
     RCall(InfWave, Dtor)(Session -> Buffer);
+    RUCE_SessionConfig_Dtor(Session -> Config);
+    free(Session -> Config);
+    
     Array_ObjDtor(RUCE_Note, Session -> NoteList);
     Array_Dtor(RUCE_Note, Session -> NoteList);
     Array_Dtor(double, Session -> TimeList);
@@ -209,12 +223,20 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
     double Time)
 {
     printf("SynthHead before this step: %d\n", Session -> SynthHead);
-    Wave UnvoicedWave, VoicedWave;
+    Wave UnvoicedWave, VoicedWave, NoiseWave;
     RUCE_DB_Entry DBEntry;
     CSVP_PitchModel PMEntry;
     String UnitName;
-    RNew(Wave, & UnvoicedWave, & VoicedWave);
+    RNew(Wave, & UnvoicedWave, & VoicedWave, & NoiseWave);
     String_Ctor(& UnitName);
+    
+    RUCE_SessionConfig* Config = (RUCE_SessionConfig*)Session -> Config;
+    UnvoicedWave.SampleRate = Session -> SampleRate;
+    VoicedWave.SampleRate   = Session -> SampleRate;
+    NoiseWave.SampleRate    = Session -> SampleRate;
+    RCall(Wave, SetWindow)(& UnvoicedWave, Config -> Window, Config -> WinSize);
+    RCall(Wave, SetWindow)(& VoicedWave, Config -> Window, Config -> WinSize);
+    RCall(Wave, SetWindow)(& NoiseWave, Config -> Window, Config -> WinSize);
     
     int i = 0, Ret = 1;
     int AlignHead = Session -> SynthHead;
@@ -242,6 +264,11 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             Ret = -2;
             goto SkipSynth;
         }
+        if(DBEntry.Samprate != Session -> SampleRate)
+        {
+            Ret = -2;
+            goto SkipSynth;
+        }
         RUCE_SoundbankLoadPitchModel(& PMEntry, Session -> Soundbank,
             & UnitName);
         
@@ -254,8 +281,21 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             RCall(InfWave, Add)(Session -> Buffer, UnvoicedWave.Data,
                 Sec2Sample(T(i) + N(i).CParamSet.OffsetConsonant) - SampleAlign,
                 UnvoicedWave.Size);
-        printf("%d\n", (int)(Sec2Sample(T(i) + N(i).CParamSet.OffsetConsonant) - SampleAlign));
+        
         //Synthesize voiced part.
+        List_HNMContour NoteContour;
+        List_DataFrame  NotePhase;
+        RCall(List_HNMContour, Ctor)(& NoteContour);
+        RCall(List_DataFrame , Ctor)(& NotePhase);
+        int ContourAlign = RUCE_VoicedToHNMContour(& NoteContour, & NotePhase,
+            & DBEntry, & PMEntry, Session, i);
+        if(ContourAlign < 1)
+        {
+            Ret = -2;
+            RDelete(& NoteContour, & NotePhase);
+            goto SkipSynth;
+        }
+        RDelete(& NoteContour, & NotePhase);
         
     SkipSynth:
         CSVP_PitchModel_Dtor(& PMEntry);
@@ -265,7 +305,7 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         i ++;
     }
     
-    RDelete(& UnvoicedWave, & VoicedWave, & UnitName);
+    RDelete(& UnvoicedWave, & VoicedWave, & NoiseWave, & UnitName);
     
     int N = i - 1;
     if(N >= 0 && N <= Session -> NoteList_Index)
