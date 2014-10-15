@@ -4,6 +4,7 @@
 #include <RUtil2.h>
 #include "Common.h"
 #include "Config.h"
+#include "Verbose.h"
 
 #define Modify(Type, Name) (*((Type*)(& (Name))))
 int _RUCE_VerboseLevel = 2;
@@ -192,7 +193,7 @@ int RUCE_SessionSynthInit(RUCE_Session* Session, double TimeStart)
         Array_RemoveRange(RUCE_Note, Session -> NoteList, 0, RmIndex);
     }
     for(i = 0; i <= Session -> TimeList_Index; i ++)
-        printf("%f -> %f\n",
+        Verbose(4, "%f -> %f\n",
             Session -> TimeList[i],
             Session -> TimeList[i] + Session -> NoteList[i].Duration);
     
@@ -222,7 +223,7 @@ int RUCE_SessionSynthInit(RUCE_Session* Session, double TimeStart)
 int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
     double Time)
 {
-    printf("SynthHead before this step: %d\n", Session -> SynthHead);
+    Verbose(3, "SynthHead before this step: %d.\n", Session -> SynthHead);
     Wave UnvoicedWave, VoicedWave, NoiseWave;
     RUCE_DB_Entry DBEntry;
     CSVP_PitchModel PMEntry;
@@ -262,11 +263,15 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             != 1)
         {
             Ret = -2;
+            Verbose(2, "[Warning] Cannot load '%s'. Skipped.\n",
+                String_GetChars(& UnitName));
             goto SkipSynth;
         }
         if(DBEntry.Samprate != Session -> SampleRate)
         {
             Ret = -2;
+            Verbose(2, "[Warning] '%s' has wrong sampling rate %d. Skipped.\n",
+                String_GetChars(& UnitName), DBEntry.Samprate);
             goto SkipSynth;
         }
         RUCE_SoundbankLoadPitchModel(& PMEntry, Session -> Soundbank,
@@ -276,7 +281,12 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         int SampleAlign = RUCE_UnvoicedSynth(& UnvoicedWave,
             & Session -> NoteList[i], & DBEntry);
         if(SampleAlign < 1)
+        {
             Ret = -2;
+            Verbose(2, "[Warning] Failed to synthesize unvoiced part of '%s'."
+                " Skipped.\n", String_GetChars(& UnitName));
+            goto SkipSynth;
+        }
         else
             RCall(InfWave, Add)(Session -> Buffer, UnvoicedWave.Data,
                 Sec2Sample(T(i) + N(i).CParamSet.OffsetConsonant) - SampleAlign,
@@ -292,6 +302,8 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         if(ContourAlign < 1)
         {
             Ret = -2;
+            Verbose(2, "[Warning] Failed to synthesize voiced part of '%s'."
+                " Skipped.\n", String_GetChars(& UnitName));
             RDelete(& NoteContour, & NotePhase);
             goto SkipSynth;
         }
@@ -317,9 +329,9 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
     }
     
     
-    printf("SynthHead after this step: %d\n", Session -> SynthHead);
+    Verbose(3, "SynthHead after this step: %d.\n", Session -> SynthHead);
+    Verbose(3, "Wave data submitted at %d.\n", (int)Sec2Sample(Time));
     
-    printf("Submit: %d\n", (int)Sec2Sample(Time));
     RCall(InfWave, Submit)(Session -> Buffer, Sec2Sample(Time));
     if(Ret < 1)
         return Ret;

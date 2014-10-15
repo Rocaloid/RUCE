@@ -1,5 +1,6 @@
 #include "RUCEData.h"
 #include "Soundbank.h"
+#include "Verbose.h"
 
 RUCE_Soundbank* RUCE_CreateLoadSoundbank(char* Directory)
 {
@@ -18,7 +19,6 @@ RUCE_Soundbank* RUCE_CreateLoadSoundbank(char* Directory)
     char* PMPath = malloc(strlen(Directory) + 30);
     strcpy(PMPath, Directory);
     strcat(PMPath, "/PitchModel.json");
-    printf("%s\n", PMPath);
     if(! File_OpenChars(& PMFile, PMPath, READONLY)) goto End;
     File_Read_String(& PMFile, & PMContent);
     
@@ -58,7 +58,7 @@ int RUCE_SoundbankLoadEntry(RUCE_DB_Entry* Dest, RUCE_Soundbank* Bank,
     String_JoinChars(& RudbPath, ".rudb");
     
     int Ret = RUCE_RUDB_Load(Dest, & RudbPath);
-    printf("Load %s, Ret=%d\n", String_GetChars(& RudbPath), Ret);
+    Verbose(3, "Load %s, return = %d\n", String_GetChars(& RudbPath), Ret);
     
     String_Dtor(& RudbPath);
     return Ret;

@@ -11,6 +11,8 @@ int main()
     printf("libRUCE API version: %d.%d.%d\n",
         Ver -> APIMajor, Ver -> APIMinor, Ver -> APIRevision);
     
+    RUCE_SetVerboseLevel(5);
+    
     int i;
     double Notes_Time[] = {1  , 1.5, 2, 3, 3.5};
     double Notes_Dur[]  = {0.4, 0.5, 1, 0.5, 1};
