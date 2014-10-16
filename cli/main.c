@@ -68,7 +68,7 @@ int main()
         for(i = 0; i < Ret; i ++)
             OutWave.Data[OutHead + i] = Output[i];
         OutHead += Ret;
-        Head += 0.2;
+        Head += 0.5;
     }
     String_FromChars(OutPath, "/tmp/out.wav");
     RCall(Wave, ToFile)(& OutWave, & OutPath);
