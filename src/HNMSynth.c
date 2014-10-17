@@ -36,6 +36,18 @@ static int LoadHNMFrame(List_HNMFrame* Dest, List_DataFrame* DestPhse,
     return 1;
 }
 
+static void InterpFetchHNMFrame(HNMFrame* Dest, List_HNMFrame* Sorc,
+    Transition* Trans)
+{
+    int LIndex, HIndex;
+    LIndex = Trans -> LowerIndex;
+    HIndex = Trans -> LowerIndex == Sorc -> Frames_Index ? LIndex : LIndex + 1;
+    HNMFrame* LHNM = & Sorc -> Frames[LIndex];
+    HNMFrame* HHNM = & Sorc -> Frames[HIndex];
+    
+    RCall(HNMFrame, InterpFrom)(Dest, LHNM, HHNM, Trans -> X);
+}
+
 #define Sample2Sec(x) ((double)(x) / SampleRate)
 #define Sec2Sample(x) (SampleRate * (x))
 static int MatchUnitToNote(PMatch* Dest, RUCE_DB_Entry* SorcDB,
@@ -175,7 +187,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
         return -1;
     }
     RCall(PMatch, InvertTo)(& TimeMatch, & RevTimeMatch);
-    RCall(PMatch, Print)(& RevTimeMatch);
+    //RCall(PMatch, Print)(& RevTimeMatch);
     
     double ST0 = Sample2Sec(SorcHead);
     double DT0 = RCall(PMatch, Query)(& RevTimeMatch, ST0).Y;
@@ -192,6 +204,10 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     /*
         Step3: Transform
     */
+    HNMFrame TempFrame;
+    HNMContour TempContour;
+    RCall(HNMFrame, Ctor)(& TempFrame);
+    RCall(HNMContour, Ctor)(& TempContour);
     int Position = 0;
     int LocalDuration = SampleRate * (DTD - DT0);
     while(Position < LocalDuration)
@@ -200,8 +216,15 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
         Transition Trans   = RCall(PMatch, Query)(& SorcTrainMatch,
             SourcePosition);
         double GlobalTime  = MapToGlobal(Position);
-        Verbose(5, "%d %d %f %s\n", Position, SourcePosition, GlobalTime,
+        Verbose(6, "%d %d %f %s\n", Position, Trans.LowerIndex, GlobalTime,
             Sample2Sec(Position) > DTV ? "V" : "U");
+        
+        double F0 = RCall(PMatch, Query)(Session -> FreqMatch, GlobalTime).Y;
+        double Ampl = RCall(PMatch, Query)(Session -> AmplMatch, GlobalTime).Y;
+        double Bre = RCall(PMatch, Query)(Session -> BreMatch, GlobalTime).Y;
+        double Gen = RCall(PMatch, Query)(Session -> GenderMatch, GlobalTime).Y;
+        Verbose(6, "F0=%f, Ampl=%f, Bre=%f, Gen=%f\n", F0, Ampl, Bre, Gen);
+        
         Position += HopSize;
     }
     
@@ -210,7 +233,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     */
     
     RDelete(& SorcHNM, & SorcPhase, & TimeMatch, & RevTimeMatch,
-        & SorcTrainMatch);
+        & SorcTrainMatch, & TempFrame, & TempContour);
     return 1;
 }
 

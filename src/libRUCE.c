@@ -2,9 +2,9 @@
 #include "Synth.h"
 #include "SessionConfig.h"
 #include <RUtil2.h>
-#include "Common.h"
 #include "Config.h"
 #include "Verbose.h"
+#include "Common.h"
 
 #define Modify(Type, Name) (*((Type*)(& (Name))))
 int _RUCE_VerboseLevel = 2;
@@ -154,23 +154,24 @@ int RUCE_SessionAppendEvent(RUCE_Session* Session, int Type, double Time,
     {
     case RUCE_EFREQ:
         if(Value <= 0 || Value > 2000.0) return -3;
-        RCall(PMatch, AddPair)((PMatch*)Session -> FreqMatch, Time, Value);
+        RCall(PMatch, AddPair)(Session -> FreqMatch, Time, Value);
     break;
     case RUCE_EAMPL:
         if(Value < 0) return -3;
-        RCall(PMatch, AddPair)((PMatch*)Session -> AmplMatch, Time, Value);
+        RCall(PMatch, AddPair)(Session -> AmplMatch, Time, Value);
     break;
     case RUCE_EBRE:
         if(Value < 0 || Value > 1) return -3;
-        RCall(PMatch, AddPair)((PMatch*)Session -> BreMatch, Time, Value);
+        RCall(PMatch, AddPair)(Session -> BreMatch, Time, Value);
     break;
     case RUCE_EGEN:
         if(Value < -1 || Value > 1) return -3;
-        RCall(PMatch, AddPair)((PMatch*)Session -> GenderMatch, Time, Value);
+        RCall(PMatch, AddPair)(Session -> GenderMatch, Time, Value);
     break;
     default:
         return -1;
     }
+    
     return 1;
 }
 
@@ -327,7 +328,6 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         Array_RemoveRange(double, Session -> TimeList, 0, N);
         Array_RemoveRange(RUCE_Note, Session -> NoteList, 0, N);
     }
-    
     
     Verbose(3, "SynthHead after this step: %d.\n", Session -> SynthHead);
     Verbose(3, "Wave data submitted at %d.\n", (int)Sec2Sample(Time));

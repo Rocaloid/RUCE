@@ -11,7 +11,7 @@ int main()
     printf("libRUCE API version: %d.%d.%d\n",
         Ver -> APIMajor, Ver -> APIMinor, Ver -> APIRevision);
     
-    RUCE_SetVerboseLevel(5);
+    RUCE_SetVerboseLevel(10);
     
     int i;
     double Notes_Time[] = {1  , 1.5, 2, 3, 3.5};
@@ -42,17 +42,20 @@ int main()
     }
     
     RUCE_SessionAppendEvent(Main, RUCE_EFREQ, 0, 262.0);
-    RUCE_SessionAppendEvent(Main, RUCE_EFREQ, 1, 262.0);
-    RUCE_SessionAppendEvent(Main, RUCE_EFREQ, 1.5, 270.0);
-    RUCE_SessionAppendEvent(Main, RUCE_EFREQ, 1.9, 270.0);
-    RUCE_SessionAppendEvent(Main, RUCE_EFREQ, 2.0, 320.0);
+    RUCE_SessionAppendEvent(Main, RUCE_EFREQ, 1.1, 262.0);
     RUCE_SessionAppendEvent(Main, RUCE_EFREQ, 3.5, 320.0);
     RUCE_SessionAppendEvent(Main, RUCE_EAMPL, 0, 1.0);
     RUCE_SessionAppendEvent(Main, RUCE_EBRE, 0, 0.5);
     RUCE_SessionAppendEvent(Main, RUCE_EGEN, 0, 0.5);
+    RUCE_SessionAppendEvent(Main, RUCE_EAMPL, 1, 1.0);
+    RUCE_SessionAppendEvent(Main, RUCE_EBRE, 1, 0.5);
+    RUCE_SessionAppendEvent(Main, RUCE_EGEN, 1, 0.5);
     
-    RUCE_SessionSynthInit(Main, 0);
-    
+    if(RUCE_SessionSynthInit(Main, 0) < 1)
+    {
+        fprintf(stderr, "[Error] Cannot initiate synthesis.\n");
+        return 0;
+    }
     float* Output = RAlloc_Float(44100 * 10);
     
     Wave OutWave;

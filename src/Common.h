@@ -1,6 +1,3 @@
-#ifndef RUCE_COMMON_H
-#define RUCE_COMMON_H
-
 #define Real Float
 #define Wave CDSP2_Wave_Float
 #define InfWave CDSP2_InfWave_Float
@@ -25,6 +22,4 @@
 #define MapStretch CDSP2_MapStretch_Linear_Float_Float
 
 #define WINSIZE 2048
-
-#endif
 
