@@ -48,6 +48,29 @@ static void InterpFetchHNMFrame(HNMFrame* Dest, List_HNMFrame* Sorc,
     RCall(HNMFrame, InterpFrom)(Dest, LHNM, HHNM, Trans -> X);
 }
 
+static void InterpFetchPhase(DataFrame* Dest, List_DataFrame* Sorc,
+    Transition* Trans)
+{
+    int LIndex, HIndex;
+    LIndex = Trans -> LowerIndex;
+    HIndex = Trans -> LowerIndex == Sorc -> Frames_Index ? LIndex : LIndex + 1;
+    DataFrame* LPhase = & Sorc -> Frames[LIndex];
+    DataFrame* HPhase = & Sorc -> Frames[HIndex];
+    
+    DataFrame SLPhase, SHPhase;
+    RCall(DataFrame, Ctor)(& SLPhase);
+    RCall(DataFrame, Ctor)(& SHPhase);
+    
+    RCall(DataFrame, From)(& SLPhase, LPhase);
+    RCall(DataFrame, From)(& SHPhase, HPhase);
+    RCall(CSVP_PhaseSyncH, Real)(& SLPhase, 0);
+    RCall(CSVP_PhaseSyncH, Real)(& SHPhase, 0);
+    RCall(CSVP_PhaseInterp, Real)(Dest, & SLPhase, & SHPhase, Trans -> X);
+    
+    RCall(DataFrame, Dtor)(& SLPhase);
+    RCall(DataFrame, Dtor)(& SHPhase);
+}
+
 #define Sample2Sec(x) ((double)(x) / SampleRate)
 #define Sec2Sample(x) (SampleRate * (x))
 static int MatchUnitToNote(PMatch* Dest, RUCE_DB_Entry* SorcDB,
@@ -206,8 +229,10 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     */
     HNMFrame TempFrame;
     HNMContour TempContour;
+    DataFrame TempPhase;
     RCall(HNMFrame, Ctor)(& TempFrame);
     RCall(HNMContour, Ctor)(& TempContour);
+    RCall(DataFrame, Ctor)(& TempPhase);
     int Position = 0;
     int LocalDuration = SampleRate * (DTD - DT0);
     while(Position < LocalDuration)
@@ -225,15 +250,19 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
         double Gen = RCall(PMatch, Query)(Session -> GenderMatch, GlobalTime).Y;
         Verbose(6, "F0=%f, Ampl=%f, Bre=%f, Gen=%f\n", F0, Ampl, Bre, Gen);
         
+        InterpFetchHNMFrame(& TempFrame, & SorcHNM, & Trans);
+        InterpFetchPhase(& TempPhase, & SorcPhase, & Trans);
+        
         Position += HopSize;
     }
+    RDelete(& TempFrame, & TempContour, & TempPhase);
     
     /*
         Step4: Post-transform
     */
     
     RDelete(& SorcHNM, & SorcPhase, & TimeMatch, & RevTimeMatch,
-        & SorcTrainMatch, & TempFrame, & TempContour);
+        & SorcTrainMatch);
     return 1;
 }
 
