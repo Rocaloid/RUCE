@@ -16,7 +16,7 @@ int main()
     int i;
     double Notes_Time[] = {1  , 1.5, 2, 3, 3.5};
     double Notes_Dur[]  = {0.4, 0.5, 1, 0.5, 1};
-    double Notes_DurC[] = {0.05, 0.05, 0.1, 0.1, 0.05};
+    double Notes_DurC[] = {0.05, 0.05, 0.05, 0.1, 0.05};
     char*  Notes_Lyric[] = {"a", "la", "la", "ka", "kuan"};
     
     RUCE_Session* Main = RUCE_CreateSynthSession(44100, 44100 * 30);

@@ -1,9 +1,13 @@
 #include "Synth.h"
+#include "Verbose.h"
 
 static void StretchConsonant(Wave* Dest, Wave* Sorc, int VOT,
     int SorcOrigin, int DestOrigin)
 {
-    #define NAnch 4
+    Verbose(4, "(function entrance) VOT=%d, SorcOrigin=%d, DestOrigin=%d\n",
+        VOT, SorcOrigin, DestOrigin);
+    
+    #define NAnch 6
     int SorcAnch[NAnch];
     int DestAnch[NAnch];
     int i;
@@ -42,6 +46,7 @@ static void StretchConsonant(Wave* Dest, Wave* Sorc, int VOT,
         int j;
         for(j = DestAnch[i]; j < DestAnch[i + 1]; j ++)
         {
+            //TODO: Underflow prevention.
             Real R = (Real)(j - DestAnch[i]) / (DestAnch[i + 1] - DestAnch[i]);
             Dest -> Data[j] = Sorc -> Data[j - DestAnch[i] + SorcAnch[i]]
                 * (1.0 - R)
@@ -74,7 +79,7 @@ int RUCE_UnvoicedSynth(Wave* Dest, RUCE_Note* SorcNote, RUCE_DB_Entry* SorcDB)
     for(i = 0; i < SorcDB -> WaveSize; i ++)
         Sorc.Data[i + Shift] = SorcDB -> ApWave[i];
     
-    if(VOTSample > DurSample)
+    if(DurSample > VOTSample)
         StretchConsonant(Dest, & Sorc, VOTSample, Shift, 0);
     else
         StretchConsonant(Dest, & Sorc, DurSample, Shift, VOTSample - DurSample);
