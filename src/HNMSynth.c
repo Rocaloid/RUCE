@@ -1,6 +1,11 @@
 #include "Synth.h"
 #include "Verbose.h"
 
+typedef struct
+{
+    double T0, TV, T1, T2, TD;
+} Segmentation;
+
 static int LoadHNMFrame(List_HNMFrame* Dest, List_DataFrame* DestPhse,
     RUCE_DB_Entry* Sorc, int WinSize)
 {
@@ -71,19 +76,39 @@ static void InterpFetchPhase(DataFrame* Dest, List_DataFrame* Sorc,
     RCall(DataFrame, Dtor)(& SHPhase);
 }
 
+/*
+                     (SP1) (SP2)
+          0 ST0    STV  ST1     ST2    STD
+    Src   |--|------|----|-------|------|
+                     (DP1)  (DP2)
+        0  DT0     DTV   DT1     DT2     DTD
+    Dst |---|-------|-----|-------|-------|
+    
+    ST0/DT0: First HNM frame
+    ST1/DT1: Initial of voiced part
+    ST2/DT2: Final of voiced part
+    STV/DTV: VOT/Syllable alignment
+    STD/DTD: End/Duration
+*/
 #define Sample2Sec(x) ((double)(x) / SampleRate)
 #define Sec2Sample(x) (SampleRate * (x))
-static int MatchUnitToNote(PMatch* Dest, RUCE_DB_Entry* SorcDB,
-    RUCE_Session* Session, int NoteIndex, double DTV)
+static Segmentation MatchUnitToNote(PMatch* Dest, RUCE_DB_Entry* SorcDB,
+    RUCE_Session* Session, int NoteIndex)
 {
     Verbose(4, "(function entrance)\n");
+    Segmentation Ret;
     int SampleRate = Session -> SampleRate;
+    int SorcHead = SorcDB -> FrameList[0].Position;
     RUCE_Note* Note = & Session -> NoteList[NoteIndex];
     
-    //ST0 -> DT0, STV -> DTV, STD -> DTD
+    double ST0 = Sample2Sec(SorcHead);
     double STV = SorcDB -> VOT;
+    double DTV = Note -> CParamSet.DurConsonant <= 0 ? SorcDB -> VOT :
+        Note -> CParamSet.DurConsonant;
     double STD = Sample2Sec(TopOf(SorcDB -> FrameList).Position);
-    double DTD = Note -> Duration + DTV;
+    double DTD = Note -> Duration + Note -> CParamSet.DeltaDuration + DTV;
+    
+    //ST0 -> DT0, STV -> DTV, STD -> DTD
     RCall(PMatch, AddPair)(Dest, 0, 0);
     RCall(PMatch, AddPair)(Dest, DTV, STV);
     RCall(PMatch, AddPair)(Dest, DTD, STD);
@@ -132,7 +157,19 @@ static int MatchUnitToNote(PMatch* Dest, RUCE_DB_Entry* SorcDB,
     
     RCall(PMatch, AddPair)(Dest, DTV + DP1, STV + SP1);
     RCall(PMatch, AddPair)(Dest, DTV + DP2, STV + SP2);
-    return 1;
+    
+    PMatch RevTimeMatch;
+    RCall(PMatch, Ctor)(& RevTimeMatch);
+    RCall(PMatch, InvertTo)(Dest, & RevTimeMatch);
+    Ret.T0 = RCall(PMatch, Query)(& RevTimeMatch, ST0).Y;
+    Ret.TV = DTV;
+    Ret.T1 = DTV + DP1;
+    Ret.T2 = DTV + DP2;
+    Ret.TD = DTD;
+    
+    RCall(PMatch, Dtor)(& RevTimeMatch);
+    
+    return Ret;
 }
 
 static void LoadPulseTrain(List_Int* Dest, RUCE_DB_Entry* Sorc)
@@ -155,6 +192,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     RUCE_Note* Note = & Session -> NoteList[NoteIndex];
     double NoteTime = Session -> TimeList[NoteIndex];
     int SampleRate = Session -> SampleRate;
+    int HopSize  = SorcDB -> HopSize;
     
     List_HNMFrame  SorcHNM;
     List_DataFrame SorcPhase;
@@ -180,49 +218,17 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     
     /*
         Step2: Match
-                         (SP1)  (SP2)
-              0 ST0    STV  ST1     ST2    STD
-        Src   |--|------|----|-------|------|
-                         (DP1)  (DP2)
-            0  DT0     DTV   DT1     DT2     DTD
-        Dst |---|-------|-----|-------|-------|
-        
-        ST0/DT0: First HNM frame
-        ST1/DT1: Initial of voiced part
-        ST2/DT2: Final of voiced part
-        STV/DTV: VOT/Syllable alignment
-        STD/DTD: End/Duration
     */
-    int SorcHead = SorcDB -> FrameList[0].Position;
-    int HopSize  = SorcDB -> HopSize;
-    double STV = SorcDB -> VOT;
-    double DTV = Note -> CParamSet.DurConsonant <= 0 ?
-        SorcDB -> VOT : Note -> CParamSet.DurConsonant;
     
     PMatch TimeMatch, RevTimeMatch;
     RCall(PMatch, Ctor)(& TimeMatch);
     RCall(PMatch, Ctor)(& RevTimeMatch);
-    if(MatchUnitToNote(& TimeMatch, SorcDB, Session, NoteIndex, DTV) < 1)
-    {
-        Verbose(1, "[Error] Cannot match phoneme durations.\n");
-        RDelete(& SorcHNM, & SorcPhase, & TimeMatch, & RevTimeMatch,
-            & SorcTrainMatch);
-        return -1;
-    }
-    RCall(PMatch, InvertTo)(& TimeMatch, & RevTimeMatch);
-    //RCall(PMatch, Print)(& RevTimeMatch);
-    
-    double ST0 = Sample2Sec(SorcHead);
-    double DT0 = RCall(PMatch, Query)(& RevTimeMatch, ST0).Y;
-    double STD = Sample2Sec(TopOf(SorcDB -> FrameList).Position);
-    double DTD = Note -> Duration + DTV;
-    Verbose(5, "ST0=%f, STV=%f, STD=%f, DT0=%f, DTV=%f, DTD=%f\n",
-        ST0, STV, STD, DT0, DTV, DTD);
+    Segmentation D = MatchUnitToNote(& TimeMatch, SorcDB, Session, NoteIndex);
     
     #define MapToSource(n) \
-        Sec2Sample(RCall(PMatch, Query)(& TimeMatch, Sample2Sec(n) + DT0).Y)
+        Sec2Sample(RCall(PMatch, Query)(& TimeMatch, Sample2Sec(n) + D.T0).Y)
     #define MapToGlobal(n) \
-        (Sample2Sec(n) + DT0 - DTV + NoteTime)
+        (Sample2Sec(n) + D.T0 - D.TV + NoteTime)
     
     /*
         Step3: Transform
@@ -234,7 +240,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     RCall(HNMContour, Ctor)(& TempContour);
     RCall(DataFrame, Ctor)(& TempPhase);
     int Position = 0;
-    int LocalDuration = SampleRate * (DTD - DT0);
+    int LocalDuration = SampleRate * (D.TD - D.T0);
     while(Position < LocalDuration)
     {
         int SourcePosition = MapToSource(Position);
@@ -242,13 +248,13 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
             SourcePosition);
         double GlobalTime  = MapToGlobal(Position);
         Verbose(6, "%d %d %f %s\n", Position, Trans.LowerIndex, GlobalTime,
-            Sample2Sec(Position) > DTV ? "V" : "U");
+            Sample2Sec(Position) > D.TV ? "V" : "U");
         
-        double F0 = RCall(PMatch, Query)(Session -> FreqMatch, GlobalTime).Y;
-        double Ampl = RCall(PMatch, Query)(Session -> AmplMatch, GlobalTime).Y;
-        double Bre = RCall(PMatch, Query)(Session -> BreMatch, GlobalTime).Y;
+        double F0  = RCall(PMatch, Query)(Session -> FreqMatch  , GlobalTime).Y;
+        double Amp = RCall(PMatch, Query)(Session -> AmplMatch  , GlobalTime).Y;
+        double Bre = RCall(PMatch, Query)(Session -> BreMatch   , GlobalTime).Y;
         double Gen = RCall(PMatch, Query)(Session -> GenderMatch, GlobalTime).Y;
-        Verbose(6, "F0=%f, Ampl=%f, Bre=%f, Gen=%f\n", F0, Ampl, Bre, Gen);
+        Verbose(6, "F0=%f, Amp=%f, Bre=%f, Gen=%f\n", F0, Amp, Bre, Gen);
         
         InterpFetchHNMFrame(& TempFrame, & SorcHNM, & Trans);
         InterpFetchPhase(& TempPhase, & SorcPhase, & Trans);
