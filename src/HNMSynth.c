@@ -180,6 +180,42 @@ static void LoadPulseTrain(List_Int* Dest, RUCE_DB_Entry* Sorc)
         Dest -> Frames[i] = Sorc -> FrameList[i].Position;
 }
 
+static int ParamConvertHNM(HNMContour* Dest, HNMFrame* Sorc,
+    CSVP_PitchModel* PM, int SampleRate,
+    double F0, double Amp, double Bre, double Gen)
+{
+    HNMFrame Shifted;
+    RCall(HNMFrame, Ctor)(& Shifted);
+    RCall(HNMFrame, From)(& Shifted, Sorc);
+    
+    for(int i = 0; i <= Shifted.Hmnc.Freq_Index; i ++)
+        Shifted.Hmnc.Freq[i] *= Gen + 0.5;
+    
+    CSVP_PitchConvertHNMFrame_Float(Dest, & Shifted, PM, F0, 10000, SampleRate);
+    
+    float NoizAdj = log(Amp);
+    float HmncAdj = log(Amp);
+    
+    if(fabs(Bre - 0.5) > 0.001)
+        NoizAdj += Bre < 0.001 ? -999.0 : log(Bre * 2.0);
+    if(Bre > 0.501)
+        HmncAdj += Bre > 0.999 ? -999.0 : log(2.0 - Bre * 2.0);
+    
+    RCall(CDSP2_VCAdd, Real)(Dest -> Noiz, Dest -> Noiz, NoizAdj,
+        Dest -> Size / 2 + 1);
+    RCall(CDSP2_VCAdd, Real)(Dest -> Hmnc, Dest -> Hmnc, HmncAdj,
+        Dest -> Size / 2 + 1);
+        
+    RCall(HNMFrame, Dtor)(& Shifted);
+    return 1;
+}
+
+static int ParamAdjustPhase(DataFrame* Dest, double F0, double Amp, double Bre,
+    double Gen)
+{
+    return 1;
+}
+
 //Returns the alignment in index.
 //  1: Success
 //  0: Cannot load HNMFrame
@@ -240,6 +276,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     RCall(HNMContour, Ctor)(& TempContour);
     RCall(DataFrame, Ctor)(& TempPhase);
     int Position = 0;
+    int Count = 0;
     int LocalDuration = SampleRate * (D.TD - D.T0);
     while(Position < LocalDuration)
     {
@@ -259,6 +296,25 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
         InterpFetchHNMFrame(& TempFrame, & SorcHNM, & Trans);
         InterpFetchPhase(& TempPhase, & SorcPhase, & Trans);
         
+        if(ParamConvertHNM(& TempContour, & TempFrame, SorcPM,SampleRate,
+            F0, Amp, Bre, Gen) < 1)
+        {
+            Verbose(1, "[Error] HNM contour conversion failed.\n");
+            RDelete(& SorcHNM, & SorcPhase, & TimeMatch, & RevTimeMatch,
+                & SorcTrainMatch, & TempFrame, & TempContour, & TempPhase);
+            return -1;
+        }
+        if(ParamAdjustPhase(& TempPhase, F0, Amp, Bre, Gen) < 1)
+        {
+            Verbose(1, "[Error] Phase adjustment failed.\n");
+            RDelete(& SorcHNM, & SorcPhase, & TimeMatch, & RevTimeMatch,
+                & SorcTrainMatch, & TempFrame, & TempContour, & TempPhase);
+            return -2;
+        }
+        
+        RCall(List_HNMContour, Add)(Dest, & TempContour, Count);
+        RCall(List_DataFrame, Add)(DestPhse, & TempPhase, Count);
+        Count ++;
         Position += HopSize;
     }
     RDelete(& TempFrame, & TempContour, & TempPhase);
