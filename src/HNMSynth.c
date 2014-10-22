@@ -184,6 +184,7 @@ static int ParamConvertHNM(HNMContour* Dest, HNMFrame* Sorc,
     CSVP_PitchModel* PM, int SampleRate,
     double F0, double Amp, double Bre, double Gen)
 {
+    Verbose(6, "(function entrance)\n");
     HNMFrame Shifted;
     RCall(HNMFrame, Ctor)(& Shifted);
     RCall(HNMFrame, From)(& Shifted, Sorc);
@@ -201,6 +202,7 @@ static int ParamConvertHNM(HNMContour* Dest, HNMFrame* Sorc,
     if(Bre > 0.501)
         HmncAdj += Bre > 0.999 ? -999.0 : log(2.0 - Bre * 2.0);
     
+    Verbose(6, "NoizAdj=%f, HmncAdj=%f\n", NoizAdj, HmncAdj);
     RCall(CDSP2_VCAdd, Real)(Dest -> Noiz, Dest -> Noiz, NoizAdj,
         Dest -> Size / 2 + 1);
     RCall(CDSP2_VCAdd, Real)(Dest -> Hmnc, Dest -> Hmnc, HmncAdj,
@@ -210,10 +212,40 @@ static int ParamConvertHNM(HNMContour* Dest, HNMFrame* Sorc,
     return 1;
 }
 
-static int ParamAdjustPhase(DataFrame* Dest, double F0, double Amp, double Bre,
-    double Gen)
+static int ParamAdjustPhase(DataFrame* Dest, CSVP_PitchModel* PM,
+    double F0, double Amp, double Bre, double Gen)
 {
+    RCall(CSVP_PhaseContract, Real)(Dest, CSVP_PitchModel_GetPhseCoh(PM, F0));
     return 1;
+}
+
+static void SmoothenContourList(List_HNMContour* Dest, double Center,
+    int HopSize, int SampleRate, RUCE_Note* Note)
+{
+    Verbose(4, "(function entrance)\n");
+    
+    const double DecayTime = 0.06;
+    const double DecayRate = 0.6;
+    
+    int LDecayIndex = (Center - DecayTime) * SampleRate / HopSize;
+    int HDecayIndex = (Center + DecayTime) * SampleRate / HopSize;
+    LDecayIndex = LDecayIndex < 1 ? 1 : LDecayIndex;
+    HDecayIndex = HDecayIndex > Dest -> Frames_Index ? Dest -> Frames_Index :
+        HDecayIndex;
+    
+    Verbose(4, "Center=%f, LDecayIndex=%d, HDecayIndex=%d\n", Center,
+        LDecayIndex, HDecayIndex);
+    
+    HNMContour TempCont;
+    RCall(HNMContour, Ctor)(& TempCont);
+    for(int i = LDecayIndex; i < HDecayIndex; i ++)
+    {
+        RCall(HNMContour, From)(& TempCont, & Dest -> Frames[i]);
+        RCall(HNMContour, InterpFrom)(& Dest -> Frames[i], & TempCont,
+            & Dest -> Frames[i - 1], DecayRate);
+    }
+    
+    RCall(HNMContour, Dtor)(& TempCont);
 }
 
 //Returns the alignment in index.
@@ -224,6 +256,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     RUCE_DB_Entry* SorcDB, CSVP_PitchModel* SorcPM, RUCE_Session* Session,
     int NoteIndex)
 {
+    Verbose(3, "(function entrance)\n");
     RUCE_SessionConfig* Config = Session -> Config;
     RUCE_Note* Note = & Session -> NoteList[NoteIndex];
     double NoteTime = Session -> TimeList[NoteIndex];
@@ -255,7 +288,6 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     /*
         Step2: Match
     */
-    
     PMatch TimeMatch, RevTimeMatch;
     RCall(PMatch, Ctor)(& TimeMatch);
     RCall(PMatch, Ctor)(& RevTimeMatch);
@@ -296,7 +328,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
         InterpFetchHNMFrame(& TempFrame, & SorcHNM, & Trans);
         InterpFetchPhase(& TempPhase, & SorcPhase, & Trans);
         
-        if(ParamConvertHNM(& TempContour, & TempFrame, SorcPM,SampleRate,
+        if(ParamConvertHNM(& TempContour, & TempFrame, SorcPM, SampleRate,
             F0, Amp, Bre, Gen) < 1)
         {
             Verbose(1, "[Error] HNM contour conversion failed.\n");
@@ -304,7 +336,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
                 & SorcTrainMatch, & TempFrame, & TempContour, & TempPhase);
             return -1;
         }
-        if(ParamAdjustPhase(& TempPhase, F0, Amp, Bre, Gen) < 1)
+        if(ParamAdjustPhase(& TempPhase, SorcPM, F0, Amp, Bre, Gen) < 1)
         {
             Verbose(1, "[Error] Phase adjustment failed.\n");
             RDelete(& SorcHNM, & SorcPhase, & TimeMatch, & RevTimeMatch,
@@ -320,11 +352,14 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     RDelete(& TempFrame, & TempContour, & TempPhase);
     
     /*
-        Step4: Post-transform
+        Step4: Post-conversion transforms
     */
+    SmoothenContourList(Dest, D.T1 - D.T0, HopSize, SampleRate, Note);
     
     RDelete(& SorcHNM, & SorcPhase, & TimeMatch, & RevTimeMatch,
         & SorcTrainMatch);
-    return 1;
+    int Ret = (D.TV - D.T0) * SampleRate / HopSize;
+    Verbose(3, "Ret=%d\n", Ret);
+    return Ret;
 }
 
