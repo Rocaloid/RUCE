@@ -232,6 +232,7 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
     RNew(Wave, & UnvoicedWave, & VoicedWave, & NoiseWave);
     String_Ctor(& UnitName);
     
+    Real* F0List = RCall(RAlloc, Real)(16384);
     RUCE_SessionConfig* Config = (RUCE_SessionConfig*)Session -> Config;
     UnvoicedWave.SampleRate = Session -> SampleRate;
     VoicedWave.SampleRate   = Session -> SampleRate;
@@ -299,7 +300,7 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         RCall(List_HNMContour, Ctor)(& NoteContour);
         RCall(List_DataFrame , Ctor)(& NotePhase);
         int ContourAlign = RUCE_VoicedToHNMContour(& NoteContour, & NotePhase,
-            & DBEntry, & PMEntry, Session, i);
+            F0List, & DBEntry, & PMEntry, Session, i);
         if(ContourAlign < 1)
         {
             Ret = -2;
@@ -308,6 +309,8 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             RDelete(& NoteContour, & NotePhase);
             goto SkipSynth;
         }
+        int VoicedAlign = RUCE_SynthHNMContour(& VoicedWave, & NoiseWave,
+            & NoteContour, & NotePhase, F0List, DBEntry.HopSize, Config);
         RDelete(& NoteContour, & NotePhase);
         
     SkipSynth:
@@ -319,6 +322,7 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
     }
     
     RDelete(& UnvoicedWave, & VoicedWave, & NoiseWave, & UnitName);
+    RFree(F0List);
     
     int N = i - 1;
     if(N >= 0 && N <= Session -> NoteList_Index)

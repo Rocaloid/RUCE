@@ -249,12 +249,12 @@ static void SmoothenContourList(List_HNMContour* Dest, double Center,
 }
 
 //Returns the alignment in index.
-//  1: Success
+// >0: Success
 //  0: Cannot load HNMFrame
 // -1: Cannot match phoneme durations
 int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
-    RUCE_DB_Entry* SorcDB, CSVP_PitchModel* SorcPM, RUCE_Session* Session,
-    int NoteIndex)
+    Real* DestF0, RUCE_DB_Entry* SorcDB, CSVP_PitchModel* SorcPM,
+    RUCE_Session* Session, int NoteIndex)
 {
     Verbose(3, "(function entrance)\n");
     RUCE_SessionConfig* Config = Session -> Config;
@@ -346,6 +346,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
         
         RCall(List_HNMContour, Add)(Dest, & TempContour, Count);
         RCall(List_DataFrame, Add)(DestPhse, & TempPhase, Count);
+        DestF0[Count] = F0;
         Count ++;
         Position += HopSize;
     }
@@ -361,5 +362,51 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     int Ret = (D.TV - D.T0) * SampleRate / HopSize;
     Verbose(3, "Ret=%d\n", Ret);
     return Ret;
+}
+
+//Returns the alignment in samples
+// >0: Success
+//  0: Failed, sizes of source lists mismatch.
+// -1: Failed, undocumented error.
+int RUCE_SynthHNMContour(Wave* DestHmnc, Wave* DestNoiz, List_HNMContour* Sorc,
+    List_DataFrame* SorcPhse, Real* SorcF0, int HopSize,
+    RUCE_SessionConfig* SorcConfig)
+{
+    Verbose(3, "(function entrance)\n");
+    if(SorcPhse -> Frames_Index != Sorc -> Frames_Index)
+    {
+        Verbose(1, "[Error] Sizes of source lists mismatch.\n");
+        return 0;
+    }
+    
+    int N = Sorc -> Frames_Index + 1;
+    RCall(Wave, Resize)(DestHmnc, N * HopSize + SorcConfig -> WinSize);
+    RCall(Wave, Resize)(DestNoiz, N * HopSize + SorcConfig -> WinSize);
+    
+    HNMItersizer Synth;
+    RCall(HNMItersizer, CtorSize)(& Synth, SorcConfig -> WinSize);
+    RCall(HNMItersizer, SetHopSize)(& Synth, HopSize);
+    RCall(HNMItersizer, SetWave)(& Synth, DestHmnc);
+    RCall(HNMItersizer, SetNoizWave)(& Synth, DestNoiz);
+    
+    HNMFrame TempHNM;
+    RCall(HNMFrame, Ctor)(& TempHNM);
+    for(int i = 0; i < N; i ++)
+    {
+        RCall(HNMFrame, FromContour)(& TempHNM, & Sorc -> Frames[i], SorcF0[i],
+            8000);
+        RCall(HNMItersizer, Add)(& Synth, & TempHNM, i * HopSize);
+        if(i % 10 == 0)
+            RCall(HNMItersizer, AddPhase)(& Synth, & SorcPhse -> Frames[i],
+                i * HopSize);
+    }
+    
+    RCall(HNMItersizer, SetPosition)(& Synth, 500);
+    RCall(HNMItersizer, SetInitPhase)(& Synth, & SorcPhse -> Frames[2]);
+    RCall(HNMItersizer, IterNextTo)(& Synth, (N - 1) * HopSize);
+    
+    RDelete(& TempHNM, & Synth);
+    
+    return 1;
 }
 

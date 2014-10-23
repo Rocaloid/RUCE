@@ -11,7 +11,7 @@ int main()
     printf("libRUCE API version: %d.%d.%d\n",
         Ver -> APIMajor, Ver -> APIMinor, Ver -> APIRevision);
     
-    RUCE_SetVerboseLevel(10);
+    RUCE_SetVerboseLevel(5);
     
     int i;
     double Notes_Time[] = {1  , 1.5, 2, 3, 3.5};
@@ -21,7 +21,7 @@ int main()
     
     RUCE_Session* Main = RUCE_CreateSynthSession(44100, 44100 * 30);
     RUCE_Soundbank* Bank = RUCE_CreateLoadSoundbank(
-        "/tmp/SoundbankBuilder/home/Cyan-RUCE-Source-master");
+        "/tmp/Cyan-Source");
     RUCE_SessionSetSoundbank(Main, Bank);
     
     if(! Main)
