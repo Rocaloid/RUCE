@@ -6,7 +6,6 @@
 #include "Verbose.h"
 #include "Common.h"
 
-#define Modify(Type, Name) (*((Type*)(& (Name))))
 int _RUCE_VerboseLevel = 2;
 
 RCtor(RUCE_SessionConfig)
@@ -93,8 +92,8 @@ RUCE_Session* RUCE_CreateSynthSession(int SampleRate, int BufferSize)
     RCall(PMatch, Ctor)(Ret -> BreMatch);
     RCall(PMatch, Ctor)(Ret -> GenderMatch);
     
-    Modify(int, Ret -> SampleRate) = SampleRate;
-    Modify(int, Ret -> SynthHead)  = 0;
+    Ret -> SampleRate = SampleRate;
+    Ret -> SynthHead  = 0;
     
     RCall(InfWave, CtorSize)(Ret -> Buffer, BufferSize);
     Array_Ctor(RUCE_Note, Ret -> NoteList);
@@ -203,7 +202,7 @@ int RUCE_SessionSynthInit(RUCE_Session* Session, double TimeStart)
      < TimeStart)
         return -1;
     
-    Modify(int, Session -> SynthHead) = TimeStart * Session -> SampleRate;
+    Session -> SynthHead = TimeStart * Session -> SampleRate;
     RCall(InfWave, Relocate)(Session -> Buffer, Session -> SynthHead);
     
     return 1;
@@ -332,7 +331,7 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         CSVP_PitchModel_Dtor(& PMEntry);
         RUCE_DB_Entry_Dtor(& DBEntry);
         AlignHead = Sec2Sample(T(i));
-        Modify(int, Session -> SynthHead) = DestHead;
+        Session -> SynthHead = DestHead;
         i ++;
     }
     
@@ -360,12 +359,21 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
 
 // Close the RUCE_Session object, but do not destruct it.
 // Returns 1 for success, 0 for failure.
-int RUCE_SessionSynthFin(RUCE_Session* Session);
-
-// Synthesize a single RUCE_Note object.
-// Returns 1 for success, 0 or negative integer for failure.
-//   0: Undocumented error.
-//  -2: The duration is too long.
-int RUCE_SessionSynthNote(RUCE_Session* Session, Real* DestBuffer,
-    RUCE_Note* SorcNote);
+int RUCE_SessionSynthFin(RUCE_Session* Session)
+{
+    int i;
+    for(i = 0; i <= Session -> NoteList_Index; i ++)
+        RUCE_Note_Dtor(& Session -> NoteList[i]);
+    Session -> NoteList_Index = -1;
+    Session -> TimeList_Index = -1;
+    RCall(PMatch, Clear)(Session -> FreqMatch);
+    RCall(PMatch, Clear)(Session -> AmplMatch);
+    RCall(PMatch, Clear)(Session -> BreMatch);
+    RCall(PMatch, Clear)(Session -> GenderMatch);
+    
+    Wave* Buffer = Session -> Buffer;
+    RCall(CDSP2_VSet, Real)(Buffer -> Data, 0, Buffer -> Size);
+    Session -> SynthHead = 0;
+    return 1;
+}
 

@@ -76,6 +76,7 @@ int main()
     String_FromChars(OutPath, "/tmp/out.wav");
     RCall(Wave, ToFile)(& OutWave, & OutPath);
     
+    RUCE_SessionSynthFin(Main);
     RDelete(& OutWave, & OutPath);
     
     RFree(Output);

@@ -25,6 +25,7 @@
   2014.10.24-0.1.1
     Remove const qualifiers from declarations of RUCE_Session.SampleRate and
       RUCE_Session.SynthHead. (see ISO/IEC 9899:TC3, 6.7.3.5)
+    Remove single note synthesis.
 */
 
 //-----Macros-----
@@ -213,13 +214,6 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, RUCE_FPTYPE* DestBuffer,
 // Close the RUCE_Session object, but do not destruct it.
 // Returns 1 for success, 0 for failure.
 int RUCE_SessionSynthFin(RUCE_Session* Session);
-
-// Synthesize a single RUCE_Note object.
-// Returns 1 for success, 0 or negative integer for failure.
-//   0: Undocumented error.
-//  -2: The duration is too long.
-int RUCE_SessionSynthNote(RUCE_Session* Session, RUCE_FPTYPE* DestBuffer,
-    RUCE_Note* SorcNote);
 
 #endif
 
