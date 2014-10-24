@@ -379,8 +379,9 @@ int RUCE_SynthHNMContour(Wave* DestHmnc, Wave* DestNoiz, List_HNMContour* Sorc,
     }
     
     int N = Sorc -> Frames_Index + 1;
-    RCall(Wave, Resize)(DestHmnc, N * HopSize + SorcConfig -> WinSize);
-    RCall(Wave, Resize)(DestNoiz, N * HopSize + SorcConfig -> WinSize);
+    int DestSize = N * HopSize + SorcConfig -> WinSize;
+    RCall(Wave, Resize)(DestHmnc, DestSize);
+    RCall(Wave, Resize)(DestNoiz, DestSize);
     
     HNMItersizer Synth;
     RCall(HNMItersizer, CtorSize)(& Synth, SorcConfig -> WinSize);
@@ -400,9 +401,27 @@ int RUCE_SynthHNMContour(Wave* DestHmnc, Wave* DestNoiz, List_HNMContour* Sorc,
                 i * HopSize);
     }
     
-    RCall(HNMItersizer, SetPosition)(& Synth, 500);
+    int SynthDest = (N - 1) * HopSize;
+    RCall(HNMItersizer, SetPosition)(& Synth, 0);
     RCall(HNMItersizer, SetInitPhase)(& Synth, & SorcPhse -> Frames[2]);
-    RCall(HNMItersizer, IterNextTo)(& Synth, (N - 1) * HopSize);
+    RCall(HNMItersizer, IterNextTo)(& Synth, SynthDest);
+    
+    //Fade-in & Fade-out
+    for(int i = 0; i < 100; i ++)
+    {
+        DestHmnc -> Data[i] *= (Real)i / 100;
+        DestNoiz -> Data[i] *= (Real)i / 100;
+    }
+    for(int i = 0; i < 100; i ++)
+    {
+        DestHmnc -> Data[i + SynthDest - 100] *= 1.0 - (Real)i / 100;
+        DestNoiz -> Data[i + SynthDest - 100] *= 1.0 - (Real)i / 100;
+    }
+    for(int i = (N - 1) * HopSize; i < DestSize; i ++)
+    {
+        DestHmnc -> Data[i] = 0;
+        DestNoiz -> Data[i] = 0;
+    }
     
     RDelete(& TempHNM, & Synth);
     
