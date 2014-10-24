@@ -14,7 +14,7 @@ int main()
     RUCE_SetVerboseLevel(5);
     
     int i;
-    double Notes_Time[] = {1  , 1.5, 2, 3, 3.5};
+    double Notes_Time[] = {1  , 1.5, 2, 3, 3.8};
     double Notes_Dur[]  = {0.4, 0.5, 1, 0.5, 1};
     double Notes_DurC[] = {0.05, 0.05, 0.05, 0.1, 0.05};
     char*  Notes_Lyric[] = {"a", "la", "la", "ka", "kuan"};
@@ -62,7 +62,7 @@ int main()
     RCall(Wave, CtorSize)(& OutWave, 44100 * 10);
     double Head = 0;
     int OutHead = 0;
-    while(Head < 4)
+    while(Head < 5)
     {
         int Ret = RUCE_SessionSynthStep(Main, Output, Head + 0.5);
         printf("%d\n", Ret);

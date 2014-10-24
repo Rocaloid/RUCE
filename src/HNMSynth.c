@@ -364,8 +364,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     return Ret;
 }
 
-//Returns the alignment in samples
-// >0: Success
+//  1: Success
 //  0: Failed, sizes of source lists mismatch.
 // -1: Failed, undocumented error.
 int RUCE_SynthHNMContour(Wave* DestHmnc, Wave* DestNoiz, List_HNMContour* Sorc,

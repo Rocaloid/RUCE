@@ -2,7 +2,7 @@
 #define RUCE_LIBRUCE_H
 
 /*
-  libRUCE API Version 0.1.0
+  libRUCE API 0.1.1
   This header is designed to be included without direct dependency on RUtil2.
   
   2014.9.9-0.0.0
@@ -21,6 +21,10 @@
   2014.10.15-0.1.0
     Add internal session configuration to RUCE_Session.
     Add verbose control.
+  
+  2014.10.24-0.1.1
+    Remove const qualifiers from declarations of RUCE_Session.SampleRate and
+      RUCE_Session.SynthHead. (see ISO/IEC 9899:TC3, 6.7.3.5)
 */
 
 //-----Macros-----
@@ -37,14 +41,12 @@
 // API version of this header.
 #define RUCE_APIMAJOR 0
 #define RUCE_APIMINOR 1
-#define RUCE_APIREVISION 0
+#define RUCE_APIREVISION 1
 
 //-----Structures-----
 /*
-Modifiable          You can read/modify the object, as well as the elements of
-                    the object.
-Element-Modifiable  You cannot modify the object, but you can read/modify its
-                    elements.
+Modifiable          You can read/modify the object, as well as the members of
+                      the object(if the object has a struct type).
 Non-Modifiable      Read only.
 */
 
@@ -91,8 +93,8 @@ typedef struct
 typedef struct
 {
     //Public
-    const int SampleRate; //Non-Modifiable
-    const int SynthHead;  //Non-Modifiable
+    int SampleRate; //Non-Modifiable
+    int SynthHead;  //Non-Modifiable
     
     //Private
     RUCE_Soundbank* Soundbank;

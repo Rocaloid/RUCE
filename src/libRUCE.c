@@ -1,7 +1,7 @@
 #include "libRUCE.h"
 #include "Synth.h"
+#include "Concat.h"
 #include "SessionConfig.h"
-#include <RUtil2.h>
 #include "Config.h"
 #include "Verbose.h"
 #include "Common.h"
@@ -289,10 +289,11 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
                 " Skipped.\n", String_GetChars(& UnitName));
             goto SkipSynth;
         }
-        else
-            RCall(InfWave, Add)(Session -> Buffer, UnvoicedWave.Data,
-                Sec2Sample(T(i) + N(i).CParamSet.OffsetConsonant) - SampleAlign,
-                UnvoicedWave.Size);
+        int Fade = RUCE_Concat_UnvoicedFadeOut(& UnvoicedWave, SampleAlign,
+            1000);
+        RCall(InfWave, Add)(Session -> Buffer, UnvoicedWave.Data,
+            Sec2Sample(T(i) + N(i).CParamSet.OffsetConsonant) - SampleAlign,
+            UnvoicedWave.Size);
         
         //Synthesize voiced part.
         List_HNMContour NoteContour;
@@ -309,9 +310,23 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             RDelete(& NoteContour, & NotePhase);
             goto SkipSynth;
         }
-        int VoicedAlign = RUCE_SynthHNMContour(& VoicedWave, & NoiseWave,
-            & NoteContour, & NotePhase, F0List, DBEntry.HopSize, Config);
+        if(RUCE_SynthHNMContour(& VoicedWave, & NoiseWave,
+            & NoteContour, & NotePhase, F0List, DBEntry.HopSize, Config) < 1)
+        {
+            Ret = -2;
+            Verbose(2, "[Warning] Failed to synthesize voiced part of '%s'."
+                " Skipped.\n", String_GetChars(& UnitName));
+            RDelete(& NoteContour, & NotePhase);
+            goto SkipSynth;
+        }
         RDelete(& NoteContour, & NotePhase);
+        
+        int VoicedAlign = ContourAlign * DBEntry.HopSize;
+        RUCE_Concat_NoiseFadeIn(& NoiseWave, VoicedAlign, Fade);
+        RCall(InfWave, Add)(Session -> Buffer, VoicedWave.Data,
+            Sec2Sample(T(i)) - VoicedAlign, VoicedWave.Size);
+        RCall(InfWave, Add)(Session -> Buffer, NoiseWave.Data,
+            Sec2Sample(T(i)) - VoicedAlign, NoiseWave.Size);
         
     SkipSynth:
         CSVP_PitchModel_Dtor(& PMEntry);
