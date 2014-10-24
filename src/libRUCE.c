@@ -12,6 +12,7 @@ RCtor(RUCE_SessionConfig)
 {
     This -> Window = RCall(RAlloc, Real)(2048);
     This -> WinSize = 2048;
+    This -> HmncUpperBound = 10000;
     RCall(CDSP2_GenHanning, Real)(This -> Window, 2048);
     RInit(RUCE_SessionConfig);
 }

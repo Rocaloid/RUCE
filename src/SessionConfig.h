@@ -10,6 +10,7 @@ RClass(RUCE_SessionConfig)
     
     Real* Window;
     int WinSize;
+    Real HmncUpperBound;
 };
 
 #endif
