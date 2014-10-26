@@ -73,6 +73,9 @@ int RUCE_UnvoicedSynth(Wave* Dest, RUCE_Note* SorcNote, RUCE_DB_Entry* SorcDB)
     int Shift = max(DurSample, VOTSample) - VOTSample;
     int i;
     
+    if(DurSample == 0)
+        DurSample = VOTSample;
+    
     Wave Sorc;
     RCall(Wave, CtorSize)(& Sorc, SorcDB -> WaveSize + Shift);
     RCall(CDSP2_VSet, Real)(Sorc.Data, 0, Shift);
@@ -83,6 +86,11 @@ int RUCE_UnvoicedSynth(Wave* Dest, RUCE_Note* SorcNote, RUCE_DB_Entry* SorcDB)
         StretchConsonant(Dest, & Sorc, VOTSample, Shift, 0);
     else
         StretchConsonant(Dest, & Sorc, DurSample, Shift, VOTSample - DurSample);
+    
+    double Ampl = SorcNote -> CParamSet.AmplConsonant;
+    if(fabs(Ampl - 1.0) > 0.001)
+        RCall(CDSP2_VCMul, Real)(Dest -> Data, Dest -> Data, Ampl,
+            Dest -> Size);
     
     RCall(Wave, Dtor)(& Sorc);
     return max(DurSample, VOTSample);
