@@ -44,7 +44,7 @@ RUCE_Note* RUCE_CreateNote()
     Ret -> Duration = 0;
     Ret -> Lyric = (char*)malloc(RUCE_LYRICSIZE);
     memset(Ret -> Lyric, 0, RUCE_LYRICSIZE);
-    Ret -> CParamSet.DeltaOnset = 0;
+    Ret -> CParamSet.DeltaAlign = 0;
     Ret -> CParamSet.DeltaDuration = 0;
     Ret -> CParamSet.DurFinal = 0;
     Ret -> CParamSet.DurInitial = 0;
@@ -139,6 +139,8 @@ int RUCE_SessionAppendNote(RUCE_Session* Session, RUCE_Note* SorcNote,
         return -2;
     if(SorcNote -> Duration > (double)((Wave*)Session -> Buffer) -> Size / 2.0)
         return -1;
+    
+    Time += SorcNote -> CParamSet.DeltaAlign;
     Array_Push(double, Session -> TimeList, Time);
     Array_PushNull(RUCE_Note, Session -> NoteList);
     RUCE_Note_CtorFrom(& TopOf(Session -> NoteList), SorcNote);

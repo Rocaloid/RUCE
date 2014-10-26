@@ -28,7 +28,11 @@
     Remove single note synthesis.
   
   2014.10.26-0.1.2
-    Add const qualifier to char* Directory in RUCE_CreateLoadSoundbank.
+    Add const qualifier to parameter char* Directory in
+      RUCE_CreateLoadSoundbank.
+    Renamed RUCE_Note.CParamSet.DeltaOnset to DeltaAlign. (ambiguous meaning of
+      "onset": either referring to "consonant" or "the start of vocal fold
+      vibration")
 */
 
 //-----Macros-----
@@ -80,7 +84,7 @@ typedef struct
     //Context-Related Parameter Set
     struct //Modifiable
     {
-        double DeltaOnset;
+        double DeltaAlign;
         double DeltaDuration;
         double DurFinal;
         double DurInitial;
