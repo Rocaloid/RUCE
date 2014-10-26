@@ -50,7 +50,7 @@ RUCE_Note* RUCE_CreateNote()
     Ret -> CParamSet.DurInitial = 0;
     Ret -> CParamSet.DurConsonant = 0;
     Ret -> CParamSet.OffsetConsonant = 0;
-    Ret -> CParamSet.AmplConsonant = 0;
+    Ret -> CParamSet.AmplConsonant = 1.0;
     Ret -> PhaseSync = 1.0;
     
     return Ret;

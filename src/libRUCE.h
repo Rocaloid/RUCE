@@ -2,9 +2,12 @@
 #define RUCE_LIBRUCE_H
 
 /*
-  libRUCE API 0.1.1
+  libRUCE API 0.1.2
+  ---
   This header is designed to be included without direct dependency on RUtil2.
   
+  Revision History
+  ---
   2014.9.9-0.0.0
     First draft.
   
@@ -33,6 +36,7 @@
     Renamed RUCE_Note.CParamSet.DeltaOnset to DeltaAlign. (ambiguous meaning of
       "onset": either referring to "consonant" or "the start of vocal fold
       vibration")
+    Add more detailed documentation.
 */
 
 //-----Macros-----
@@ -75,6 +79,17 @@ typedef struct
 //   users.
 typedef void RUCE_Soundbank;
 
+/*
+  In RUCE, "syllable" and "note" are interchangeable terms of a single
+    uninterrupted utterance.
+  
+  Word Choice
+  ---
+  "syllable" is used in phonetic contexts, i.e., low level description of
+    voice.
+  "note" is used in musical contexts, which emphasizes the utterance as a music
+    note, or "key".
+*/
 typedef struct
 {
     //Essential Parameters
@@ -82,6 +97,36 @@ typedef struct
     char*  Lyric;        //Modifiable
     
     //Context-Related Parameter Set
+    /*
+        The following parameters are either specified by user or generated
+          through a parameter generation engine.
+                        Unit    Description
+        DeltaAlign      sec     Offset of a syllable
+        DeltaDuration   sec     Durational difference of a syllable
+        DurFinal        sec     Duration of the final in a syllable
+        DurInitial      sec     Duration of the inital in a syllable
+        DurConsonant    sec     Duration of the consonant in a syllable
+        OffsetConsonant sec     Offset of the consonant in a syllable
+        AmplConsonant   ratio   Change of amplitude of the consonant in a
+                                  syllable
+        
+        Default Values
+        ---
+        DeltaAlign      0.0
+        DeltaDuration   0.0
+        DurFinal        0.0
+        DurInitial      0.0
+        DurConsonant    0.0
+        OffsetConsonant 0.0
+        AmplConsonant   1.0
+        
+        Special Values
+        ---
+        DurFinal        0.0     Duration of the final is determined by RUCE.
+        DurInitial      0.0     Duration of the initial is determined by RUCE.
+        DurConsonant    0.0     Duration of the consonant is set to the default
+                                  value as described in the soundbank.
+    */
     struct //Modifiable
     {
         double DeltaAlign;
@@ -94,8 +139,7 @@ typedef struct
     } CParamSet;
     
     //Expressiveness Paramters
-    //Modifiable
-    double PhaseSync;
+    double PhaseSync; //Modifiable
 } RUCE_Note;
 
 typedef struct
