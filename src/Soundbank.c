@@ -1,8 +1,9 @@
 #include "RUCEData.h"
 #include "Soundbank.h"
 #include "Verbose.h"
+#include "../external/cJSON/cJSON.h"
 
-RUCE_Soundbank* RUCE_CreateLoadSoundbank(char* Directory)
+RUCE_Soundbank* RUCE_CreateLoadSoundbank(const char* Directory)
 {
     _RUCE_Soundbank* Ret = (_RUCE_Soundbank*)malloc(sizeof(_RUCE_Soundbank));
     String_Ctor(& Ret -> Directory);

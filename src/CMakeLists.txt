@@ -23,10 +23,8 @@ target_link_libraries(RUCE_CLI CVEDSP2)
 target_link_libraries(RUCE_CLI RFNL)
 target_link_libraries(RUCE_CLI m)
 
-install(FILES RUCE.h
-              DESTINATION ${CMAKE_INSTALL_PREFIX}/include/)
-install(FILES RUCEData.h
-              Common.h
+install(FILES RUCEData.h Common.h Concat.h SessionConfig.h Soundbank.h Synth.h
+              Timing.h Verbose.h libRUCE.h
               DESTINATION ${CMAKE_INSTALL_PREFIX}/include/RUCE/)
 
 install(TARGETS RUCE LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}

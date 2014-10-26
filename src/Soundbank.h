@@ -9,15 +9,14 @@
 */
 
 #include <CVESVP.h>
-#include "../external/cJSON/cJSON.h"
 #include "RUCEData.h"
 #include "libRUCE.h"
 
 typedef struct
 {
     String Directory;
-    cJSON* PMEntries;
-    cJSON* PMRoot;
+    void* PMEntries;
+    void* PMRoot;
     CSVP_PitchModel PMDefault;
 } _RUCE_Soundbank;
 

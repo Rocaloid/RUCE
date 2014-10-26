@@ -26,6 +26,9 @@
     Remove const qualifiers from declarations of RUCE_Session.SampleRate and
       RUCE_Session.SynthHead. (see ISO/IEC 9899:TC3, 6.7.3.5)
     Remove single note synthesis.
+  
+  2014.10.26-0.1.2
+    Add const qualifier to char* Directory in RUCE_CreateLoadSoundbank.
 */
 
 //-----Macros-----
@@ -40,9 +43,9 @@
 #define RUCE_LYRICSIZE 16
 
 // API version of this header.
-#define RUCE_APIMAJOR 0
-#define RUCE_APIMINOR 1
-#define RUCE_APIREVISION 1
+#define RUCE_APIMAJOR    0
+#define RUCE_APIMINOR    1
+#define RUCE_APIREVISION 2
 
 //-----Structures-----
 /*
@@ -146,7 +149,7 @@ int RUCE_DestroyNote(RUCE_Note* Note);
 // Allocate and construct a RUCE_Soundbank object.
 // Example: RUCE_Soundbank* Singer = RUCE_CreateLoadSoundbank("/tmp/bank/");
 // Return NULL if failed.
-RUCE_Soundbank* RUCE_CreateLoadSoundbank(char* Directory);
+RUCE_Soundbank* RUCE_CreateLoadSoundbank(const char* Directory);
 
 // Destruct and free a RUCE_Soundbank object.
 // Return 1 for success, 0 for failure.
