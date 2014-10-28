@@ -9,6 +9,8 @@ static void InterpFetchHNMFrame(_HNMFrame* Dest, _List_HNMFrame* Sorc,
     _HNMFrame* LHNM = & Sorc -> Frames[LIndex];
     _HNMFrame* HHNM = & Sorc -> Frames[HIndex];
     
+    if(Trans -> X < 0.0) Trans -> X = 0;
+    if(Trans -> X > 1.0) Trans -> X = 1.0;
     RCall(_HNMFrame, InterpFrom)(Dest, LHNM, HHNM, Trans -> X);
 }
 
