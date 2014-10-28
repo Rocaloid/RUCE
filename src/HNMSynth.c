@@ -149,9 +149,9 @@ static void SmoothenContourList(List_HNMContour* Dest, double Center,
 }
 
 //Returns the alignment in index.
-// >0: Success
-//  0: Cannot load HNMFrame
-// -1: Cannot match phoneme durations
+// >=0: Success
+//  -1: Cannot load HNMFrame
+//  -2: Cannot match phoneme durations
 int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     Real* DestF0, RUCE_DB_Entry* SorcDB, CSVP_PitchModel* SorcPM,
     RUCE_Session* Session, int NoteIndex)
@@ -177,7 +177,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     {
         Verbose(1, "[Error] Cannot load HNMFrame.\n");
         RDelete(& SorcHNM, & SorcPhase);
-        return 0;
+        return -1;
     }
     RCall(List_Int, CtorSize)(& SorcTrain, SorcDB -> FrameList_Index + 1);
     LoadPulseTrain(& SorcTrain, SorcDB);
@@ -228,21 +228,24 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
         InterpFetchHNMFrame(& TempFrame, & SorcHNM, & Trans);
         InterpFetchPhase(& TempPhase, & SorcPhase, & Trans);
         
+        double Max1 = RCall(CDSP2_VMaxElmt, Real)(TempFrame.Noiz, 0, 512);
         if(ParamConvertHNM(& TempContour, & TempFrame, SorcPM, SampleRate,
             F0, Amp, Bre, Gen) < 1)
         {
             Verbose(1, "[Error] HNM contour conversion failed.\n");
             RDelete(& SorcHNM, & SorcPhase, & TimeMatch, & RevTimeMatch,
                 & SorcTrainMatch, & TempFrame, & TempContour, & TempPhase);
-            return -1;
+            return -2;
         }
         if(ParamAdjustPhase(& TempPhase, SorcPM, F0, Amp, Bre, Gen) < 1)
         {
             Verbose(1, "[Error] Phase adjustment failed.\n");
             RDelete(& SorcHNM, & SorcPhase, & TimeMatch, & RevTimeMatch,
                 & SorcTrainMatch, & TempFrame, & TempContour, & TempPhase);
-            return -2;
+            return -3;
         }
+        double Max2 = RCall(CDSP2_VMaxElmt, Real)(TempContour.Noiz, 0, 512);
+        Verbose(6, "M: %f -> %f\n", Max1, Max2);
         
         RCall(List_HNMContour, Add)(Dest, & TempContour, Count);
         RCall(List_DataFrame, Add)(DestPhse, & TempPhase, Count);
@@ -282,6 +285,8 @@ int RUCE_SynthHNMContour(Wave* DestHmnc, Wave* DestNoiz, List_HNMContour* Sorc,
     int DestSize = N * HopSize + SorcConfig -> WinSize;
     RCall(Wave, Resize)(DestHmnc, DestSize);
     RCall(Wave, Resize)(DestNoiz, DestSize);
+    RCall(CDSP2_VSet, Real)(DestHmnc -> Data, 0, DestSize);
+    RCall(CDSP2_VSet, Real)(DestNoiz -> Data, 0, DestSize);
     
     HNMItersizer Synth;
     RCall(HNMItersizer, CtorSize)(& Synth, SorcConfig -> WinSize);
@@ -303,7 +308,7 @@ int RUCE_SynthHNMContour(Wave* DestHmnc, Wave* DestNoiz, List_HNMContour* Sorc,
     
     int SynthDest = (N - 1) * HopSize;
     RCall(HNMItersizer, SetPosition)(& Synth, 0);
-    RCall(HNMItersizer, SetInitPhase)(& Synth, & SorcPhse -> Frames[2]);
+    RCall(HNMItersizer, SetInitPhase)(& Synth, & SorcPhse -> Frames[0]);
     RCall(HNMItersizer, IterNextTo)(& Synth, SynthDest);
     
     //Fade-in & Fade-out

@@ -133,9 +133,9 @@ void RUCE_SessionSetSoundbank(RUCE_Session* Session, RUCE_Soundbank* Sorc)
 int RUCE_SessionAppendNote(RUCE_Session* Session, RUCE_Note* SorcNote,
     double Time)
 {
-    if((double)Session -> SynthHead / Session -> SampleRate >= Time)
+    if((double)Session -> SynthHead / Session -> SampleRate > Time)
         return -2;
-    if(Session -> TimeList_Index >= 0 && TopOf(Session -> TimeList) >= Time)
+    if(Session -> TimeList_Index >= 0 && TopOf(Session -> TimeList) > Time)
         return -2;
     if(SorcNote -> Duration > (double)((Wave*)Session -> Buffer) -> Size / 2.0)
         return -1;
@@ -304,7 +304,7 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         RCall(List_DataFrame , Ctor)(& NotePhase);
         int ContourAlign = RUCE_VoicedToHNMContour(& NoteContour, & NotePhase,
             F0List, & DBEntry, & PMEntry, Session, i);
-        if(ContourAlign < 1)
+        if(ContourAlign < 0)
         {
             Ret = -2;
             Verbose(2, "[Warning] Failed to synthesize voiced part of '%s'."

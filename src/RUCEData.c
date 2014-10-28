@@ -5,6 +5,7 @@
 #include <string.h>
 #include <memory.h>
 #include "../external/cJSON/cJSON.h"
+#include "Verbose.h"
 
 static const int RUDB_Header = 0x42445552;
 static const int _RUDB_Version_ = RUDB_VERSION;
@@ -80,6 +81,7 @@ static cJSON* RUCE_GetPitchModelJSONEntry(cJSON* Entries, String* Name)
 static int _RUCE_PitchModelFromJSONEntries(CSVP_PitchModel* Dest,
     cJSON* Entries, cJSON* Entry)
 {
+    Verbose(5, "(function entrance)\n");
     int i;
     cJSON* Inherit = cJSON_GetObjectItem(Entry, "Inherit");
     if(Inherit && strcmp(Inherit -> valuestring, "none") != 0)
@@ -117,6 +119,7 @@ static int _RUCE_PitchModelFromJSONEntries(CSVP_PitchModel* Dest,
 int RUCE_PitchModelFromJSONEntries(CSVP_PitchModel* Dest, void* Entries,
     String* Name)
 {
+    Verbose(4, "(function entrance)\n");
     cJSON* Entry = RUCE_GetPitchModelJSONEntry(Entries, Name);
     return _RUCE_PitchModelFromJSONEntries(Dest, Entries, Entry);
 }

@@ -20,7 +20,12 @@ RUCE_Soundbank* RUCE_CreateLoadSoundbank(const char* Directory)
     char* PMPath = malloc(strlen(Directory) + 30);
     strcpy(PMPath, Directory);
     strcat(PMPath, "/PitchModel.json");
-    if(! File_OpenChars(& PMFile, PMPath, READONLY)) goto End;
+    if(! File_OpenChars(& PMFile, PMPath, READONLY))
+    {
+        Verbose(2, "[Warning] Cannot find '%s'. Use default PitchModel instead"
+            ".\n", PMPath);
+        goto End;
+    }
     File_Read_String(& PMFile, & PMContent);
     
     Ret -> PMRoot = cJSON_Parse(String_GetChars(& PMContent));
@@ -68,6 +73,7 @@ int RUCE_SoundbankLoadEntry(RUCE_DB_Entry* Dest, RUCE_Soundbank* Bank,
 int RUCE_SoundbankLoadPitchModel(CSVP_PitchModel* Dest, RUCE_Soundbank* Bank,
     String* Name)
 {
+    Verbose(3, "(function entrance)\n");
     _RUCE_Soundbank* _Bank = Bank;
     if(_Bank -> PMEntries)
         return RUCE_PitchModelFromJSONEntries(Dest, _Bank -> PMEntries, Name);
