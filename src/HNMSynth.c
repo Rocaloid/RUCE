@@ -46,6 +46,8 @@ static void InterpFetchHNMFrame(HNMFrame* Dest, List_HNMFrame* Sorc,
     HNMFrame* LHNM = & Sorc -> Frames[LIndex];
     HNMFrame* HHNM = & Sorc -> Frames[HIndex];
     
+    if(Trans -> X < 0.0) Trans -> X = 0;
+    if(Trans -> X > 1.0) Trans -> X = 1.0;
     RCall(HNMFrame, InterpFrom)(Dest, LHNM, HHNM, Trans -> X);
 }
 
@@ -228,7 +230,6 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
         InterpFetchHNMFrame(& TempFrame, & SorcHNM, & Trans);
         InterpFetchPhase(& TempPhase, & SorcPhase, & Trans);
         
-        double Max1 = RCall(CDSP2_VMaxElmt, Real)(TempFrame.Noiz, 0, 512);
         if(ParamConvertHNM(& TempContour, & TempFrame, SorcPM, SampleRate,
             F0, Amp, Bre, Gen) < 1)
         {
@@ -244,8 +245,6 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
                 & SorcTrainMatch, & TempFrame, & TempContour, & TempPhase);
             return -3;
         }
-        double Max2 = RCall(CDSP2_VMaxElmt, Real)(TempContour.Noiz, 0, 512);
-        Verbose(6, "M: %f -> %f\n", Max1, Max2);
         
         RCall(List_HNMContour, Add)(Dest, & TempContour, Count);
         RCall(List_DataFrame, Add)(DestPhse, & TempPhase, Count);
@@ -283,6 +282,7 @@ int RUCE_SynthHNMContour(Wave* DestHmnc, Wave* DestNoiz, List_HNMContour* Sorc,
     
     int N = Sorc -> Frames_Index + 1;
     int DestSize = N * HopSize + SorcConfig -> WinSize;
+    Verbose(3, "N=%d, DestSize=%d\n", N, DestSize);
     RCall(Wave, Resize)(DestHmnc, DestSize);
     RCall(Wave, Resize)(DestNoiz, DestSize);
     RCall(CDSP2_VSet, Real)(DestHmnc -> Data, 0, DestSize);

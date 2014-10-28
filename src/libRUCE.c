@@ -325,6 +325,8 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         
         int VoicedAlign = ContourAlign * DBEntry.HopSize;
         RUCE_Concat_NoiseFadeIn(& NoiseWave, VoicedAlign, Fade);
+        Verbose(3, "Voiced part added at %d.\n", (int)Sec2Sample(T(i)) -
+            VoicedAlign);
         RCall(InfWave, Add)(Session -> Buffer, VoicedWave.Data,
             Sec2Sample(T(i)) - VoicedAlign, VoicedWave.Size);
         RCall(InfWave, Add)(Session -> Buffer, NoiseWave.Data,
