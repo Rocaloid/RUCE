@@ -1,11 +1,14 @@
 #include "Concat.h"
+#include "Verbose.h"
 
 // Return value
 // >0: Length of fade out region after Align;
 //  0: Failed
-int RUCE_Concat_UnvoicedFadeOut(Wave* Dest, int Align, int Length)
+int RUCE_Concat_FadeOut(Wave* Dest, int Align, int Length)
 {
-    if(Dest -> Size - Align > Length)
+    Verbose(3, "(function entrance) Size=%d, Align=%d, Length=%d\n",
+        Dest -> Size, Align, Length);
+    if(Dest -> Size - Align < Length)
         Length = Dest -> Size - Align;
     
     int i;
@@ -20,8 +23,9 @@ int RUCE_Concat_UnvoicedFadeOut(Wave* Dest, int Align, int Length)
 // Return value
 // >0: Length of fade in region after Align;
 //  0: Failed
-int RUCE_Concat_NoiseFadeIn(Wave* Dest, int Align, int Length)
+int RUCE_Concat_FadeIn(Wave* Dest, int Align, int Length)
 {
+    Verbose(3, "(function entrance) Align=%d, Length=%d\n", Align, Length);
     if(Align + Length > Dest -> Size)
         Length = Dest -> Size - Align;
     

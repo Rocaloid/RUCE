@@ -67,9 +67,13 @@ static void StretchConsonant(Wave* Dest, Wave* Sorc, int VOT,
 #define max(a, b) ((a) > (b) ? (a) : (b))
 int RUCE_UnvoicedSynth(Wave* Dest, RUCE_Note* SorcNote, RUCE_DB_Entry* SorcDB)
 {
+    Verbose(3, "(function entrance)\n");
+    
     int SampleRate = Dest -> SampleRate;
     int DurSample = SampleRate * SorcNote -> CParamSet.DurConsonant;
     int VOTSample = SampleRate * SorcDB -> VOT;
+    if(SorcDB -> WaveSize + 500 < VOTSample)
+        VOTSample = SorcDB -> WaveSize - 500;
     int Shift = max(DurSample, VOTSample) - VOTSample;
     int i;
     
@@ -81,6 +85,7 @@ int RUCE_UnvoicedSynth(Wave* Dest, RUCE_Note* SorcNote, RUCE_DB_Entry* SorcDB)
     RCall(CDSP2_VSet, Real)(Sorc.Data, 0, Shift);
     for(i = 0; i < SorcDB -> WaveSize; i ++)
         Sorc.Data[i + Shift] = SorcDB -> ApWave[i];
+    RCall(Wave, Resize)(Dest, Sorc.Size);
     
     if(DurSample > VOTSample)
         StretchConsonant(Dest, & Sorc, VOTSample, Shift, 0);

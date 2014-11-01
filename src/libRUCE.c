@@ -253,8 +253,11 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             break;
         
         //Initiate untouched area with zeros.
-        int DestHead = Sec2Sample(T(i) + D(i));
-        int DestLen  = DestHead - Session -> SynthHead;
+        int PrevEnd   = Sec2Sample(i > 0 ? T(i - 1) + D(i - 1) : - 1);
+        int DestHead  = Sec2Sample(T(i) + D(i));
+        int DestLen   = DestHead - Session -> SynthHead;
+        int NextFront = i >= Session -> NoteList_Index ? DestHead + 50000 :
+            Sec2Sample(T(i + 1) - N(i + 1).CParamSet.DurConsonant);
         RCall(CDSP2_VSet, Real)(
             RCall(InfWave, GetUnsafePtr)(Session -> Buffer) + Session ->
             SynthHead, 0, DestLen);
@@ -291,8 +294,16 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
                 " Skipped.\n", String_GetChars(& UnitName));
             goto SkipSynth;
         }
-        int Fade = RUCE_Concat_UnvoicedFadeOut(& UnvoicedWave, SampleAlign,
-            1000);
+        int Fade = 1000;
+        if(UnvoicedWave.Size > SampleAlign)
+            Fade = RUCE_Concat_FadeOut(& UnvoicedWave, SampleAlign, 1000);
+        else //When unvoiced part is too short to conver the alignment point
+            Fade = RUCE_Concat_FadeOut(& UnvoicedWave, UnvoicedWave.Size - 500,
+                500);
+        if(PrevEnd > Sec2Sample(T(i)) - SampleAlign)
+            RUCE_Concat_FadeIn(& UnvoicedWave, 0, PrevEnd - Sec2Sample(T(i)) +
+                SampleAlign);
+        
         RCall(InfWave, Add)(Session -> Buffer, UnvoicedWave.Data,
             Sec2Sample(T(i) + N(i).CParamSet.OffsetConsonant) - SampleAlign,
             UnvoicedWave.Size);
@@ -324,7 +335,28 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
         RDelete(& NoteContour, & NotePhase);
         
         int VoicedAlign = ContourAlign * DBEntry.HopSize;
-        RUCE_Concat_NoiseFadeIn(& NoiseWave, VoicedAlign, Fade);
+        if(UnvoicedWave.Size > SampleAlign)
+            RUCE_Concat_FadeIn(& NoiseWave, VoicedAlign, Fade);
+        else //When unvoiced part is too short
+            RUCE_Concat_FadeIn(& NoiseWave, VoicedAlign - SampleAlign +
+                UnvoicedWave.Size, Fade);
+        
+        if(PrevEnd > Sec2Sample(T(i)) - VoicedAlign)
+        {
+            //Overlap with last note
+            RUCE_Concat_FadeIn(& VoicedWave, 0, PrevEnd - Sec2Sample(T(i)) +
+                VoicedAlign);
+            RUCE_Concat_FadeIn(& NoiseWave , 0, PrevEnd - Sec2Sample(T(i)) +
+                VoicedAlign);
+        }
+        if(NextFront < DestHead)
+        {
+            //Overlap with next note
+            Fade = DestHead - NextFront;
+            RUCE_Concat_FadeOut(& VoicedWave, VoicedWave.Size - Fade, Fade);
+            RUCE_Concat_FadeOut(& NoiseWave , NoiseWave.Size - Fade , Fade);
+        }
+        
         Verbose(3, "Voiced part added at %d.\n", (int)Sec2Sample(T(i)) -
             VoicedAlign);
         RCall(InfWave, Add)(Session -> Buffer, VoicedWave.Data,
