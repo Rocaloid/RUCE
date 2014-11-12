@@ -7,7 +7,7 @@ static void StretchConsonant(Wave* Dest, Wave* Sorc, int VOT,
     Verbose(4, "(function entrance) VOT=%d, SorcOrigin=%d, DestOrigin=%d\n",
         VOT, SorcOrigin, DestOrigin);
     
-    #define NAnch 6
+    #define NAnch 5
     int SorcAnch[NAnch];
     int DestAnch[NAnch];
     int i;
@@ -18,6 +18,9 @@ static void StretchConsonant(Wave* Dest, Wave* Sorc, int VOT,
         SorcAnch[i] = SorcOrigin + (SorcLen / 2 + SorcLen * i) / NAnch;
         DestAnch[i] = DestOrigin + (DestLen / 2 + DestLen * i) / NAnch;
     }
+    Verbose(4, "Anchor points: %d %d %d %d %d -> %d %d %d %d %d\n",
+        SorcAnch[0], SorcAnch[1], SorcAnch[2], SorcAnch[3], SorcAnch[4],
+        DestAnch[0], DestAnch[1], DestAnch[2], DestAnch[3], DestAnch[4]);
     int FirstAnch = 0;
     for(i = 0; i < NAnch; i ++)
         if(DestAnch[i] > 0)
@@ -32,6 +35,7 @@ static void StretchConsonant(Wave* Dest, Wave* Sorc, int VOT,
     ]-------------------------------
     */
     RCall(Wave, Resize)(Dest, Sorc -> Size);
+    RCall(CDSP2_VSet, Real)(Dest -> Data, 0, Sorc -> Size);
     Real* Temp = RCall(RAlloc, Real)(Sorc -> Size);
     RCall(CDSP2_VSet, Real)(Temp, 0, Sorc -> Size);
     // Region 1
@@ -85,12 +89,11 @@ int RUCE_UnvoicedSynth(Wave* Dest, RUCE_Note* SorcNote, RUCE_DB_Entry* SorcDB)
     RCall(CDSP2_VSet, Real)(Sorc.Data, 0, Shift);
     for(i = 0; i < SorcDB -> WaveSize; i ++)
         Sorc.Data[i + Shift] = SorcDB -> ApWave[i];
-    RCall(Wave, Resize)(Dest, Sorc.Size);
     
     if(DurSample > VOTSample)
-        StretchConsonant(Dest, & Sorc, VOTSample, Shift, 0);
+        StretchConsonant(Dest, & Sorc, DurSample, Shift, 0);
     else
-        StretchConsonant(Dest, & Sorc, DurSample, Shift, VOTSample - DurSample);
+        StretchConsonant(Dest, & Sorc, VOTSample, Shift, VOTSample - DurSample);
     
     double Ampl = SorcNote -> CParamSet.AmplConsonant;
     if(fabs(Ampl - 1.0) > 0.001)

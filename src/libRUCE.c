@@ -214,7 +214,8 @@ int RUCE_SessionSynthInit(RUCE_Session* Session, double TimeStart)
 #define Sample2Sec(x) ((double)(x) / Session -> SampleRate)
 #define Sec2Sample(x) (Session -> SampleRate * (x))
 #define T(n) (Session -> TimeList[n])
-#define D(n) (Session -> NoteList[n].Duration)
+#define D(n) (Session -> NoteList[n].Duration + \
+    Session -> NoteList[n].CParamSet.DeltaDuration)
 #define N(n) (Session -> NoteList[n])
 
 // Synthesize to a certain time point(Time) and dump audio into DestBuffer.
