@@ -246,6 +246,8 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
     
     int i = 0, Ret = 1;
     int AlignHead = Session -> SynthHead;
+    if(AlignHead > Sample2Sec(T(0)))
+        i = 1;
     if(Session -> TimeList_Index >= 0 && AlignHead > Sec2Sample(T(0)))
         AlignHead = Sec2Sample(T(0));
     while(Sample2Sec(AlignHead) < Time + 0.5)
@@ -342,6 +344,8 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
             RUCE_Concat_FadeIn(& NoiseWave, VoicedAlign - SampleAlign +
                 UnvoicedWave.Size, Fade);
         
+        Verbose(3, "PrevEnd=%d, Sec2Sample(T(i))=%d, VoicedAlign=%d\n",
+            PrevEnd, (int)Sec2Sample(T(i)), VoicedAlign);
         if(PrevEnd > Sec2Sample(T(i)) - VoicedAlign)
         {
             //Overlap with last note
@@ -377,12 +381,12 @@ int RUCE_SessionSynthStep(RUCE_Session* Session, Real* DestBuffer,
     RFree(F0List);
     
     int N = i - 1;
-    if(N >= 0 && N <= Session -> NoteList_Index)
+    if(N >= 1 && N <= Session -> NoteList_Index)
     {
-        for(i = 0; i <= N; i ++)
+        for(i = 0; i < N; i ++)
             RUCE_Note_Dtor(& Session -> NoteList[i]);
-        Array_RemoveRange(double, Session -> TimeList, 0, N);
-        Array_RemoveRange(RUCE_Note, Session -> NoteList, 0, N);
+        Array_RemoveRange(double, Session -> TimeList, 0, N - 1);
+        Array_RemoveRange(RUCE_Note, Session -> NoteList, 0, N - 1);
     }
     
     Verbose(3, "SynthHead after this step: %d.\n", Session -> SynthHead);

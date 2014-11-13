@@ -257,7 +257,7 @@ int RUCE_VoicedToHNMContour(List_HNMContour* Dest, List_DataFrame* DestPhse,
     /*
         Step4: Post-conversion transforms
     */
-    SmoothenContourList(Dest, D.T1 - D.T0, HopSize, SampleRate, Note);
+    //SmoothenContourList(Dest, D.T1 - D.T0, HopSize, SampleRate, Note);
     
     RDelete(& SorcHNM, & SorcPhase, & TimeMatch, & RevTimeMatch,
         & SorcTrainMatch);

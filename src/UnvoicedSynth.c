@@ -76,6 +76,8 @@ int RUCE_UnvoicedSynth(Wave* Dest, RUCE_Note* SorcNote, RUCE_DB_Entry* SorcDB)
     int SampleRate = Dest -> SampleRate;
     int DurSample = SampleRate * SorcNote -> CParamSet.DurConsonant;
     int VOTSample = SampleRate * SorcDB -> VOT;
+    Verbose(3, "DurSample = %d, VOTSample = %d, WaveSize = %d\n",
+        DurSample, VOTSample, SorcDB -> WaveSize);
     if(SorcDB -> WaveSize + 500 < VOTSample)
         VOTSample = SorcDB -> WaveSize - 500;
     int Shift = max(DurSample, VOTSample) - VOTSample;
