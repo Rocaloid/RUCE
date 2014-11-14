@@ -150,7 +150,7 @@ int RUCE_SessionAppendNote(RUCE_Session* Session, RUCE_Note* SorcNote,
 int RUCE_SessionAppendEvent(RUCE_Session* Session, int Type, double Time,
     double Value)
 {
-    if((double)Session -> SynthHead / Session -> SampleRate >= Time)
+    if((double)Session -> SynthHead / Session -> SampleRate > Time)
         return -2;
     switch(Type)
     {
