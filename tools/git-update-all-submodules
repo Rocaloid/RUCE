@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+echo "cd $PWD" >&2
+SELF_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+git submodule init
+git submodule update --remote --merge "$@"
+git submodule foreach "$SELF_PATH" "$@"
