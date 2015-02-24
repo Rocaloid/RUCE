@@ -1,0 +1,78 @@
+#define _Wave _C(CDSP2_Wave, _, _T1)
+#define _IWave _C(CDSP2_IWave, _, _T1)
+#define _PMatch _C(PMatch_, _T1, _, _T1)
+
+RCtor(_RTClassName)
+{
+    RCall(_PMatch, Ctor)(& This -> AmplList);
+    This -> Wave = NULL;
+    This -> OutWave = NULL;
+    This -> LastPosition = 0;
+    This -> InitPosition = 0;
+    RInit(_RTClassName);
+}
+
+RDtor(_RTClassName)
+{
+    RCall(_PMatch, Dtor)(& This -> AmplList);
+}
+
+RTMethod(void, CDSP2_GainIterfector, SetWave, void* Sorc)
+{
+    This -> Wave = Sorc;
+}
+
+RTMethod(void, CDSP2_GainIterfector, SetOutWave, void* Sorc)
+{
+    This -> OutWave = Sorc;
+}
+
+RTMethod(void, CDSP2_GainIterfector, SetPosition, int Position)
+{
+    This -> LastPosition = Position;
+    This -> InitPosition = Position;
+}
+
+RTMethod(static void, CDSP2_GainIterfector, _IterProcess, int Position)
+{
+    int Dir = (Position > This -> LastPosition) * 2 - 1;
+    _T1* SorcPtr = RCall(_IWave, GetUnsafePtr)(This -> Wave);
+    _T1* DestPtr = SorcPtr;
+    if(This -> OutWave) DestPtr = RCall(_IWave, GetUnsafePtr)(This -> OutWave);
+    for(; ((Dir > 0) && This -> LastPosition < Position) ||
+          ((Dir < 0) && This -> LastPosition > Position);
+          This -> LastPosition += Dir)
+    {
+        _T1 Gain = RCall(_PMatch, Query)(& This -> AmplList,
+            This -> LastPosition).Y;
+        DestPtr[This -> LastPosition] = SorcPtr[This -> LastPosition] * Gain;
+    }
+}
+
+RTMethod(void, CDSP2_GainIterfector, IterNextTo, int Position)
+{
+    RCall(_RTClassName, _IterProcess)(This, Position);
+}
+
+RTMethod(void, CDSP2_GainIterfector, IterPrevTo, int Position)
+{
+    RCall(_RTClassName, _IterProcess)(This, Position);
+}
+
+RTMethod(void, CDSP2_GainIterfector, PrevTo, int Position)
+{
+    int OrigPosition = This -> LastPosition;
+    This -> LastPosition = This -> InitPosition - 1;
+    RCall(_RTClassName, _IterProcess)(This, Position);
+    This -> LastPosition = OrigPosition;
+}
+
+RTMethod(void, CDSP2_GainIterfector, Add, _T1 Ampl, int Position)
+{
+    RCall(_PMatch, AddPair)(& This -> AmplList, Position, Ampl);
+}
+
+#undef  _Wave
+#undef  _IWave
+#undef  _PMatch
+

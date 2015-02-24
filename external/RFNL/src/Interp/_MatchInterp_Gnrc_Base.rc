@@ -1,0 +1,56 @@
+//Generic 2nd-Template PMatch Interpolation Implementation
+
+RTFunc(void, _C(RFNL_MatchInterp, _, _T3, _Gnrc),
+             _T2* Dest, _C(PMatch_, _T1, _, _T2)* Sorc, _T2 Fill, int Size)
+{
+    _T1* XPeak = Sorc -> X;
+    _T1* YPeak = Sorc -> Y;
+    int PeakNum = Sorc -> X_Index;
+    int i, j;
+    int LIndex, HIndex;
+    _T2 LHeight, HHeight;
+    
+    for(i = - 1; i < PeakNum; i ++)
+    {
+        if(i == - 1)
+        {
+            //First line
+            LIndex = 0;
+            LHeight = YPeak[0];
+        }else
+        {
+            LIndex = XPeak[i];
+            LHeight = YPeak[i];
+        }
+        
+        HIndex = XPeak[i + 1];
+        HHeight = YPeak[i + 1];
+        
+        //Irregular arrangement, breaks.
+        if(HIndex < LIndex)
+                break;
+        
+        //Interpolate.
+        for(j = LIndex; j < HIndex - 2; j += 3)
+        {
+            _T1 r = ((_T1)(j - LIndex)) / (HIndex - LIndex);
+            Dest[j + 0] =
+                _C(RFNL_Interp, _, _T3, _Gnrc, _, _T2)(LHeight, HHeight, r);
+            r = ((_T1)(j - LIndex + 1)) / (HIndex - LIndex);
+            Dest[j + 1] =
+                _C(RFNL_Interp, _, _T3, _Gnrc, _, _T2)(LHeight, HHeight, r);
+            r = ((_T1)(j - LIndex + 2)) / (HIndex - LIndex);
+            Dest[j + 2] = 
+                _C(RFNL_Interp, _, _T3, _Gnrc, _, _T2)(LHeight, HHeight, r);
+        }
+        for(; j < HIndex; j ++)
+        {
+            _T1 r = ((_T1)(j - LIndex)) / (HIndex - LIndex);
+            Dest[j + 0] =
+                _C(RFNL_Interp, _, _T3, _Gnrc, _, _T2)(LHeight, HHeight, r);
+        }
+    }
+    //Fill up.
+    RCall(RFNL_VSet_Gnrc, _T2)(Dest + j, Fill, Size - j);
+}
+

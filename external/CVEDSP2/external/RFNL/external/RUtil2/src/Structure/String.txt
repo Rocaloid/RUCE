@@ -1,0 +1,398 @@
+/*    
+    Class: String
+    
+        RClass of a char string.
+        
+        Inherits <RObject>.
+*/
+RClass(String)
+{
+    RInherit(RObject);
+    /*
+        Variable: Data
+        
+            The array which stores chars.
+    */
+    Array_Define(char, Data);
+};
+
+/*
+    Function: SetChars
+    
+        Load char array into String.
+        
+        Parameters:
+        
+            Chars - The char array to be loaded. Ends with '\0'.
+*/
+void String_SetChars(String* This, char* Chars);
+
+/*
+    Function: SetCharsN
+    
+        Load non-end char array into String.
+        
+        Parameters:
+        
+            Chars - The char array to be loaded.
+            
+            Length - Number of chars in Chars.
+*/
+void String_SetCharsN(String* This, char* Chars, int Length);
+
+/*
+    Function: GetChars
+    
+        Get a char pointer to data in the String.
+        
+        Returns:
+        
+            String -> Data
+        
+        Warning:
+        
+            You should not modify, or free the pointer returned by this
+            function.
+*/
+char* String_GetChars(String* This);
+
+/*
+    Function: Copy
+    
+        Copy a String to another String.
+        
+        Parameters:
+        
+            Sorc - The source String instance.
+*/
+void String_Copy(String* This, String* Sorc);
+
+/*
+    Function: GetLength
+    
+        Get the size of data in a String.
+        
+        Returns:
+        
+            Equal to String -> Data_Index + 1.
+*/
+int String_GetLength(String* This);
+
+/*
+    Function: AllocLength
+    
+        Allocate certain size of memory to a String.
+        
+        Parameters:
+        
+            Length - Number of bytes.
+*/
+void String_AllocLength(String* This, int Length);
+
+/*
+    Function: GetChar
+    
+        Get one char in a String.
+        
+        Parameters:
+        
+            Index - The index of char to be returned.
+*/
+char String_GetChar(String* This, int Index);
+
+/*
+    Function: SetChar
+    
+        Set one char in a String.
+        
+        Parameters:
+        
+            Index - The index of char to be set.
+            
+            Data - The new char to replace the original data.
+*/
+void String_SetChar(String* This, int Index, char Data);
+
+/*
+    Function: Join
+    
+        Concatenate one String after another.
+        
+        Parameters:
+        
+            Sorc - The source String to be concatenated after this String.
+*/
+void String_Join(String* This, String* Sorc);
+
+/*
+    Function: Join
+    
+        Concatenate a char array after a String.
+        
+        Parameters:
+        
+            Sorc - The source char array to be concatenated after this String.
+*/
+void String_JoinChars(String* This, char* Sorc);
+
+/*
+    Function: Equal
+    
+        Test if two Strings have the same data.
+        
+        Parameters:
+        
+            Sorc - The source String with which to compare.
+*/
+int String_Equal(String* This, String* Sorc);
+
+/*
+    Function: Equal
+    
+        Test if a String and a char array have the same data.
+        
+        Parameters:
+        
+            Sorc - The source char array with which to compare.
+*/
+int String_EqualChars(String* This, char* Sorc);
+
+/*
+    Function: InStrFrom
+    
+        Find the first index at where a String is included in another.
+        
+        Search forward.
+        
+        Parameters:
+        
+            Sorc - The String being included.
+            
+            From - The index where search starts.
+        
+        Returns:
+        
+            The index.
+*/
+int String_InStrFrom(String* This, String* Sorc, int From);
+
+/*
+    Function: InStr
+    
+        Find the first index at where a String is included in another.
+        
+        Search forward from the first char(index 0).
+        
+        Parameters:
+        
+            Sorc - The String being included.
+        
+        Returns:
+        
+            The index.
+            
+        Abbreviation:
+        
+        > InStrFrom(String* This, String* Sorc, int From);
+        
+*/
+int String_InStr(String* This, String* Sorc);
+
+/*
+    Function: InStrRevFrom
+    
+        Find the last index at where a String is included in another.
+        
+        Search backward.
+        
+        Parameters:
+        
+            Sorc - The String being included.
+            
+            From - The index where search starts.
+        
+        Returns:
+        
+            The index.
+            
+        Abbreviation:
+        
+        > InStr(String* This, String* Sorc);
+*/
+int String_InStrRevFrom(String* This, String* Sorc, int From);
+
+/*
+    Function: InStrRev
+    
+        Find the last index at where a String is included in another.
+        
+        Search from the end to start of this String.
+        
+        Parameters:
+        
+            Sorc - The String being included.
+        
+        Returns:
+        
+            The index.
+            
+        Abbreviation:
+        
+        > InStrRevFrom(String* This, String* Sorc, int From);
+*/
+int String_InStrRev(String* This, String* Sorc);
+
+/*
+    Section: String Utilities
+    
+        VB-style String manipulating functions with great ease.
+    
+    Function: Mid
+    
+        Extract a part from a String.
+    
+        Parameters:
+        
+            Dest - The returned String part.
+            
+            Sorc - The source String.
+            
+            From - The starting index in Sorc.
+            
+            Count - The number of chars to be extracted.
+            
+        Abbreviation:
+        
+        > InStrRev(String* This, String* Sorc);
+*/
+void Mid(String* Dest, String* Sorc, int From, int Count);
+
+/*
+    Function: MidFrom
+    
+        Extract a part(from From to end) from a String.
+    
+        Parameters:
+        
+            Dest - The returned String part.
+            
+            Sorc - The source String.
+            
+            From - The starting index in Sorc.
+*/
+void MidFrom(String* Dest, String* Sorc, int From);
+
+/*
+    Function: Right
+    
+        Extract the right part of a String.
+    
+        Parameters:
+        
+            Dest - The returned String part.
+            
+            Sorc - The source String.
+            
+            Count - The number of chars in the right to be extracted.
+*/
+void Right(String* Dest, String* Sorc, int Count);
+
+/*
+    Function: Left
+    
+        Extract the left part of a String.
+    
+        Parameters:
+        
+            Dest - The returned String part.
+            
+            Sorc - The source String.
+            
+            Count - The number of chars in the left to be extracted.
+*/
+void Left(String* Dest, String* Sorc, int Count);
+
+/*
+    Function: UpperCase
+    
+        Convert a String to upper case.
+    
+        Parameters:
+        
+            Dest - The converted String.
+            
+            Sorc - The source String.
+*/
+void UpperCase(String* Dest, String* Sorc);
+
+/*
+    Function: LowerCase
+    
+        Convert a String to lower case.
+    
+        Parameters:
+        
+            Dest - The converted String.
+            
+            Sorc - The source String.
+*/
+void LowerCase(String* Dest, String* Sorc);
+
+/*
+    Function: Trim
+    
+        Delete blank spaces from two sides of a String.
+    
+        Parameters:
+        
+            Dest - The trimmed String.
+            
+            Sorc - The source String.
+*/
+void Trim(String* Dest, String* Sorc);
+
+/*
+    Function: LTrim
+    
+        Delete blank spaces from left side of a String.
+    
+        Parameters:
+        
+            Dest - The trimmed String.
+            
+            Sorc - The source String.
+*/
+void LTrim(String* Dest, String* Sorc);
+
+/*
+    Function: RTrim
+    
+        Delete blank spaces from right side of a String.
+    
+        Parameters:
+        
+            Dest - The trimmed String.
+            
+            Sorc - The source String.
+*/
+void RTrim(String* Dest, String* Sorc);
+
+/*
+    Section: Syntactic Sugar
+    
+    Macro: String_FromChars
+    
+        Define, construct, and initiate a String with a char array.
+        
+        Usage:
+        
+        > String_FromChars(Name, "...");
+        
+        Equivalent to
+        
+        (start code)
+        String Name;
+        String_Ctor(& Name);
+        String_SetChars(& Name, "...");
+        (end)
+*/

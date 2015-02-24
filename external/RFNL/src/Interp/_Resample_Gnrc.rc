@@ -1,0 +1,14 @@
+//Generic Template Resampling Implementation
+
+#undef _T2
+#define _T2 Non
+#include "_Resample_Gnrc_Base.rc"
+
+#undef _T2
+#define _T2 Linear
+#include "_Resample_Gnrc_Base.rc"
+
+#undef _T2
+#define _T2 Cosine
+#include "_Resample_Gnrc_Base.rc"
+

@@ -1,0 +1,148 @@
+#define MyType _C(_ClassName, _T3, _, _T1)
+#define MyName _C1(_ClassName, _T3)
+
+RCtor(MyType)
+{
+    Array_Ctor(_T2, This -> Frames);
+    #ifndef _CDSP2_NOSIZE
+    This -> FrameSize = 0;
+    #endif
+    This -> FrameNum = 0;
+    RInit(MyType);
+}
+
+RDtor(MyType)
+{
+    Array_ObjDtor(_T2, This -> Frames);
+    Array_Dtor(_T2, This -> Frames);
+}
+
+#ifndef _CDSP2_NOSIZE
+RTMethod(void, MyName, CtorSize, int FrameNum, int FrameSize)
+#else
+RTMethod(void, MyName, CtorSize, int FrameNum)
+#endif
+{
+    Array_Ctor(_T2, This -> Frames);
+    This -> FrameNum = 0;
+    #ifndef _CDSP2_NOSIZE
+    This -> FrameSize = 0;
+    RCall(MyType, Resize)(This, FrameNum, FrameSize);
+    #else
+    RCall(MyType, Resize)(This, FrameNum);
+    #endif
+    RInit(MyType);
+}
+
+#ifndef _CDSP2_NOSIZE
+RTMethod(void, MyName, Resize, int FrameNum, int FrameSize)
+#else
+RTMethod(void, MyName, Resize, int FrameNum)
+#endif
+{
+    int i;
+    #ifndef _CDSP2_NOSIZE
+    if(FrameSize != This -> FrameSize)
+    {
+        Array_ObjDtor(_T2, This -> Frames);
+        Array_Resize(_T2, This -> Frames, FrameNum);
+        This -> Frames_Index = FrameNum - 1;
+        for(i = 0; i < FrameNum; i ++)
+            RCall(_T2, CtorSize)(This -> Frames + i, FrameSize);
+        This -> FrameSize = FrameSize;
+        This -> FrameNum = 0;
+        return;
+    }
+    #endif
+    if(FrameNum > This -> Frames_Index + 1)
+    {
+        Array_Resize(_T2, This -> Frames, FrameNum);
+        for(i = This -> Frames_Index + 1; i < FrameNum; i ++)
+        {
+        #ifndef _CDSP2_NOSIZE
+            RCall(_T2, CtorSize)(This -> Frames + i, FrameSize);
+        #else
+            RCall(_T2, Ctor)(This -> Frames + i);
+        #endif
+        }
+        This -> Frames_Index = FrameNum - 1;
+    }else
+    {
+        for(i = This -> Frames_Index; i >= FrameNum; i --)
+            RCall(_T2, Dtor)(This -> Frames + i);
+        Array_Resize(_T2, This -> Frames, FrameNum);
+        This -> FrameNum = FrameNum < This -> FrameNum ?
+            FrameNum : This -> FrameNum;
+    }
+}
+
+RTMethod(void, MyName, From, MyType* Sorc)
+{
+    int i;
+    #ifndef _CDSP2_NOSIZE
+    RCall(MyType, Resize)(This, Sorc -> FrameNum, Sorc -> FrameSize);
+    #else
+    RCall(MyType, Resize)(This, Sorc -> FrameNum);
+    #endif
+    This -> Frames_Index = Sorc -> Frames_Index;
+    for(i = 0; i < Sorc -> FrameNum; i ++)
+    {
+        RCall(_T2, From)(This -> Frames + i, Sorc -> Frames + i);
+    }
+    This -> FrameNum = Sorc -> FrameNum;
+    #ifndef _CDSP2_NOSIZE
+    This -> FrameSize = Sorc -> FrameSize;
+    #endif
+}
+
+RTMethod(void, MyName, Clear)
+{
+    #ifndef _CDSP2_NOSIZE
+    RCall(MyType, Resize)(This, 0, This -> FrameSize);
+    #else
+    RCall(MyType, Resize)(This, 0);
+    #endif
+}
+
+RTMethod(void, MyName, Fetch, _T2* Dest, int Index)
+{
+    RCall(_T2, From)(Dest, This -> Frames + Index);
+}
+
+RTMethod(void, MyName, Extract, _T2* Dest, int Index)
+{
+    RCall(_T2, From)(Dest, This -> Frames + Index);
+    RCall(MyType, Remove)(This, Index);
+}
+
+RTMethod(void, MyName, Remove, int Index)
+{
+    RCall(_T2, Dtor)(This -> Frames + Index);
+    Array_Remove(_T2, This -> Frames, Index);
+    This -> FrameNum = This -> Frames_Index + 1;
+}
+
+RTMethod(void, MyName, RemoveRange, int LIndex, int HIndex)
+{
+    int i;
+    for(i = LIndex; i <= HIndex; i ++)
+        RCall(_T2, Dtor)(This -> Frames + i);
+    Array_RemoveRange(_T2, This -> Frames, LIndex, HIndex);
+    This -> FrameNum = This -> Frames_Index + 1;
+}
+
+RTMethod(void, MyName, Add, _T2* Sorc, int Index)
+{
+    Array_InsertNull(_T2, This -> Frames, Index);
+    #ifndef _CDSP2_NOSIZE
+    RCall(_T2, CtorSize)(This -> Frames + Index, This -> FrameSize);
+    #else
+    RCall(_T2, Ctor)(This -> Frames + Index);
+    #endif
+    RCall(_T2, From)(This -> Frames + Index, Sorc);
+    This -> FrameNum = This -> Frames_Index + 1;
+}
+
+#undef  MyType
+#undef  MyName
+

@@ -1,0 +1,5 @@
+RTFunc(_T1*, RAlloc, int Size)
+{
+    return (_T1*)malloc(Size * sizeof(_T1));
+}
+

@@ -1,0 +1,327 @@
+RInterface_Make(_C(CDSP2_IWave_, _T1, _Resize));
+RInterface_Make(_C(CDSP2_IWave_, _T1, _From));
+RInterface_Make(_C(CDSP2_IWave_, _T1, _SetWindow));
+RInterface_Make(_C(CDSP2_IWave_, _T1, _GetUnsafePtr));
+RInterface_Make(_C(CDSP2_IWave_, _T1, _Read));
+RInterface_Make(_C(CDSP2_IWave_, _T1, _Write));
+RInterface_Make(_C(CDSP2_IWave_, _T1, _Add));
+RInterface_Make(_C(CDSP2_IWave_, _T1, _ReadW));
+RInterface_Make(_C(CDSP2_IWave_, _T1, _WriteW));
+RInterface_Make(_C(CDSP2_IWave_, _T1, _AddW));
+
+#define _CheckWin(Func) \
+    RAssert(This -> WinSize, "require window.")
+
+void _C(CDSP2_IWave_, _T1, _FWRead)
+    (void* This, _T1* Dest, _C(RFNL_FWindow_Gnrc, _, _T1)* Wind,
+    int Position, int Size)
+{
+    _T1* TmpWind = RCall(RAlloc, _T1)(Size);
+    _C(CDSP2_FWindow_, _T1, _Generate)(Wind, TmpWind, Size);
+    _C(CDSP2_IWave_, _T1, _Read)(This, Dest, Position, Size);
+    RCall(CDSP2_VMul, _T1)(Dest, Dest, TmpWind, Size);
+    RFree(TmpWind);
+}
+
+void _C(CDSP2_IWave_, _T1, _FWWrite)
+    (void* This, _T1* Sorc, _C(RFNL_FWindow_Gnrc, _, _T1)* Wind,
+    int Position, int Size)
+{
+    _T1* TmpWind = RCall(RAlloc, _T1)(Size);
+    _C(CDSP2_FWindow_, _T1, _Generate)(Wind, TmpWind, Size);
+    RCall(CDSP2_VMul, _T1)(TmpWind, TmpWind, Sorc, Size);
+    _C(CDSP2_IWave_, _T1, _Write)(This, TmpWind, Position, Size);
+    RFree(TmpWind);
+}
+
+void _C(CDSP2_IWave_, _T1, _FWAdd)
+    (void* This, _T1* Sorc, _C(RFNL_FWindow_Gnrc, _, _T1)* Wind,
+    int Position, int Size)
+{
+    _T1* TmpWind = RCall(RAlloc, _T1)(Size);
+    _C(CDSP2_FWindow_, _T1, _Generate)(Wind, TmpWind, Size);
+    RCall(CDSP2_VMul, _T1)(TmpWind, TmpWind, Sorc, Size);
+    _C(CDSP2_IWave_, _T1, _Add)(This, TmpWind, Position, Size);
+    RFree(TmpWind);
+}
+
+#undef  _AddMethod
+#define _AddMethod(Name) \
+    RInterface_AddMethod(_C(CDSP2_IWave_, _T1, _, Name), \
+                         _C(CDSP2_Wave_, _T1, _, Name), _RTClassName)
+
+//Wave
+RCtor(_RTClassName)
+{
+    This -> Data = NULL;
+    This -> Size = 0;
+    This -> WinBuff = NULL;
+    This -> Window = NULL;
+    This -> WinSize = 0;
+    This -> SampleRate = 44100;
+    RInit(_RTClassName);
+}
+
+RDtor(_RTClassName)
+{
+    free(This -> Data);
+    free(This -> WinBuff);
+}
+
+//*** CtorSize ***
+RTMethod(void, CDSP2_Wave, CtorSize, int Size)
+{
+    This -> Data = (_T1*)malloc(Size * sizeof(_T1));
+    This -> Size = Size;
+    This -> WinBuff = NULL;
+    This -> Window = NULL;
+    This -> WinSize = 0;
+    This -> SampleRate = 44100;
+    RCall(CDSP2_VSet, _T1)(This -> Data, 0, Size); //Initialize
+    RInit(_RTClassName);
+}
+
+//*** Resize ***
+RTMethod(void, CDSP2_Wave, Resize, int Size)
+{
+    This -> Data = (_T1*)realloc(This -> Data, Size * sizeof(_T1));
+    //Initialize
+    RCall(CDSP2_VSet, _T1)(This -> Data + This -> Size, 0, Size - This -> Size);
+    This -> Size = Size;
+}
+_AddMethod(Resize);
+void _C(CDSP2_IWave_, _T1, _Resize)(void* This, int Size)
+{
+    RInterface_DefCall(_C(CDSP2_IWave_, _T1, _Resize), This, Size);
+}
+
+//*** From ***
+RTMethod(void, CDSP2_Wave, From, _RTClassName* Sorc)
+{
+    This -> Size = Sorc -> Size;
+    This -> Data = (_T1*)realloc(This -> Data, This -> Size * sizeof(_T1));
+    RCall(CDSP2_VCopy, _T1)(This -> Data, Sorc -> Data, This -> Size);
+}
+_AddMethod(From);
+void _C(CDSP2_IWave_, _T1, _From)(void* This, void* Sorc)
+{
+    RInterface_DefCall(_C(CDSP2_IWave_, _T1, _From), This, Sorc);
+}
+
+//*** SetWindow ***
+RTMethod(void, CDSP2_Wave, SetWindow, _T1* Sorc, int Size)
+{
+    This -> Window = Sorc;
+    This -> WinSize = Size;
+    This -> WinBuff = (_T1*)realloc(This -> WinBuff, sizeof(_T1) * Size);
+}
+_AddMethod(SetWindow);
+void _C(CDSP2_IWave_, _T1, _SetWindow)(void* This, _T1* Sorc, int Size)
+{
+    RInterface_DefCall(_C(CDSP2_IWave_, _T1, _SetWindow), This, Sorc, Size);
+}
+
+//*** GetUnsafePtr ***
+RTMethod(_T1*, CDSP2_Wave, GetUnsafePtr)
+{
+    return This -> Data;
+}
+_AddMethod(GetUnsafePtr);
+_T1* _C(CDSP2_IWave_, _T1, _GetUnsafePtr)(void* This)
+{
+    RInterface_DefCall(_C(CDSP2_IWave_, _T1, _GetUnsafePtr), This);
+}
+
+//*** Read ***
+RTMethod(void, CDSP2_Wave, Read, _T1* Dest, int LBound, int Size)
+{
+    if(LBound + Size < 0)
+    {
+        //Totally beyond left bound
+        RCall(CDSP2_VSet, _T1)(Dest, 0, Size);
+        return;
+    }
+    if(LBound < 0)
+    {
+        //left edge
+        RCall(CDSP2_VSet, _T1)(Dest, 0, - LBound);
+        Size += LBound;
+        Dest -= LBound;
+        LBound = 0;
+    }
+    if(LBound > This -> Size)
+    {
+        //Totally beyond right bound
+        RCall(CDSP2_VSet, _T1)(Dest, 0, Size);
+        return;
+    }
+    if(LBound + Size > This -> Size)
+    {
+        //right edge
+        RCall(CDSP2_VSet, _T1)(Dest + This -> Size - LBound, 0,
+                               LBound + Size - This -> Size);
+        Size = This -> Size - LBound;
+    }
+    //Safe copy
+    RCall(CDSP2_VCopy, _T1)(Dest, This -> Data + LBound, Size);
+}
+_AddMethod(Read);
+void _C(CDSP2_IWave_, _T1, _Read)(void* This, _T1* Dest, int LBound, int Size)
+{
+    RInterface_DefCall(_C(CDSP2_IWave_, _T1, _Read), This, Dest, LBound, Size);
+}
+
+#undef  _WriteCheck
+#define _WriteCheck \
+    if(LBound + Size < 0) \
+    { \
+        /*Totally beyond left bound*/ \
+        return; \
+    } \
+    if(LBound < 0) \
+    { \
+        /*left edge*/ \
+        Size += LBound; \
+        Sorc -= LBound; \
+        LBound = 0; \
+    } \
+    if(LBound > This -> Size) \
+    { \
+        /*Totally beyond right bound*/ \
+        return; \
+    } \
+    if(LBound + Size > This -> Size) \
+    { \
+        /*right edge*/ \
+        Size = This -> Size - LBound; \
+    }
+
+//*** Write ***
+RTMethod(void, CDSP2_Wave, Write, _T1* Sorc, int LBound, int Size)
+{
+    _WriteCheck
+    RCall(CDSP2_VCopy, _T1)(This -> Data + LBound, Sorc, Size);
+}
+_AddMethod(Write);
+void _C(CDSP2_IWave_, _T1, _Write)(void* This, _T1* Sorc, int LBound, int Size)
+{
+    RInterface_DefCall(_C(CDSP2_IWave_, _T1, _Write), This, Sorc, LBound, Size);
+}
+
+//*** Add ***
+RTMethod(void, CDSP2_Wave, Add, _T1* Sorc, int LBound, int Size)
+{
+    _WriteCheck
+    RCall(CDSP2_VAdd, _T1)(This -> Data + LBound, This -> Data + LBound,
+                           Sorc, Size);
+}
+_AddMethod(Add);
+void _C(CDSP2_IWave_, _T1, _Add)(void* This, _T1* Sorc, int LBound, int Size)
+{
+    RInterface_DefCall(_C(CDSP2_IWave_, _T1, _Add), This, Sorc, LBound, Size);
+}
+
+//*** ReadW ***
+RTMethod(void, CDSP2_Wave, ReadW, _T1* Dest, int LBound)
+{
+    _CheckWin(ReadW);
+    RCall(_RTClassName, Read)(This, Dest, LBound, This -> WinSize);
+    RCall(CDSP2_VMul, _T1)(Dest, Dest, This -> Window, This -> WinSize);
+}
+_AddMethod(ReadW);
+void _C(CDSP2_IWave_, _T1, _ReadW)(void* This, _T1* Sorc, int LBound)
+{
+    RInterface_DefCall(_C(CDSP2_IWave_, _T1, _ReadW), This, Sorc, LBound);
+}
+
+//*** WriteW ***
+RTMethod(void, CDSP2_Wave, WriteW, _T1* Sorc, int LBound)
+{
+    _CheckWin(WriteW);
+    RCall(CDSP2_VMul, _T1)(This -> WinBuff, Sorc, This -> Window,
+                           This -> WinSize);
+    RCall(_RTClassName, Write)(This, This -> WinBuff, LBound, This -> WinSize);
+}
+_AddMethod(WriteW);
+void _C(CDSP2_IWave_, _T1, _WriteW)(void* This, _T1* Sorc, int LBound)
+{
+    RInterface_DefCall(_C(CDSP2_IWave_, _T1, _WriteW), This, Sorc, LBound);
+}
+
+//*** AddW ***
+RTMethod(void, CDSP2_Wave, AddW, _T1* Sorc, int LBound)
+{
+    _CheckWin(AddW);
+    RCall(CDSP2_VMul, _T1)(This -> WinBuff, Sorc, This -> Window,
+                           This -> WinSize);
+    RCall(_RTClassName, Add)(This, This -> WinBuff, LBound, This -> WinSize);
+}
+_AddMethod(AddW);
+void _C(CDSP2_IWave_, _T1, _AddW)(void* This, _T1* Sorc, int LBound)
+{
+    RInterface_DefCall(_C(CDSP2_IWave_, _T1, _AddW), This, Sorc, LBound);
+}
+
+RTMethod(int, CDSP2_Wave, FromFile, String* Sorc)
+{
+    WaveFile File;
+    WaveFile_Ctor(& File);
+    if(! WaveFile_Open(& File, Sorc))
+        return 0;
+    
+    if(File.Header.Channel != 1)
+        return 0;
+    
+    if(This -> Size < File.Header.DataNum)
+        _C(CDSP2_Wave_, _T1, _Resize)(This, File.Header.DataNum);
+    
+    #if _T1_TID == _TID_Float
+    WaveFile_FetchAllFloat(& File, This -> Data);
+    #else
+    float* Data = RAlloc_Float(This -> Size);
+    WaveFile_FetchAllFloat(& File, Data);
+
+    int i;
+    for(i = 0; i < This -> Size; i ++)
+        This -> Data[i] = (double)Data[i];
+    RFree(Data);
+    #endif
+    
+    This -> SampleRate = File.Header.SamplePerSecond;
+    WaveFile_Dtor(& File);
+    return 1;
+}
+
+RTMethod(int, CDSP2_Wave, ToFile, String* Dest)
+{
+    WaveFile File;
+    WaveFile_Ctor(& File);
+    
+    File.Header.Channel = 1;
+    File.Header.SamplePerSecond = This -> SampleRate;
+    File.Header.BytePerSecond = This -> SampleRate * 2;
+    File.Header.BlockAlign = 2;
+    File.Header.BitPerSample = 16;
+    
+    if(! WaveFile_Save(& File, Dest))
+        return 0;
+    
+    #if _T1_TID == _TID_Float
+    WaveFile_WriteAllFloat(& File, This -> Data, This -> Size);
+    #else
+    float* Data = RAlloc_Float(This -> Size);
+    int i;
+    for(i = 0; i < This -> Size; i ++)
+        Data[i] = (float)This -> Data[i];
+    
+    WaveFile_WriteAllFloat(& File, Data, This -> Size);
+    RFree(Data);
+    #endif
+    
+    WaveFile_FinishWrite(& File);
+    WaveFile_Close(& File);
+
+    WaveFile_Dtor(& File);
+    return 1;
+}
+

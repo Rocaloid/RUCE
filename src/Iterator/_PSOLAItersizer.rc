@@ -1,0 +1,152 @@
+#define _List_DataFrame _C(CDSP2_List_DataFrame, _, _T1)
+#define _List_Int CDSP2_List_Int
+#define _FWindow _C(RFNL_FWindow_Gnrc, _, _T1)
+#define _DataFrame _C(CDSP2_DataFrame, _, _T1)
+#define _IWave _C(CDSP2_IWave, _, _T1)
+
+#define _CheckMembers() \
+    RAssert(This -> Wave, "require wave."); \
+    RAssert(This -> Window, "require fast window."); \
+    RAssert(This -> DataList.FrameNum == This -> PulseList.Frames_Index + 1, \
+        "unmatching number of pulses and data frames.")
+
+RCtor(_RTClassName)
+{
+    RCall(_List_DataFrame, Ctor)(& This -> DataList);
+    RCall(_List_Int, Ctor)(& This -> PulseList);
+    
+    This -> Wave = NULL;
+    This -> Window = NULL;
+    This -> LastPosition = 0;
+    This -> InitPosition = 0;
+    
+    RInit(_RTClassName);
+}
+
+RDtor(_RTClassName)
+{
+    RCall(_List_DataFrame, Dtor)(& This -> DataList);
+    RCall(_List_Int, Dtor)(& This -> PulseList);
+}
+
+RTMethod(void, CSVP_PSOLAItersizer, From, _RTClassName* Sorc)
+{
+    RCall(_List_DataFrame, From)(& This -> DataList, & Sorc -> DataList);
+    RCall(_List_Int, From)(& This -> PulseList, & Sorc -> PulseList);
+    
+    This -> Wave = Sorc -> Wave;
+    This -> Window = Sorc -> Window;
+    This -> LastPosition = Sorc -> LastPosition;
+    This -> InitPosition = Sorc -> InitPosition;
+}
+
+RTMethod(void, CSVP_PSOLAItersizer, SetWave, void* Sorc)
+{
+    This -> Wave = Sorc;
+}
+
+RTMethod(void, CSVP_PSOLAItersizer, SetWindow, _FWindow* Sorc)
+{
+    This -> Window = Sorc;
+}
+
+RTMethod(void, CSVP_PSOLAItersizer, SetPosition, int Position)
+{
+    This -> LastPosition = Position;
+    This -> InitPosition = Position;
+}
+
+RTMethod(int , CSVP_PSOLAItersizer, GetPosition)
+{
+    return This -> LastPosition;
+}
+
+RTMethod(void, CSVP_PSOLAItersizer, RepositionFrom, int Position)
+{
+    int i;
+    int Offset = Position - This -> PulseList.Frames[0];
+    for(i = 0; i <= This -> PulseList.Frames_Index; i ++)
+        This -> PulseList.Frames[i] += Offset;
+}
+
+RTMethod(static void, CSVP_PSOLAItersizer, _RenderRange, int LIndex, int HIndex)
+{
+    int i;
+    for(i = LIndex; i <= HIndex; i ++)
+    {
+        //Iterative rendering
+        _DataFrame* CurrFrame = & This -> DataList.Frames[i];
+        int Center = This -> PulseList.Frames[i];
+        
+        RCall(_IWave, FWAdd)(
+            This -> Wave,                   //Object
+            CurrFrame -> Data,              //Data
+            This -> Window,                 //Fast Window
+            Center - CurrFrame -> Size / 2, //Position
+            CurrFrame -> Size);             //Size
+    }
+    RCall(_List_Int, RemoveRange)(& This -> PulseList, LIndex, HIndex);
+    RCall(_List_DataFrame, RemoveRange)(& This -> DataList, LIndex, HIndex);
+}
+
+RTMethod(void, CSVP_PSOLAItersizer, IterNextTo, int Position)
+{
+    _CheckMembers();
+    RAssert(Position > This -> LastPosition, "destination position earlier "
+        "than source position.");
+    
+    int LIndex = RCall(_List_Int, IndexAfter)(& This -> PulseList,
+        This -> LastPosition);
+    int HIndex = RCall(_List_Int, IndexBefore)(& This -> PulseList, Position);
+    
+    if(LIndex < 0 || HIndex < 0) return;
+    
+    RCall(_RTClassName, _RenderRange)(This, LIndex, HIndex);
+    
+    This -> LastPosition = Position;    
+}
+
+RTMethod(void, CSVP_PSOLAItersizer, IterPrevTo, int Position)
+{
+    _CheckMembers();
+    RAssert(Position < This -> LastPosition, "destination position"
+        " later than source position.");
+    
+    int LIndex = RCall(_List_Int, IndexAfter)(& This -> PulseList, Position);
+    int HIndex = RCall(_List_Int, IndexBefore)(& This -> PulseList,
+        This -> LastPosition);
+    
+    if(LIndex < 0 || HIndex < 0) return;
+    
+    RCall(_RTClassName, _RenderRange)(This, LIndex, HIndex);
+    
+    This -> LastPosition = Position;
+}
+
+RTMethod(void, CSVP_PSOLAItersizer, PrevTo, int Position)
+{
+    _CheckMembers();
+    RAssert(Position < This -> InitPosition, "destination position"
+        " later than source position.");
+    
+    int LastPosition = This -> LastPosition;
+    This -> LastPosition = This -> InitPosition;
+    
+    RCall(_RTClassName, IterPrevTo)(This, Position);
+    
+    This -> LastPosition = LastPosition;
+}
+
+RTMethod(void, CSVP_PSOLAItersizer, Add, _DataFrame* Sorc, int Position)
+{
+    int i = RCall(_List_Int, IndexAfter)(& This -> PulseList, Position);
+    Array_Insert(int, This -> PulseList.Frames, i, Position);
+    RCall(_List_DataFrame, Add)(& This -> DataList, Sorc, i);
+}
+
+#undef  _List_DataFrame
+#undef  _List_Int
+#undef  _FWindow
+#undef  _DataFrame
+#undef  _IWave
+

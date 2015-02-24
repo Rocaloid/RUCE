@@ -1,0 +1,34 @@
+//Common Template Fast Math implementation
+
+_T1* _C(__RFNL_SinTable, _, _T1);
+_T1* _C(__RFNL_CosTable, _, _T1);
+
+RTFunc(void __attribute__ ((constructor)), __RFNL_Init_SinCosTable)
+{
+    int i;
+    _C(__RFNL_SinTable, _, _T1) =
+        RAlign(16, (RFNL_TableSize + 1) * sizeof(_T1));
+    _C(__RFNL_CosTable, _, _T1) =
+        RAlign(16, (RFNL_TableSize + 1) * sizeof(_T1));
+    
+    for(i = 0; i < RFNL_TableSize + 1; i ++)
+    {
+        #if _T1_TID == _TID_Float
+        _C(__RFNL_SinTable, _, _T1)[i] = 
+            sinf((float)i / RFNL_TableSize * M_PI * 2);
+        _C(__RFNL_CosTable, _, _T1)[i] = 
+            cosf((float)i / RFNL_TableSize * M_PI * 2);
+        #else
+        _C(__RFNL_SinTable, _, _T1)[i] = 
+            sin((float)i / RFNL_TableSize * M_PI * 2);
+        _C(__RFNL_CosTable, _, _T1)[i] = 
+            cos((float)i / RFNL_TableSize * M_PI * 2);
+        #endif
+    }
+}
+
+RTFunc(void __attribute__ ((destructor)), __RFNL_Exit_SinCosTable)
+{
+    RFree(_C(__RFNL_SinTable, _, _T1), _C(__RFNL_CosTable, _, _T1));
+}
+

@@ -1,0 +1,134 @@
+//Generic Template Vectorized Math implementation
+
+#undef __RFNL_Sqr
+#undef __RFNL_Rcp
+#undef __RFNL_RcpSqr
+#undef __RFNL_Sin
+#undef __RFNL_Cos
+#undef __RFNL_Hypot
+#undef __RFNL_Atan2
+
+#if _T1_TID == _TID_Float
+
+#define __RFNL_Sqr(a) sqrtf(a)
+#define __RFNL_RcpSqr(a) 1.0f / sqrtf(a)
+#define __RFNL_Sin(a) sinf(a)
+#define __RFNL_Cos(a) cosf(a)
+#define __RFNL_Hypot(a, b) hypotf(a, b)
+#define __RFNL_Atan2(a, b) atan2f(a, b)
+
+#else
+
+#define __RFNL_Sqr(a) sqrt(a)
+#define __RFNL_RcpSqr(a) 1.0f / sqrt(a)
+#define __RFNL_Sin(a) sin(a)
+#define __RFNL_Cos(a) cos(a)
+#define __RFNL_Hypot(a, b) hypot(a, b)
+#define __RFNL_Atan2(a, b) atan2(a, b)
+
+#endif
+
+#define __RFNL_Rcp(a) 1.0f / (a)
+
+RTFunc(void, RFNL_VSqr_Gnrc, _T1* Dest, _T1* Sorc, int Size)
+{
+    __RFNL_Unroll_Arg1Op4_Gnrc(__RFNL_Sqr);
+}
+
+RTFunc(void, RFNL_VRcp_Gnrc, _T1* Dest, _T1* Sorc, int Size)
+{
+    __RFNL_Unroll_Arg1Op4_Gnrc(__RFNL_Rcp);
+}
+
+RTFunc(void, RFNL_VRcpSqr_Gnrc, _T1* Dest, _T1* Sorc, int Size)
+{
+    __RFNL_Unroll_Arg1Op4_Gnrc(__RFNL_RcpSqr);
+}
+
+RTFunc(void, RFNL_VFMA_Gnrc, _T1* Dest, _T1* Sorc, _T1* SorcMult, int Size)
+{
+    int i;
+    for(i = 0; i < Size - 3; i += 4)
+    {
+        Dest[i + 0] += Sorc[i + 0] * SorcMult[i + 0];
+        Dest[i + 1] += Sorc[i + 1] * SorcMult[i + 1];
+        Dest[i + 2] += Sorc[i + 2] * SorcMult[i + 2];
+        Dest[i + 3] += Sorc[i + 3] * SorcMult[i + 3];
+    }
+    for(; i < Size; i ++)
+        Dest[i + 0] += Sorc[i + 0] * SorcMult[i + 0];
+}
+RTFunc(void, RFNL_VFCMA_Gnrc, _T1* Dest, _T1* Sorc, _T1 SorcMult, int Size)
+{
+    int i;
+    for(i = 0; i < Size - 3; i += 4)
+    {
+        Dest[i + 0] += Sorc[i + 0] * SorcMult;
+        Dest[i + 1] += Sorc[i + 1] * SorcMult;
+        Dest[i + 2] += Sorc[i + 2] * SorcMult;
+        Dest[i + 3] += Sorc[i + 3] * SorcMult;
+    }
+    for(; i < Size; i ++)
+        Dest[i + 0] += Sorc[i + 0] * SorcMult;
+}
+
+RTFunc(void, RFNL_VCplxMul_Gnrc, _T1* DestReal, _T1* DestImag,
+                                 _T1* Sorc1Real, _T1* Sorc1Imag,
+                                 _T1* Sorc2Real, _T1* Sorc2Imag,
+                                 int Size)
+{
+    int i;
+    float TempReal, TempImag;
+    for(i = 0; i < Size; i ++)
+    {
+        TempReal = Sorc1Real[i + 0] * Sorc2Real[i + 0]
+                 - Sorc1Imag[i + 0] * Sorc2Imag[i + 0];
+        TempImag = Sorc1Real[i + 0] * Sorc2Imag[i + 0]
+                 + Sorc2Real[i + 0] * Sorc1Imag[i + 0];
+        DestReal[i + 0] = TempReal;
+        DestImag[i + 0] = TempImag;
+    }
+}
+
+RTFunc(void, RFNL_VCplxAbs_Gnrc, _T1* Dest,
+                                 _T1* SorcReal, _T1* SorcImag,
+                                 int Size)
+{
+    int i;
+    for(i = 0; i < Size - 3; i += 4)
+    {
+        Dest[i + 0] = __RFNL_Hypot(SorcReal[i + 0], SorcImag[i + 0]);
+        Dest[i + 1] = __RFNL_Hypot(SorcReal[i + 1], SorcImag[i + 1]);
+        Dest[i + 2] = __RFNL_Hypot(SorcReal[i + 2], SorcImag[i + 2]);
+        Dest[i + 3] = __RFNL_Hypot(SorcReal[i + 3], SorcImag[i + 3]);
+    }
+    for(; i < Size; i ++)
+        Dest[i + 0] = __RFNL_Hypot(SorcReal[i + 0], SorcImag[i + 0]);
+}
+
+RTFunc(void, RFNL_VCplxArg_Gnrc, _T1* Dest,
+                                 _T1* SorcReal, _T1* SorcImag,
+                                 int Size)
+{
+    int i;
+    for(i = 0; i < Size - 3; i += 4)
+    {
+        Dest[i + 0] = __RFNL_Atan2(SorcImag[i + 0], SorcReal[i + 0]);
+        Dest[i + 1] = __RFNL_Atan2(SorcImag[i + 1], SorcReal[i + 1]);
+        Dest[i + 2] = __RFNL_Atan2(SorcImag[i + 2], SorcReal[i + 2]);
+        Dest[i + 3] = __RFNL_Atan2(SorcImag[i + 3], SorcReal[i + 3]);
+    }
+    for(; i < Size; i ++)
+        Dest[i + 0] = __RFNL_Atan2(SorcImag[i + 0], SorcReal[i + 0]);    
+}
+
+RTFunc(void, RFNL_VSin_Gnrc, _T1* Dest, _T1* Sorc, int Size)
+{
+    __RFNL_Unroll_Arg1Op4_Gnrc(__RFNL_Sin);
+}
+
+RTFunc(void, RFNL_VCos_Gnrc, _T1* Dest, _T1* Sorc, int Size)
+{
+    __RFNL_Unroll_Arg1Op4_Gnrc(__RFNL_Cos);
+}
+

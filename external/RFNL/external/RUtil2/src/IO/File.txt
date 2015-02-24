@@ -1,0 +1,294 @@
+/*
+    Title: File
+
+    Enumeration: OpenMode
+        <File> handle mode
+
+    Constants:
+        READONLY  - equal to "rb"
+        WRITEONLY - equal to "wb"
+        READWRITE - equal to "rwb+"
+        APPEND    - equal to "ab+"
+        CREATE    - equal to "wb+"
+*/
+typedef enum
+{
+    READONLY = 0,
+    WRITEONLY = 1,
+    READWRITE = 2,
+    APPEND = 3,
+    CREATE = 4
+} OpenMode;
+
+
+/*
+    Class: File
+        a <RClass> providing basic IO support.
+
+    Parent:
+        <RObject>
+*/
+RClass(File)
+{
+    RInherit(RObject);
+    int IsOpen;
+    OpenMode FileMode;
+    FILE* BaseStream;
+    int64_t FilePtr;
+    int64_t Length;
+};
+
+/* Section: Operations */
+/*
+    Function: File_Open
+        Open file for handing.
+
+    Parameters:
+        This     - a handle of <File> will be opened.
+        Path     - the handle of <String> contains the file path.
+        FileMode - a enum of <OpenMode>.
+
+    Returns:
+        1 on success; 0 for error.
+
+    See also:
+        <File_OpenChars>, <File_Close>
+*/
+int File_Open(File* This, String* Path, OpenMode FileMode);
+
+/*
+    Function: File_OpenChars
+        Open file for handing.
+
+    Parameters:
+        This     - a handle of <File> will be opened.
+        Path     - the pointer to char array contains the file path.
+        FileMode - a enum of <OpenMode>.
+
+    Returns:
+        1 on success, 0 for error.
+
+    See also:
+        <File_Open>, <File_Close>
+ */
+int File_OpenChars(File* This, char* Path, OpenMode FileMode);
+
+/*
+    Function: File_Close
+        Close the file.
+
+    Parameters:
+        This - a handle of <File> will be closed.
+ */
+void File_Close(File* This);
+
+/*
+    Function: File_Flush
+        Flush buffered output of the file.
+
+    Parameters:
+        This - a handle of <File> will be flushed.
+
+    Returns:
+        1 for success; 0 for error.
+*/
+int File_Flush(File* This);
+
+/*
+    Function: File_SetPosition
+        Set the position indicator.
+
+    Parameters:
+        This     - a handle of <File>.
+        Position - the new position in bytes.
+
+    See also:
+        <File_GetPosition>
+*/
+void File_SetPosition(File* This, int64_t Position);
+
+/*
+    Function: File_GetPosition
+        Get the current value of the position indicator.
+
+    Parameters:
+        This - a handle of <File>.
+
+    Returns:
+        The current position in bytes.
+
+    See also:
+        <File_SetPosition>
+*/
+int64_t File_GetPosition(File* This);
+
+/*
+    Function: File_GetLength
+        Get the file size.
+
+    Parameters:
+        This - a handle of <File>.
+
+    Returns:
+        The file's total size in bytes.
+*/
+int64_t File_GetLength(File* This);
+
+/*
+    Function: File_Read_String
+        Read file from current position to the end into a <String>.
+
+    Parameters:
+        This - a handle of <File> will be read from.
+        Dest - the handle of <String> will be read into.
+
+    See also:
+        <File_Read_Chars>
+*/
+void File_Read_String(File* This, String* Dest);
+
+/*
+    Function: File_Read_Chars
+        Read file from current position to the end into a char array.
+
+    Parameters:
+        This - a handle of <File> will be read from.
+        Dest - the char array will be read into, null byte terminated.
+
+    Returns:
+        The number of bytes read.
+
+    See also:
+        <File_Read_String>
+*/
+int File_Read_Chars(File* This, char* Dest);
+
+/*
+    Function: File_Read_Buffer
+        Read file a number of bytes from current position into a buffer.
+
+    Parameters:
+        This      - a handle of <File> read from.
+        Dest      - the memory buffer read into.
+        ByteCount - the count in bytes should be read.
+
+    See also:
+        <File_Write_Buffer>
+*/
+void File_Read_Buffer(File* This, void* Dest, int64_t ByteCount);
+
+/*
+    Function: File_Write_String
+        Write a <String> into the <File>.
+
+    Parameters:
+        This - the handle of <File> should be written into.
+        Sorc - a handle of <String> will be written.
+
+    See also:
+        <File_Read_String>
+*/
+void File_Write_String(File* This, String* Sorc);
+
+/*
+    Function: File_Write_Chars
+        Write a char array into the <File>.
+
+    Parameters:
+        This - the handle of <File> should be written into.
+        Sorc - a null byte terminated char array will be written.
+
+    See also:
+        <File_Read_Chars>
+*/
+void File_Write_Chars(File* This, char* Sorc);
+
+/*
+    Function: File_Write_Buffer
+        Write a number of bytes into <File>.
+
+    Parameters:
+        This   - the handle of <File> should be written into.
+        Sorc   - a pointer to char array, not need to be null terminated.
+        Length - the count in bytes should be written.
+
+   See also:
+        <File_Read_Buffer>
+*/
+void File_Write_Buffer(File* This, char* Sorc, int64_t Length);
+
+/*
+    Function: File_ReadWord
+        Read a word (seperated by space, tab or newline) into a <String>.
+
+    Parameters:
+        This - a handle of <File> should be read from.
+        Dest - the handle of <String> will be writen into.
+
+    See also:
+        <File_ReadLine>, <File_ReadAll>
+*/
+void File_ReadWord(File* This, String* Dest);
+
+/*
+    Function: File_ReadLine
+        Read a line from file into a <String>.
+
+    Parameters:
+        This - a handle of <File> should be read from.
+        Dest - the handle of <String> will be written into.
+
+    See also:
+        <File_ReadWord>, <File_ReadAll>
+*/
+void File_ReadLine(File* This, String* Dest);
+
+/*
+    Function: File_ReadAll
+        Read the whole file into a <String>, discarding position.
+
+    Parameters:
+        This - a handle of <File> should be read from.
+        Dest - the handle of <String> will be written into.
+*/
+void File_ReadAll(File* This, String* Dest);
+
+/*
+    Function: File_WriteLine
+        Write a <String> into <File> plus a newline.
+
+    Parameters:
+        This - the handle of <File> will be written into.
+        Sorc - a handle of <String> should be written.
+
+    See also:
+        <File_ReadLine>
+*/
+void File_WriteLine(File* This, String* Sorc);
+
+/*
+    Function: File_Read
+        Read a specific data type.
+        
+    Usage:
+    
+    > Ret = File_Read_TypeName(File* This);
+        
+    Returns:
+        The data being read.
+*/
+RTFunc(_T1, File_Read, File* This);
+
+/*
+    Function: File_Write
+        Write a specific data type.
+        
+    Usage:
+    
+    > File_Write_TypeName(File* This, TypeName Sorc);
+        
+    Parameters:
+        Sorc - The data to be written.
+*/
+RTFunc(void, File_Write, File* This, _T1 Sorc);
+

@@ -1,0 +1,39 @@
+#define _T2 _C(CDSP2_Spectrum, _, _T1)
+#define _T3 Spectrum
+#include "_SizeNumList.rc"
+#undef  _T2
+#undef  _T3
+
+#define _T2 _C(CDSP2_DataFrame, _, _T1)
+#define _T3 DataFrame
+#define _CDSP2_NOSIZE
+
+#include "_SizeNumList.rc"
+
+RTMethod(void, CDSP2_List_DataFrame, FromWave, void* SorcWave,
+    CDSP2_List_Int* SorcPulse)
+{
+    int i;
+    int* Pulse = SorcPulse -> Frames;
+    RCall(_C(CDSP2_List_DataFrame, _, _T1), Resize)
+        (This, SorcPulse -> Frames_Index + 1);
+    for(i = 0; i <= This -> Frames_Index; i ++)
+    {
+        int Half;
+        if(i == 0)
+            Half = Pulse[1] - Pulse[0];
+        else
+            Half = Pulse[i] - Pulse[i - 1];
+        RCall(_T2, FromWave)(& This -> Frames[i],
+            SorcWave,                                    //Wave
+            RCall(CDSP2_List_Int, Fetch)(SorcPulse, i),  //Center
+            Half                                         //HalfWidth
+            );
+    }
+    This -> FrameNum = This -> Frames_Index + 1;
+}
+
+#undef  _CDSP2_NOSIZE
+#undef  _T2
+#undef  _T3
+

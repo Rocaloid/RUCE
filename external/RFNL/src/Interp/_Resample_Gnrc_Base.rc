@@ -1,0 +1,23 @@
+//Generic 2-nd Template Resampling Implementation
+
+RTFunc(void, _C(RFNL_Resample_, _T2, _Gnrc),
+             _T1* Dest, _T1* Sorc,
+             int DestSize, int SorcSize)
+{
+    int i;
+    for(i = 0; i < DestSize; i ++)
+    {
+        _T1 SrcP = (_T1)i / DestSize * SorcSize;        //Sorc Position
+        int SrcI = (int)SrcP;                           //Sorc Index
+        _T1 SrcR = SrcP - SrcI;                         //Sorc Ratio
+        if(SrcI < SorcSize - 1)
+        {
+            Dest[i] = _C(RFNL_Interp_, _T2, _Gnrc_, _T1)
+                (Sorc[SrcI], Sorc[SrcI + 1], SrcR);
+        }else
+        {
+            Dest[i] = Sorc[SrcI];
+        }
+    }
+}
+

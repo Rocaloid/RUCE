@@ -1,0 +1,275 @@
+#define _Spectrum _C(CDSP2_Spectrum, _, _T1)
+#define _Wave _C(CDSP2_Wave, _, _T1)
+#define F2B(F) (F * FFTSize / SampleRate)
+#define B2F(B) (((_T1)B) * ((_T1)SampleRate) / FFTSize)
+#define _PMatch _C(PMatch_, _T1, _, _T1)
+
+//Wavetave/src/Plugin_F0Marking.m
+RTFunc(int, CSVP_F0FromSpectrumB_SpecStep, _Spectrum* Sorc, _T1 MinFreq,
+    _T1 MaxFreq)
+{
+    int FFTSize = Sorc -> Size;
+    int SampleRate = Sorc -> SampleRate;
+    int F0 = F2B(MinFreq) + 1;
+    int UBound = F2B(MaxFreq);
+    int i;
+    
+    _Spectrum NewSorc;
+    RCall(_Spectrum, Ctor)(& NewSorc);
+    RCall(_Spectrum, From)(& NewSorc, Sorc);
+    RCall(_Spectrum, MagnConv)(& NewSorc, CDSP2_LogMagn);
+    
+    _T1* Magn = NewSorc.Magn;
+    _T1 MaxDiff = 0;
+    _T1 LeftMax = 0;
+    
+    _T1* OrigMagn = RCall(RAlloc, _T1)(FFTSize / 2);
+    //Standard size is 2048.
+    RCall(CDSP2_VCAdd, _T1)(Magn, Magn, log(2048.0 / FFTSize), FFTSize / 2);
+    RCall(CDSP2_VCopy, _T1)(OrigMagn, Magn, FFTSize / 2);
+    RCall(CDSP2_VCMax, _T1)(Magn, Magn, - 1.0, FFTSize / 2);
+    
+    int Right = F2B(MinFreq) < 2 ? 2 : F2B(MinFreq);
+    for(i = Right; i < UBound; i ++)
+    {
+        if(Magn[i] > Magn[i - 1] &&
+           Magn[i] > Magn[i + 1] &&
+           Magn[i - 1] > Magn[i - 2] &&
+           Magn[i + 1] > Magn[i + 2])
+        {
+            LeftMax = RCall(CDSP2_VMaxElmt, _T1)(Magn, F2B(MinFreq), i - 2);
+            if(Magn[i] - LeftMax > MaxDiff)
+            {
+                MaxDiff = Magn[i] - LeftMax;
+                F0 = i;
+            }
+        }
+    }
+    /*
+    if(F0 <= F2B(MinFreq) + 1 || F0 >= UBound)
+        F0 = -1;
+    */
+    RFree(OrigMagn);
+    RCall(_Spectrum, Dtor)(& NewSorc);
+    return F0;
+}
+
+RTFunc(int, CSVP_F0FromSpectrumB_Peak, _Spectrum* Sorc, _T1 MinFreq,
+    _T1 MaxFreq)
+{
+    int FFTSize = Sorc -> Size;
+    int SampleRate = Sorc -> SampleRate;
+    _T1* Magn = Sorc -> Magn;
+    
+    int LBound = F2B(MinFreq);
+    int UBound = F2B(MaxFreq);
+    int F0 = 0;
+    _T1 Max = Magn[0];
+    
+    for(; LBound <= UBound; LBound ++)
+        if(Magn[LBound] > Max)
+        {
+            Max = Magn[LBound];
+            F0  = LBound;
+        }
+    
+    return F0;
+}
+
+RTFunc(_T1, CSVP_F0FromSuccSpectrum_SpecStep, _Spectrum* Sorc1,
+    _Spectrum* Sorc2, int HopSize, _T1 MinFreq, _T1 MaxFreq)
+{
+    int Bin = RCall(CSVP_F0FromSpectrumB_SpecStep, _T1)(Sorc1, MinFreq,
+        MaxFreq);
+    if(Bin < 3)
+        return -1;
+    return RCall(CSVP_F0FromSuccSpectrumAndBin, _T1)(Sorc1, Sorc2, HopSize,
+        Bin);
+}
+
+RTFunc(_T1, CSVP_F0FromSuccSpectrum_Peak, _Spectrum* Sorc1, _Spectrum* Sorc2,
+    int HopSize, _T1 MinFreq, _T1 MaxFreq)
+{
+    int Bin = RCall(CSVP_F0FromSpectrumB_Peak, _T1)(Sorc1, MinFreq, MaxFreq);
+    if(Bin < 3)
+        return -1;
+    return RCall(CSVP_F0FromSuccSpectrumAndBin, _T1)(Sorc1, Sorc2, HopSize,
+        Bin);
+}
+
+RTFunc(_T1, CSVP_F0FromSuccSpectrumAndBin, _Spectrum* Sorc1, _Spectrum* Sorc2,
+    int HopSize, int Bin)
+{
+    RAssert(Sorc1 -> NoPhase != 1 && Sorc2 -> NoPhase != 1,
+        "source spectrums do not contain phase data.");
+    RAssert(Sorc1 -> Size = Sorc2 -> Size, "unmatching size of spectrums.");
+    
+    int SampleRate = Sorc1 -> SampleRate;
+    _T1 Phase1 = Sorc1 -> Phse[Bin];
+    _T1 Phase2 = Sorc2 -> Phse[Bin];
+    if(Phase2 < Phase1)
+        Phase2 += 2 * M_PI;
+    
+    _T1 Delta = Phase2 - Phase1;
+    return Delta / 2.0 / M_PI * SampleRate / HopSize;
+}
+
+RTFunc(static int, CSVP_F0FromWaveB, void* Sorc, int Position,
+    int MinFreq, int MaxFreq)
+{
+    RAssert(((_Wave*)Sorc) -> Window, "source Wave does not contain a window.");
+    
+    _Spectrum Spec;
+    int WinSize = ((_Wave*)Sorc) -> WinSize;
+    RCall(_Spectrum, CtorSize)(& Spec, WinSize);
+    
+    int SampleRate = ((_Wave*)Sorc) -> SampleRate;
+    Spec.MagnType = CDSP2_LogMagn;
+    Spec.NoPhase = 1;
+    RCall(_Spectrum, FromWaveW)(& Spec, Sorc, Position - WinSize / 2);
+    
+    int Ret = RCall(CSVP_F0FromSpectrumB_SpecStep, _T1)(& Spec, MinFreq,
+        MaxFreq);
+    RDelete(& Spec);
+    
+    return Ret;
+}
+
+RTFunc(static _T1, _CSVP_F0FromWave, void* Sorc, int Position,
+    int MinFreq, int MaxFreq, int Method)
+{
+    RAssert(((_Wave*)Sorc) -> Window, "source Wave does not contain a window.");
+    
+    _Spectrum Spec1, Spec2;
+    int WinSize = ((_Wave*)Sorc) -> WinSize;
+    RCall(_Spectrum, CtorSize)(& Spec1, WinSize);
+    RCall(_Spectrum, CtorSize)(& Spec2, WinSize);
+    
+    int SampleRate = ((_Wave*)Sorc) -> SampleRate;
+    Spec1.MagnType = CDSP2_LogMagn;
+    Spec2.MagnType = CDSP2_LogMagn;
+    Spec1.NoPhase = 0;
+    Spec2.NoPhase = 0;
+    
+    RCall(_Spectrum, FromWaveW)(& Spec1, Sorc, Position - WinSize / 2);
+    RCall(_Spectrum, FromWaveW)(& Spec2, Sorc, Position - WinSize / 2 + 1);
+    
+    int Bin;
+    if(Method == M_SPECSTEP)
+        Bin = RCall(CSVP_F0FromSpectrumB_SpecStep, _T1)(& Spec1, MinFreq,
+            MaxFreq);
+    else if(Method == M_PEAK)
+        Bin = RCall(CSVP_F0FromSpectrumB_Peak, _T1)(& Spec1, MinFreq, MaxFreq);
+    if(Bin < 2)
+    {
+        RDelete(& Spec1, & Spec2);
+        return 0;
+    }
+        
+    _T1 Ret = RCall(CSVP_F0FromSuccSpectrumAndBin, _T1)(& Spec1, & Spec2, 1,
+        Bin);
+    
+    RDelete(& Spec1, & Spec2);
+    return Ret;
+}
+
+RTFunc(_T1, CSVP_F0FromWave_SpecStep, void* Sorc, int Position,
+    int MinFreq, int MaxFreq)
+{
+    return RCall(_CSVP_F0FromWave, _T1)(Sorc, Position, MinFreq, MaxFreq,
+        M_SPECSTEP);
+}
+
+RTFunc(_T1, CSVP_F0FromWave_Peak, void* Sorc, int Position,
+    int MinFreq, int MaxFreq)
+{
+    return RCall(_CSVP_F0FromWave, _T1)(Sorc, Position, MinFreq, MaxFreq,
+        M_PEAK);
+}
+
+RTFunc(static int, CSVP_MedianF0FromWaveB, void* Sorc, int LPosition,
+    int RPosition, int MinFreq, int MaxFreq)
+{
+    int p = 0;
+    int Ret = 1;
+    _Wave* Wave = Sorc;
+    CDSP2_List_Int FundBins;
+    RCall(CDSP2_List_Int, Ctor)(& FundBins);
+    
+    p = LPosition;
+    while(p < RPosition)
+    {   
+        int Bin = RCall(CSVP_F0FromWave_YIN, _T1)(Sorc, p,
+            MinFreq, 300, 0.2) * Wave -> WinSize / Wave -> SampleRate;
+        if(Bin > 0)
+            RCall(CDSP2_List_Int, Add)(& FundBins, Bin);
+        p += 512;
+    }
+    
+    //No valid result yielded.
+    if(FundBins.Frames_Index < 0)
+        Ret = 0;
+    else
+        Ret = FundBins.Frames[FundBins.Frames_Index / 2]; 
+    
+    RCall(CDSP2_List_Int, Dtor)(& FundBins);
+    return Ret;
+}
+
+RTFunc(_T1, CSVP_SecureF0FromWave, void* Sorc, int Center,
+    int LPosition, int RPosition, int MinFreq, int MaxFreq)
+{
+    RAssert(((_Wave*)Sorc) -> Window, "source Wave does not contain a window.");
+    
+    int BMed = RCall(CSVP_MedianF0FromWaveB, _T1)(Sorc, LPosition, RPosition,
+        MinFreq, MaxFreq);
+    _T1 FMed = BMed * ((_Wave*)Sorc) -> SampleRate / ((_Wave*)Sorc) -> WinSize;
+    
+    return RCall(CSVP_F0FromWave_SpecStep, _T1)(Sorc, Center,
+        FMed * 0.7, FMed * 1.3);
+}
+
+RTFunc(static _T1, _CSVP_Mode, _T1* Sorc, int Num)
+{
+    _T1* Temp = RCall(RAlloc, _T1)(Num);
+    RCall(Sort_Inc, _T1)(Temp, Sorc, Num);
+    _T1 Ret = Temp[Num / 2];
+    RFree(Temp);
+    return Ret;
+}
+
+RTFunc(void, CSVP_F0PostProcess, _PMatch* Dest, int AnaSize, _T1 Variance,
+    _T1 LFreq, _T1 HFreq)
+{
+    int i, j;
+    if(Dest -> X_Index < 5) return;
+    
+    Dest -> Y[0] = Dest -> Y[1];
+    
+    Array_Gtor(int, RmList);
+    for(i = 0; i < Dest -> X_Index; i ++)
+    {
+        int Center = Dest -> X[i];
+        int LIndex = RCall(_PMatch, Query)(Dest, Center - AnaSize).LowerIndex;
+        int HIndex = RCall(_PMatch, Query)(Dest, Center + AnaSize).LowerIndex;
+        
+        _T1 Mode = RCall(_CSVP_Mode, _T1)(& Dest -> Y[LIndex],
+           HIndex - LIndex + 1);
+        if(fabs(Dest -> Y[i] - Mode) > Mode * Variance || LIndex == HIndex ||
+           Dest -> Y[i] < LFreq || Dest -> Y[i] > HFreq)
+            Array_Push(int, RmList, i);
+    }
+    int RmAcc = 0;
+    for(i = 0; i <= RmList_Index; i ++)
+    {
+        Array_Remove(_T1, Dest -> X, RmList[i] - RmAcc);
+        Array_Remove(_T1, Dest -> Y, RmList[i] - RmAcc);
+        RmAcc ++;
+    }
+    Array_Dtor(int, RmList);
+}
+
+#undef  _Spectrum
+#undef  _Wave
+#undef  _PMatch
+

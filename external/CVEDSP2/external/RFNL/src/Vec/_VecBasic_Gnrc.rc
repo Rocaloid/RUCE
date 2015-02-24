@@ -1,0 +1,232 @@
+//Generic Template Basic Vectorization implementation
+
+#define __RFNL_Add(a, b)   (a) + (b)
+#define __RFNL_Sub(a, b)   (a) - (b)
+#define __RFNL_SubBy(a, b) (b) - (a)
+#define __RFNL_Mul(a, b)   (a) * (b)
+#define __RFNL_Div(a, b)   (a) / (b)
+#define __RFNL_DivBy(a, b) (b) / (a)
+#define __RFNL_Max(a, b)   (a) > (b) ? (a) : (b)
+#define __RFNL_Min(a, b)   (a) > (b) ? (b) : (a)
+
+RTFunc(void, RFNL_VAdd_Gnrc, _T1* Dest, _T1* Sorc1, _T1* Sorc2, int Size)
+{
+    __RFNL_Unroll_Op4_Gnrc(__RFNL_Add);
+}
+
+RTFunc(void, RFNL_VSub_Gnrc, _T1* Dest, _T1* Sorc1, _T1* Sorc2, int Size)
+{
+    __RFNL_Unroll_Op4_Gnrc(__RFNL_Sub);
+}
+
+RTFunc(void, RFNL_VSubBy_Gnrc, _T1* Dest, _T1* Sorc1, _T1* Sorc2, int Size)
+{
+    __RFNL_Unroll_Op4_Gnrc(__RFNL_SubBy);
+}
+
+RTFunc(void, RFNL_VMul_Gnrc, _T1* Dest, _T1* Sorc1, _T1* Sorc2, int Size)
+{
+    __RFNL_Unroll_Op4_Gnrc(__RFNL_Mul);
+}
+
+RTFunc(void, RFNL_VDiv_Gnrc, _T1* Dest, _T1* Sorc1, _T1* Sorc2, int Size)
+{
+    __RFNL_Unroll_Op4_Gnrc(__RFNL_Div);
+}
+
+RTFunc(void, RFNL_VDivBy_Gnrc, _T1* Dest, _T1* Sorc1, _T1* Sorc2, int Size)
+{
+    __RFNL_Unroll_Op4_Gnrc(__RFNL_DivBy);
+}
+
+RTFunc(void, RFNL_VMax_Gnrc, _T1* Dest, _T1* Sorc1, _T1* Sorc2, int Size)
+{
+    __RFNL_Unroll_Op4_Gnrc(__RFNL_Max);
+}
+
+RTFunc(void, RFNL_VMin_Gnrc, _T1* Dest, _T1* Sorc1, _T1* Sorc2, int Size)
+{
+    __RFNL_Unroll_Op4_Gnrc(__RFNL_Min);
+}
+
+RTFunc(void, RFNL_VCAdd_Gnrc, _T1* Dest, _T1* Sorc1, _T1 Sorc2, int Size)
+{
+    __RFNL_Unroll_COp4_Gnrc(__RFNL_Add);
+}
+
+RTFunc(void, RFNL_VCSub_Gnrc, _T1* Dest, _T1* Sorc1, _T1 Sorc2, int Size)
+{
+    __RFNL_Unroll_COp4_Gnrc(__RFNL_Sub);
+}
+
+RTFunc(void, RFNL_VCSubBy_Gnrc, _T1* Dest, _T1* Sorc1, _T1 Sorc2, int Size)
+{
+    __RFNL_Unroll_COp4_Gnrc(__RFNL_SubBy);
+}
+
+RTFunc(void, RFNL_VCMul_Gnrc, _T1* Dest, _T1* Sorc1, _T1 Sorc2, int Size)
+{
+    __RFNL_Unroll_COp4_Gnrc(__RFNL_Mul);
+}
+
+RTFunc(void, RFNL_VCDiv_Gnrc, _T1* Dest, _T1* Sorc1, _T1 Sorc2, int Size)
+{
+    __RFNL_Unroll_COp4_Gnrc(__RFNL_Div);
+}
+
+RTFunc(void, RFNL_VCDivBy_Gnrc, _T1* Dest, _T1* Sorc1, _T1 Sorc2, int Size)
+{
+    __RFNL_Unroll_COp4_Gnrc(__RFNL_DivBy);
+}
+
+RTFunc(void, RFNL_VCMax_Gnrc, _T1* Dest, _T1* Sorc1, _T1 Sorc2, int Size)
+{
+    __RFNL_Unroll_COp4_Gnrc(__RFNL_Max);
+}
+
+RTFunc(void, RFNL_VCMin_Gnrc, _T1* Dest, _T1* Sorc1, _T1 Sorc2, int Size)
+{
+    __RFNL_Unroll_COp4_Gnrc(__RFNL_Min);
+}
+
+RTFunc(void, RFNL_VSet_Gnrc, _T1* Dest, _T1 Sorc, int Size)
+{
+    int i;
+    for(i = 0; i < Size - 3; i += 4)
+    {
+        Dest[i + 0] = Sorc;
+        Dest[i + 1] = Sorc;
+        Dest[i + 2] = Sorc;
+        Dest[i + 3] = Sorc;
+    }
+    for(; i < Size; i ++)
+        Dest[i + 0] = Sorc;
+}
+
+RTFunc(void, RFNL_VAbs_Gnrc, _T1* Dest, _T1* Sorc, int Size)
+{
+    int i;
+    for(i = 0; i < Size - 3; i += 4)
+    {
+        Dest[i + 0] = Sorc[i + 0] > 0 ? Sorc[i + 0] : - Sorc[i + 0];
+        Dest[i + 1] = Sorc[i + 1] > 0 ? Sorc[i + 1] : - Sorc[i + 1];
+        Dest[i + 2] = Sorc[i + 2] > 0 ? Sorc[i + 2] : - Sorc[i + 2];
+        Dest[i + 3] = Sorc[i + 3] > 0 ? Sorc[i + 3] : - Sorc[i + 3];
+    }
+    for(; i < Size; i ++)
+        Dest[i + 0] = Sorc[i + 0] > 0 ? Sorc[i + 0] : - Sorc[i + 0];
+}
+
+RTFunc(void, RFNL_VCopy_Gnrc, _T1* Dest, _T1* Sorc, int Size)
+{
+    int i;
+    for(i = 0; i < Size - 3; i += 4)
+    {
+        Dest[i + 0] = Sorc[i + 0];
+        Dest[i + 1] = Sorc[i + 1];
+        Dest[i + 2] = Sorc[i + 2];
+        Dest[i + 3] = Sorc[i + 3];
+    }
+    for(; i < Size; i ++)
+        Dest[i + 0] = Sorc[i + 0];
+}
+RTFunc(_T1, RFNL_VMaxElmt_Gnrc, _T1* Sorc, int From, int To)
+{
+    int i;
+    _T1 Max = _C(_Min, _, _T1);
+    for(i = From; i < To - 3; i += 4)
+    {
+        Max = Sorc[i + 0] > Max ? Sorc[i + 0] : Max;
+        Max = Sorc[i + 1] > Max ? Sorc[i + 1] : Max;
+        Max = Sorc[i + 2] > Max ? Sorc[i + 2] : Max;
+        Max = Sorc[i + 3] > Max ? Sorc[i + 3] : Max;
+    }
+    for(; i < To; i ++)
+        Max = Sorc[i + 0] > Max ? Sorc[i + 0] : Max;
+    return Max;
+}
+
+RTFunc(_T1, RFNL_VMinElmt_Gnrc, _T1* Sorc, int From, int To)
+{
+    int i;
+    _T1 Min = _C(_Max, _, _T1);
+    for(i = From; i < To - 3; i += 4)
+    {
+        Min = Sorc[i + 0] < Min ? Sorc[i + 0] : Min;
+        Min = Sorc[i + 1] < Min ? Sorc[i + 1] : Min;
+        Min = Sorc[i + 2] < Min ? Sorc[i + 2] : Min;
+        Min = Sorc[i + 3] < Min ? Sorc[i + 3] : Min;
+    }
+    for(; i < To; i ++)
+        Min = Sorc[i + 0] < Min ? Sorc[i + 0] : Min;
+    return Min;
+}
+
+#ifdef _T1_IntLike
+RTFunc(int64_t, RFNL_VSum_Gnrc, _T1* Sorc, int From, int To)
+{
+    int i;
+    int64_t Sum = 0;
+    for(i = From; i < To - 3; i += 4)
+    {
+        Sum += Sorc[i + 0];
+        Sum += Sorc[i + 1];
+        Sum += Sorc[i + 2];
+        Sum += Sorc[i + 3];
+    }
+    for(; i < To; i ++)
+        Sum += Sorc[i + 0];
+    return Sum;
+}
+#else
+RTFunc(_T1, RFNL_VSum_Gnrc, _T1* Sorc, int From, int To)
+{
+    int i;
+    _T1 Sum = 0;
+    for(i = From; i < To - 3; i += 4)
+    {
+        Sum += Sorc[i + 0];
+        Sum += Sorc[i + 1];
+        Sum += Sorc[i + 2];
+        Sum += Sorc[i + 3];
+    }
+    for(; i < To; i ++)
+        Sum += Sorc[i + 0];
+    return Sum;
+}
+#endif
+
+#if _T1_TID == _TID_Float
+RTFunc(_T1, RFNL_VAvg_Gnrc, _T1* Sorc, int From, int To)
+{
+    int i;
+    _T1 Sum = 0;
+    for(i = From; i < To - 3; i += 4)
+    {
+        Sum += Sorc[i + 0];
+        Sum += Sorc[i + 1];
+        Sum += Sorc[i + 2];
+        Sum += Sorc[i + 3];
+    }
+    for(; i < To; i ++)
+        Sum += Sorc[i + 0];
+    return Sum / (_T1)(To - From);
+}
+#else
+RTFunc(double, RFNL_VAvg_Gnrc, _T1* Sorc, int From, int To)
+{
+    int i;
+    _T1 Sum = 0;
+    for(i = From; i < To - 3; i += 4)
+    {
+        Sum += Sorc[i + 0];
+        Sum += Sorc[i + 1];
+        Sum += Sorc[i + 2];
+        Sum += Sorc[i + 3];
+    }
+    for(; i < To; i ++)
+        Sum += Sorc[i + 0];
+    return (double)Sum / (double)(To - From);
+}
+#endif
+

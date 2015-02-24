@@ -1,0 +1,6 @@
+RTFunc(void, MyPrint, _T1 Sorc)
+{
+    printf("MyPrint: %f\n", Sorc);
+    _C1(Check_, _T1)(Sorc);
+}
+

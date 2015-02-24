@@ -1,0 +1,61 @@
+#define _HNMFrame _C(CSVP_HNMFrame, _, _T1)
+#define _HNMContour _C(CSVP_HNMContour, _, _T1)
+
+RTFunc(void, CSVP_PitchShiftHNMContour, _HNMContour* Dest,
+    CSVP_PitchModel* Sorc, _T1 FDelta, int SampleRate)
+{
+    int Bound = (900 + FDelta) * Dest -> Size / SampleRate;
+    int Shift = FDelta * Dest -> Size / SampleRate / 2;
+    int i;
+    if(Shift < 0) return;
+    for(i = Bound; i < Bound + Shift; i ++)
+    {
+        _T1 R = (_T1)(i - Bound) / (Shift + 1);
+        Dest -> Hmnc[i] *= R;
+        Dest -> Hmnc[i] += (1.0 - R) * Dest -> Hmnc[i - Shift];
+    }
+    for(i = Bound; i > Shift; i --)
+        Dest -> Hmnc[i] = Dest -> Hmnc[i - Shift];
+}
+
+RTFunc(void, CSVP_PitchAdjustHNMContour, _HNMContour* Dest,
+    CSVP_PitchModel* Sorc, _T1 F0, int SampleRate)
+{
+    int Size = Dest -> Size / 2 + 1;
+    CSVP_SpectralDecay Decay = CSVP_PitchModel_GetDecay(Sorc, F0);
+    RCall(CSVP_ApplyDecay, _T1)(Dest, & Decay, SampleRate);
+    _T1 HmncAmp = CSVP_PitchModel_GetHmncAmp(Sorc, F0);
+    _T1 NoizAmp = CSVP_PitchModel_GetNoizAmp(Sorc, F0);
+    RCall(CDSP2_VCAdd, _T1)(Dest -> Hmnc, Dest -> Hmnc, HmncAmp, Size);
+    RCall(CDSP2_VCAdd, _T1)(Dest -> Noiz, Dest -> Noiz, NoizAmp, Size);
+}
+
+RTFunc(void, CSVP_PitchConvertHNMFrame, _HNMContour* Dest, _HNMFrame* Sorc,
+    CSVP_PitchModel* Model, _T1 F0, int UFreq, int SampleRate)
+{
+    float Sum1, Sum2, Ratio;
+    
+    _HNMFrame TempHNM;
+    RCall(_HNMFrame, Ctor)(& TempHNM);
+    
+    RCall(_HNMFrame, ToContour)(Sorc, Dest);
+    CSVP_PitchShiftHNMContour_Float(Dest, Model, F0 - Sorc -> Hmnc.Freq[0],
+        SampleRate);
+    
+    Sum1 = CSVP_EnergyFromHNMFrame_Float(Sorc);
+    RCall(_HNMFrame, FromContour)(& TempHNM, Dest, F0, UFreq);
+    Sum2 = CSVP_EnergyFromHNMFrame_Float(& TempHNM);
+    
+    Ratio = log((1.0 + sqrt(Sum1 / Sum2)) / 2.0);
+    Ratio = Ratio >  4.0 ?  3.0 :
+           (Ratio < -4.0 ? -3.0 : sin(Ratio * M_PI * 0.125) * 3.0);
+    
+    CSVP_PitchAdjustHNMContour_Float(Dest, Model, F0, SampleRate);
+    //CDSP2_VCAdd_Float(Dest -> Hmnc, Dest -> Hmnc, Ratio, Dest -> Size / 2 + 1);
+    
+    RCall(_HNMFrame, Dtor)(& TempHNM);
+}
+
+#undef  _HNMFrame
+#undef  _HNMContour
+

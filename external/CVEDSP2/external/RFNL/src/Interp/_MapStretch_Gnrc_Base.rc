@@ -1,0 +1,37 @@
+//Generic 2nd-Template Series Mapping, Compression & Expansion Implementation
+
+RTFunc(void, _C(RFNL_MapStretch, _, _T3, _Gnrc),
+             _T2* Dest, _T2* Sorc, _T1* DestAnchor, _T1* SorcAnchor,
+             int INum, int Size)
+{
+    int i;
+    _T1 j;
+    _T1 SrcL, SrcH, DstL, DstH;
+    _T1 SrcD, DstD;
+    for(i = 0; i < INum - 1; i ++)
+    {
+        SrcL = SorcAnchor[i + 0];
+        SrcH = SorcAnchor[i + 1];
+        DstL = DestAnchor[i + 0];
+        DstH = DestAnchor[i + 1];
+        SrcD = SrcH - SrcL;
+        DstD = DstH - DstL;
+        
+        for(j = DstL; j < DstH; j ++)
+        {
+            //Map & Stretch
+            int DstI = (int)j;                       //Dest Index
+            _T1 DstR = ((_T1)DstI - DstL) / DstD;    //Dest Ratio
+            //Indexing Interpolation
+            _T1 SrcP = RCall(RFNL_Interp_Linear_Gnrc, _T1)
+                (SrcL, SrcH, DstR);                  //Sorc Position
+            int SrcI = (int)SrcP;                    //Sorc Index
+            _T1 SrcR = SrcP - (_T1)SrcI;             //Sorc Ratio
+            
+            //Dumping Interpolation
+            Dest[DstI] = _C(RFNL_Interp_, _T3, _Gnrc_, _T1)
+                (Sorc[SrcI], Sorc[SrcI + 1], SrcR);
+        }
+    }
+}
+

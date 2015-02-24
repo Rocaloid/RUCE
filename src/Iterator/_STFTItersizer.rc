@@ -1,0 +1,223 @@
+#define _List_Spectrum _C(CDSP2_List_Spectrum, _, _T1)
+#define _Spectrum _C(CDSP2_Spectrum, _, _T1)
+#define _Wave _C(CDSP2_Wave, _, _T1)
+#define _IWave _C(CDSP2_IWave, _, _T1)
+#define _STFTIterlyzer _C(CSVP_STFTIterlyzer, _, _T1)
+
+#define _CheckMembers() \
+    RAssert(This -> Wave, "require wave."); \
+    RAssert(This -> HopSize, "require hopsize.")
+
+RCtor(_RTClassName)
+{
+    RCall(_STFTIterlyzer, Ctor)((_STFTIterlyzer*)This);
+    This -> WinFactor = 0;
+    This -> UseWindow = 0;
+    RInit(_RTClassName);
+}
+
+RDtor(_RTClassName)
+{
+    RCall(_STFTIterlyzer, Dtor)((_STFTIterlyzer*)This);
+}
+
+RTMethod(void, CSVP_STFTItersizer, CtorSize, int FrameSize)
+{
+    RCall(_STFTIterlyzer, CtorSize)((_STFTIterlyzer*)This, FrameSize);
+    This -> WinFactor = 0;
+    This -> UseWindow = 0;
+}
+
+RTMethod(void, CSVP_STFTItersizer, Resize, int FrameSize)
+{
+    RCall(_STFTIterlyzer, Resize)((_STFTIterlyzer*)This, FrameSize);
+}
+
+RTMethod(void, CSVP_STFTItersizer, From, _RTClassName* Sorc)
+{
+    RCall(_STFTIterlyzer, From)((_STFTIterlyzer*)This, Sorc);
+    This -> WinFactor = Sorc -> WinFactor;
+    This -> UseWindow = Sorc -> UseWindow;
+}
+
+RTMethod(void, CSVP_STFTItersizer, FromIterlyzer, _STFTIterlyzer* Sorc)
+{
+    RCall(_STFTIterlyzer, From)((_STFTIterlyzer*)This, (_RTClassName*)Sorc);
+    This -> WinFactor = RCall(CSVP_WinFactorFromWindow, _T1)
+        (((_Wave*)This -> Wave) -> Window,
+         RCall(_RTClassName, GetHopSize)(This),
+         RCall(_RTClassName, GetFrameSize)(This));
+}
+
+RTMethod(void, CSVP_STFTItersizer, Clear)
+{
+    RCall(CDSP2_List_Int, Clear)(& This -> PulseList);
+    RCall(_List_Spectrum, Clear)(& This -> SpecList);
+}
+
+RTMethod(void, CSVP_STFTItersizer, SetWave, void* Sorc)
+{
+    RAssert(RCall(_RTClassName, GetFrameSize)(This) ==
+        ((_Wave*)Sorc) -> WinSize, "incompatible winsize of source wave.");
+    RAssert(((_STFTIterlyzer*)This) -> HopSize, "require hopsize");
+    
+    RCall(_STFTIterlyzer, SetWave)((_STFTIterlyzer*)This, Sorc);
+    This -> WinFactor = RCall(CSVP_WinFactorFromWindow, _T1)
+        (((_Wave*)This -> Wave) -> Window,
+         RCall(_RTClassName, GetHopSize)(This),
+         RCall(_RTClassName, GetFrameSize)(This));
+}
+
+RTMethod(void, CSVP_STFTItersizer, SetPosition, int Position)
+{
+    RCall(_STFTIterlyzer, SetPosition)((_STFTIterlyzer*)This, Position);
+}
+
+RTMethod(void, CSVP_STFTItersizer, SetHopSize, int HopSize)
+{
+    RCall(_STFTIterlyzer, SetHopSize)((_STFTIterlyzer*)This, HopSize);
+}
+
+RTMethod(int , CSVP_STFTItersizer, GetPosition)
+{
+    return RCall(_STFTIterlyzer, GetPosition)((_STFTIterlyzer*)This);
+}
+
+RTMethod(int , CSVP_STFTItersizer, GetHopSize)
+{
+    return RCall(_STFTIterlyzer, GetHopSize)((_STFTIterlyzer*)This);
+}
+
+RTMethod(int , CSVP_STFTItersizer, GetFrameSize)
+{
+    return RCall(_STFTIterlyzer, GetFrameSize)((_STFTIterlyzer*)This);
+}
+
+RTMethod(void, CSVP_STFTItersizer, RepositionFrom, int Position)
+{
+    int i;
+    int p = Position;
+    int FrameNum = This -> PulseList.Frames_Index + 1;
+    for(i = 0; i < FrameNum; i ++)
+    {
+        This -> PulseList.Frames[i] = p;
+        p += This -> HopSize;
+    }
+}
+
+RTMethod(static void, CSVP_STFTItersizer, _RenderRange, int LIndex, int HIndex)
+{
+    int i;
+    int FrameSize = RCall(_RTClassName, GetFrameSize)(This);
+    _Spectrum TmpSpec;
+    _T1* Tmp = RCall(RAlloc, _T1)(FrameSize);
+    RCall(_Spectrum, CtorSize)(& TmpSpec, FrameSize);
+    
+    //Bound check
+    LIndex = LIndex < 0 ? 0 : LIndex;
+    HIndex = HIndex > This -> PulseList.Frames_Index ?
+        This -> PulseList.Frames_Index : HIndex;
+    for(i = LIndex; i <= HIndex; i ++)
+    {
+        int p = This -> PulseList.Frames[i];
+        RCall(_List_Spectrum, Fetch)(& This -> SpecList, & TmpSpec, i);
+        RCall(_Spectrum, ToReal)(& TmpSpec, Tmp);
+        RCall(CDSP2_VCMul, _T1)(Tmp, Tmp, This -> WinFactor, FrameSize);
+        if(This -> UseWindow)
+        {
+            RCall(CDSP2_VMul, _T1)(Tmp, Tmp, ((_Wave*)This -> Wave) -> Window,
+                FrameSize);
+        }
+        RCall(_IWave, Add)(This -> Wave, Tmp, p - FrameSize / 2, FrameSize);
+    }
+    RCall(_Spectrum, Dtor)(& TmpSpec);
+    RFree(Tmp);
+    CDSP2_List_Int_RemoveRange(& This -> PulseList, LIndex, HIndex);
+    RCall(_List_Spectrum, RemoveRange)(& This -> SpecList, LIndex, HIndex);
+}
+
+RTMethod(void, CSVP_STFTItersizer, IterNextTo, int Position)
+{
+    _CheckMembers();
+    RAssert(Position > This -> LastPosition, "destination position earlier than"
+        " source position.");
+    
+    int LIndex = CDSP2_List_Int_IndexAfter(& This -> PulseList, 
+        This -> LastPosition);
+    int HIndex = CDSP2_List_Int_IndexBefore(& This -> PulseList, Position);
+    
+    if(LIndex < 0 || HIndex < 0) return;
+    
+    RCall(_RTClassName, _RenderRange)(This, LIndex, HIndex);
+    
+    This -> LastPosition = Position;
+}
+
+RTMethod(void, CSVP_STFTItersizer, IterPrevTo, int Position)
+{
+    _CheckMembers();
+    RAssert(Position < This -> LastPosition, "destination position later than "
+        " source position.");
+    
+    int LIndex = CDSP2_List_Int_IndexAfter(& This -> PulseList, Position);
+    int HIndex = CDSP2_List_Int_IndexBefore(& This -> PulseList,
+        This -> LastPosition);
+    
+    if(LIndex < 0 || HIndex < 0) return;
+    
+    RCall(_RTClassName, _RenderRange)(This, LIndex, HIndex);
+    
+    This -> LastPosition = Position;
+}
+
+RTMethod(void, CSVP_STFTItersizer, PrevTo, int Position)
+{
+    _CheckMembers();
+    RAssert(Position < This -> LastPosition, "destination position later than "
+        " source position.");
+    
+    int LastPosition = This -> LastPosition;
+    This -> LastPosition = This -> InitPosition;
+    
+    RCall(_RTClassName, IterPrevTo)(This, Position);
+    
+    This -> LastPosition = LastPosition;
+}
+
+RTMethod(int , CSVP_STFTItersizer, Add, _Spectrum* Sorc, int Position)
+{
+    RAssert(Sorc -> Size == RCall(_RTClassName, GetFrameSize)(This),
+        "incompatible size.");
+    
+    int i = CDSP2_List_Int_IndexAfter(& This -> PulseList, Position);
+    Array_Insert(int, This -> PulseList.Frames, i, Position);
+    RCall(_List_Spectrum, Add)(& This -> SpecList, Sorc, i);
+}
+
+//As a compromise for fewer memory operations, this function is somehow ugly.
+RTMethod(int , CSVP_STFTItersizer, ExtractFrom, _STFTIterlyzer* Sorc)
+{
+    RAssert(RCall(_STFTIterlyzer, GetFrameSize)(Sorc) ==
+        RCall(_RTClassName, GetFrameSize)(This), "incompatible frame size.");
+    
+    int FrameSize = RCall(_RTClassName, GetFrameSize)(This);
+    while(Sorc -> PulseList.Frames_Index >= 0)
+    {
+        int p = Sorc -> PulseList.Frames[0];
+        int i = CDSP2_List_Int_IndexAfter(& This -> PulseList, p);
+        Array_Insert(int, This -> PulseList.Frames, i, p);
+        Array_InsertNull(_Spectrum, This -> SpecList.Frames, i);
+        RCall(_Spectrum, CtorSize)(This -> SpecList.Frames + i, FrameSize);
+        RCall(_List_Spectrum, Extract)(& Sorc -> SpecList, 
+            This -> SpecList.Frames + i, 0);
+        CDSP2_List_Int_Remove(& Sorc -> PulseList, 0);
+    }
+    This -> SpecList.FrameNum = This -> PulseList.Frames_Index + 1;
+}
+
+#undef  _List_Spectrum
+#undef  _Spectrum
+#undef  _Wave
+#undef  _IWave
+#undef  _STFTIterlyzer
+

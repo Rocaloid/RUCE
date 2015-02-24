@@ -1,0 +1,141 @@
+#define _STFTIterlyzer _C(CSVP_STFTIterlyzer, _, _T1)
+#define _Wave _C(CDSP2_Wave, _, _T1)
+#define _Spectrum _C(CDSP2_Spectrum, _, _T1)
+#define _PMatch _C(PMatch_, _T1, _, _T1)
+
+RTFunc(int, CSVP_VOTFromWave, void* Sorc, int LBound, int RBound)
+{
+    _STFTIterlyzer Sublyzer;
+    
+    //Setup analysis window.
+    void* OrigWind = ((_Wave*)Sorc) -> Window;
+    void* OrigSize = ((_Wave*)Sorc) -> WinSize;
+    _T1*  NewWind  = RCall(RAlloc, _T1)(SIZE_FFT);
+    RCall(CDSP2_GenHanning, _T1)(NewWind, SIZE_FFT);
+    RCall(_Wave, SetWindow)(Sorc, NewWind, SIZE_FFT);
+    
+    RCall(_STFTIterlyzer, CtorSize)(& Sublyzer, SIZE_FFT);
+    RCall(_STFTIterlyzer, SetWave)(& Sublyzer, Sorc);
+    RCall(_STFTIterlyzer, SetHopSize)(& Sublyzer, SIZE_HOP);
+    RCall(_STFTIterlyzer, SetPosition)(& Sublyzer, LBound);
+    
+    RCall(_STFTIterlyzer, IterNextTo)(& Sublyzer, RBound);
+    
+    int i;
+    int SampleRate = ((_Wave*)Sorc) -> SampleRate;
+    int LBin = 200 * SIZE_FFT / SampleRate;
+    int HBin = 1500 * SIZE_FFT / SampleRate;
+    Array_Gtor(_T1, PowerList);
+    Array_Gtor(_T1, DPowerList);
+    
+    int l = Sublyzer.SpecList.FrameNum;
+    for(i = 0; i < l; i ++)
+    {
+        _T1 CurrPower;
+        RCall(_Spectrum, MagnConv)(& Sublyzer.SpecList.Frames[i], CDSP2_dBMagn);
+        CurrPower = RCall(CDSP2_VMaxElmt, _T1)(Sublyzer.SpecList.Frames[i].Magn,
+            LBin, HBin);
+        if(CurrPower < - 50.0) CurrPower = - 50.0;
+        Array_Push(_T1, PowerList, CurrPower);
+    }
+    
+    _T1 MaxPower = RCall(CDSP2_VMaxElmt, _T1)(PowerList, 0,
+        PowerList_Index + 1);
+    _T1 Increment = POWER_STD - MaxPower;
+    
+    Array_Resize(_T1, DPowerList, PowerList_Index);
+    
+    for(i = 0; i < PowerList_Index; i ++)
+        DPowerList[i] = PowerList[i + 1] - PowerList[i] > 0 ?
+                        PowerList[i + 1] - PowerList[i] : 0;
+    
+    int InStable = 0;
+    int StableStart = 0;
+    int MaxStable = 0;
+    int MaxStableStart = 0;
+    for(i = 0; i < PowerList_Index; i ++)
+    {
+        if(! InStable)
+        {
+            if(DPowerList[i] < 0.3)
+            {
+                InStable = 1;
+                StableStart = i;
+            }
+        }else
+        {
+            if(DPowerList[i] > 0.3)
+                InStable = 0;
+            else
+            {
+                if(i - StableStart > MaxStable)
+                {
+                    MaxStable = i - StableStart;
+                    MaxStableStart = i;
+                }
+            }
+        }
+    }
+    
+    for(i = MaxStableStart; i > 0; i --)
+        if(DPowerList[i] > 0.8)
+            break;
+    
+    int Ret = Sublyzer.PulseList.Frames[i];
+    Array_Dtor(_T1, PowerList);
+    Array_Dtor(_T1, DPowerList);
+    
+    //Free and restore window.
+    RFree(NewWind);
+    RCall(_Wave, SetWindow)(Sorc, OrigWind, OrigSize);
+    RCall(_STFTIterlyzer, Dtor)(& Sublyzer);
+    
+    return Ret;
+}
+
+RTFunc(int, CSVP_OnsetFromWave, void* Sorc, _T1 Threshold, int LBound,
+    int RBound)
+{
+    int i;
+    _T1* WPtr = RCall(_Wave, GetUnsafePtr)(Sorc);
+    
+    for(i = LBound; i < RBound; i ++)
+    {
+        if(WPtr[i] > Threshold)
+            break;
+    }
+    if(i >= RBound) return - 1;
+    
+    return i;
+}
+
+RTFunc(int, CSVP_VOTFromF0Match, _PMatch* Sorc, _T1 DeltaFreq, int Num,
+    int Length)
+{
+    if(Sorc -> X_Index < Num)
+        return Sorc -> X[0];
+    
+    int StrokeStart = 0;
+    int StrokeStartPos = (int)Sorc -> X[0];
+    int i;
+    for(i = 0; i <= Sorc -> X_Index - Num; i ++)
+    {
+        if(fabs(Sorc -> Y[i] - Sorc -> Y[StrokeStart]) > DeltaFreq ||
+           (int)Sorc -> X[i] - StrokeStartPos > Length)
+        {
+            StrokeStart = i;
+            StrokeStartPos = (int)Sorc -> X[i];
+        }else if(i - StrokeStart >= Num)
+        {
+            return StrokeStartPos;
+        }
+    }
+    
+    return 0;
+}
+
+#undef  _STFTIterlyzer
+#undef  _Wave
+#undef  _Spectrum
+#undef  _PMatch
+

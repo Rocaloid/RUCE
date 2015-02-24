@@ -1,0 +1,283 @@
+/*
+    Title: WaveFile
+*/
+  
+
+/*
+    Struct: PCMHeader
+        When writing, used to set wav format.
+        When reading, used to get wav format.
+
+    Fields:
+        Channel         - Mono = 1, Stereo = 2, etc.
+        SamplePerSecond - 8000, 44100, etc.
+        BytePerSecond   - SampleRate * NumChannels * BitsPerSample/8.
+        BlockAlign      - NumChannels * BitsPerSample/8.
+        BitPerSample    - 8 bits = 8, 16 bits = 16, etc.
+*/
+RClass(PCMHeader)
+{
+    //Required while writing
+    short int Channel;
+    int SamplePerSecond;
+    int BytePerSecond;
+    short int BlockAlign;
+    short int BitPerSample;
+
+    //Temporary data used while reading
+    int DataSize;
+    int DataPosition;
+    int DataNum;
+    int BytePerSample;
+};
+
+/*
+    Class: WaveFile
+        a <RClass> for handing wav files.
+
+    Parent:
+        <File>
+*/
+RClass(WaveFile)
+{
+    RInherit(File);
+    PCMHeader Header;
+    int WriteCounter;
+    int WritePosition;
+};
+
+/* Section: Operations */
+/*
+    Function: WaveFile_Open
+        Open wav file for handing.
+
+    Parameters:
+        This - a handle of <WaveFile> will be opened.
+        Sorc - a handle of <String> contains the wav file path.
+
+    Returns:
+        1 on success; 0 for error.
+
+    See also:
+        <WaveFile_Close>
+*/
+int WaveFile_Open(WaveFile* This, String* Sorc);
+
+/*
+    Function: WaveFile_Save
+        Save the contents of <WaveFile> to a wav file.
+
+    Parameters:
+        This - a handle of <WaveFile> will be written.
+        Dest - a handle of <String> contains the wav file path.
+
+    Returns:
+        1 on success; 0 for error.
+
+    See also:
+        <WaveFile_FinishWrite>
+*/ 
+int WaveFile_Save(WaveFile* This, String* Dest);
+
+/*
+    Function: WaveFile_PrintInfo
+        Print channels, Fs, rates, size, n to stdout.
+
+    Parameters:
+        This - a handle of <WaveFile>
+*/
+void WaveFile_PrintInfo(WaveFile* This);
+
+
+/*
+    Function: WaveFile_FinishWrite
+        Finally write data size to the wav file header, then close,
+        should be called after <WaveFile_Save>.
+
+    Parameters:
+        This - a handle of <WaveFile>
+
+    See also:
+        <WaveFile_Close>
+*/
+void WaveFile_FinishWrite(WaveFile* This);
+
+/*
+    Function: WaveFile_Close
+        Close the file.
+
+    Parameters:
+        This - a handle of <WaveFile>
+
+    See also:
+        <WaveFile_Open>
+*/
+void WaveFile_Close(WaveFile* This);
+
+/*
+    Function: WaveFile_FetchAll
+        Read all PCM data into a char array.
+
+    Parameters:
+        This - a handle of <WaveFile> will be read from.
+        Dest - a preallocated char array will be written to.
+
+    Returns:
+        Number of samples fetched.
+
+    See also:
+        <WaveFile_FetchAllFloat>, <WaveFile_FetchAllStereo>
+*/
+int WaveFile_FetchAll(WaveFile* This, char* Dest);
+
+/*
+    Function: WaveFile_FetchAllFloat
+        Read all PCM data into a float array (normalized under -1.0 to 1.0).
+
+    Parameters:
+        This - a handle of <WaveFile> will be read from.
+        Dest - a preallocated float array will be written to.
+
+    Returns:
+        Number of samples fetched.
+
+    See also:
+        <WaveFile_FetchAll>, <WaveFile_FetchStereo>
+*/
+int WaveFile_FetchAllFloat(WaveFile* This, float* Dest);
+
+/*
+    Function: WaveFile_FetchAllFloatStereo
+        Read all PCM data into two float array (normalized).
+
+    Parameters:
+        This  - a handle of <WaveFile> will be read from.
+        DestL - a prealloctaed float array will be written left channel data.
+        DestR - a prealloctaed float array will be written right channel data.
+
+    Returns:
+        Number of per channel samples fetched.
+
+    See also:
+        <WaveFile_FetchAllFloat>
+*/
+int WaveFile_FetchAllFloatStereo(WaveFile* This, float* DestL, float* DestR);
+
+/*
+    Function: WaveFile_FetchAt
+        Read a PCM sample (normalized).
+
+    Parameters:
+        This     - a handle of <WaveFile> will be read from.
+        Position - which sample should be read.
+
+    Returns:
+        The sample at Position in float format.
+
+    See also:
+        <WaveFile_FetchLAt>, <WaveFile_FetchRAt>
+*/
+float WaveFile_FetchAt(WaveFile* This, int Position);
+
+/*
+    Function: WaveFile_FetchLAt
+        Read a PCM sample (normalized), left channel.
+
+    Parameters:
+        This     - a handle of <WaveFile> will be read from.
+        Position - which sample should be read.
+
+    Returns:
+        The left channel sample at Position in float format.
+
+    See also:
+        <WaveFile_FetchAt>, <WaveFile_FetchRAt>
+*/
+float WaveFile_FetchLAt(WaveFile* This, int Position);
+
+
+/*
+    Function: WaveFile_FetchRAt
+        Read a PCM sample (normalized), right channel.
+
+    Parameters:
+        This     - a handle of <WaveFile> will be read from.
+        Position - which sample should be read.
+
+    Returns:
+        The right channel sample at Position in float format.
+
+    See also:
+        <WaveFile_FetchAt>, <WaveFile_FetchLAt>
+*/
+float WaveFile_FetchRAt(WaveFile* This, int Position);
+
+/*
+    Function: WaveFile_WriteAll
+        Write PCM data in a char array to <WaveFile>.
+
+    Parameters:
+        This - a handle of <WaveFile> will be written to.
+        Sorc - a char array contains PCM data.
+        Size - the number of samples should be written.
+
+    See also:
+        <WaveFile_WriteAllFloat>
+*/
+void WaveFile_WriteAll(WaveFile* This, char* Sorc, int Size);
+
+/*
+    Function: WaveFile_WriteAllFloat
+        Write PCM data in a float array to <WaveFile>.
+
+    Parameters:
+        This - a handle of <WaveFile> will be written to.
+        Sorc - a float array contains PCM data.
+        Size - the number of samples should be written.
+
+    See also:
+        <WaveFile_WriteAllFloatStereo>
+*/
+void WaveFile_WriteAllFloat(WaveFile* This, float* Sorc, int Size);
+
+/*
+    Function: WaveFile_WriteAllFloatStereo
+        Write PCM data in two float array to <WaveFile>.
+
+    Parameters:
+        This  - a handle of <WaveFile> will be written to.
+        SorcL - a float array contains left channel PCM data.
+        SorcR - a float array contains right channel PCM data.
+
+    See also:
+        <WaveFile_WriteAllFloat>
+*/   
+void WaveFile_WriteAllFloatStereo(WaveFile* This, float* SorcL, float* SorcR,
+    int Size);
+
+/*
+    Function: WaveFile_Write
+        Write a PCM sample to <WaveFile>.
+
+    Parameters:
+        This - a handle of <WaveFile> will be written to.
+        Sorc - a float PCM sample will be written.
+
+    See also:
+        <WaveFile_WriteStereo>
+*/        
+void WaveFile_Write(WaveFile* This, float Data);
+
+/*
+    Function: WaveFile_WriteStereo
+        Write a pair of PCM samples to <WaveFile>.
+
+    Parameters:
+        This  - a handle of <WaveFile> will be written to.
+        DataL - a left channel float PCM sample will be written.
+        DataR - a right channel float PCM sample will be written.
+
+    See also:
+        <WaveFile_Write>
+*/   
+void WaveFile_WriteStereo(WaveFile* This, float DataL, float DataR);

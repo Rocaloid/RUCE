@@ -1,0 +1,169 @@
+#define _List_Spectrum _C(CDSP2_List_Spectrum, _, _T1)
+#define _List_Int CDSP2_List_Int
+#define _Spectrum _C(CDSP2_Spectrum, _, _T1)
+
+#define _CheckMembers() \
+    RAssert(This -> Wave, "require wave."); \
+    RAssert(This -> HopSize, "require hopsize."); \
+    RAssert(RCall(_RTClassName, GetFrameSize)(This) == \
+        ((_C(CDSP2_Wave, _, _T1)*)This -> Wave) -> WinSize, \
+        "incompatible winsize of wave.")
+
+RCtor(_RTClassName)
+{
+    This -> HopSize = 0;
+    This -> Wave = NULL;
+    This -> LastPosition = 0;
+    This -> InitPosition = 0;
+    RCall(_List_Spectrum, Ctor)(& This -> SpecList);
+    RCall(_List_Int     , Ctor)(& This -> PulseList);
+    RInit(_RTClassName);
+}
+
+RDtor(_RTClassName)
+{
+    RCall(_List_Spectrum, Dtor)(& This -> SpecList);
+    RCall(_List_Int     , Dtor)(& This -> PulseList);
+}
+
+RTMethod(void, CSVP_STFTIterlyzer, CtorSize, int FrameSize)
+{
+    This -> HopSize = 0;
+    This -> Wave = NULL;
+    This -> LastPosition = 0;
+    This -> InitPosition = 0;
+    RCall(_List_Spectrum, CtorSize)(& This -> SpecList, 0, FrameSize);
+    RCall(_List_Int     , Ctor)(& This -> PulseList);
+    RInit(_RTClassName);
+}
+
+RTMethod(void, CSVP_STFTIterlyzer, Resize, int FrameSize)
+{
+    RCall(_List_Spectrum, Resize)(& This -> SpecList, 0, FrameSize);
+    RCall(_List_Int     , Clear)(& This -> PulseList);
+}
+
+RTMethod(void, CSVP_STFTIterlyzer, From, _RTClassName* Sorc)
+{
+    RCall(_RTClassName, Resize)(This, RCall(_RTClassName, GetFrameSize)(Sorc));
+    RCall(_List_Spectrum, From)(& This -> SpecList, & Sorc -> SpecList);
+    RCall(_List_Int     , From)(& This -> PulseList, & Sorc -> PulseList);
+    This -> HopSize = Sorc -> HopSize;
+    This -> Wave = Sorc -> Wave;
+    This -> LastPosition = Sorc -> LastPosition;
+    This -> InitPosition = Sorc -> InitPosition;
+}
+
+RTMethod(void, CSVP_STFTIterlyzer, Clear)
+{
+    RCall(_List_Spectrum, Clear)(& This -> SpecList);
+    RCall(_List_Int     , Clear)(& This -> PulseList);
+}
+
+RTMethod(void, CSVP_STFTIterlyzer, SetWave, void* Sorc)
+{
+    This -> Wave = Sorc;
+    This -> LastPosition = 0;
+}
+
+RTMethod(void, CSVP_STFTIterlyzer, SetPosition, int Position)
+{
+    RAssert(This -> Wave, "improper call sequence(Wave not set yet).");
+    
+    This -> LastPosition = Position;
+}
+
+RTMethod(void, CSVP_STFTIterlyzer, SetHopSize, int HopSize)
+{
+    This -> HopSize = HopSize;
+}
+
+RTMethod(int , CSVP_STFTIterlyzer, GetPosition)
+{
+    return This -> LastPosition;
+}
+
+RTMethod(int , CSVP_STFTIterlyzer, GetHopSize)
+{
+    return This -> HopSize;
+}
+
+RTMethod(int , CSVP_STFTIterlyzer, GetFrameSize)
+{
+    return This -> SpecList.FrameSize;
+}
+
+RTMethod(void, CSVP_STFTIterlyzer, IterNextTo, int Position)
+{
+    _CheckMembers();
+    RAssert(Position > This -> LastPosition, "destination position earlier than"
+        " source position.");
+    
+    int FrameSize = RCall(_RTClassName, GetFrameSize)(This);
+    _Spectrum TmpSpec;
+    RCall(_Spectrum, CtorSize)(& TmpSpec, FrameSize);
+    while(This -> LastPosition < Position)
+    {
+        int Index = CDSP2_List_Int_Add(& This -> PulseList,
+            This -> LastPosition);
+        RCall(_Spectrum, FromWaveW)(& TmpSpec, This -> Wave,
+            This -> LastPosition - FrameSize / 2);
+        RCall(_List_Spectrum, Add)(& This -> SpecList, & TmpSpec, Index);
+        This -> LastPosition += This -> HopSize;
+    }
+    RCall(_Spectrum, Dtor)(& TmpSpec);
+}
+
+RTMethod(void, CSVP_STFTIterlyzer, IterPrevTo, int Position)
+{
+    _CheckMembers();
+    RAssert(Position < This -> LastPosition, "destination position later than "
+        " source position.");
+    
+    int FrameSize = RCall(_RTClassName, GetFrameSize)(This);
+    _Spectrum TmpSpec;
+    RCall(_Spectrum, CtorSize)(& TmpSpec, FrameSize);
+    while(This -> LastPosition > Position + This -> HopSize)
+    {
+        This -> LastPosition -= This -> HopSize;
+        int Index = CDSP2_List_Int_Add(& This -> PulseList,
+            This -> LastPosition);
+        RCall(_Spectrum, FromWaveW)(& TmpSpec, This -> Wave,
+            This -> LastPosition - FrameSize / 2);
+        RCall(_List_Spectrum, Add)(& This -> SpecList, & TmpSpec, Index);
+    }
+    RCall(_Spectrum, Dtor)(& TmpSpec);
+}
+
+RTMethod(void, CSVP_STFTIterlyzer, PrevTo, int Position)
+{
+    _CheckMembers();
+    RAssert(Position < This -> LastPosition, "destination position later than "
+        " source position.");
+    
+    int LastPosition = This -> LastPosition;
+    This -> LastPosition = This -> InitPosition;
+    
+    RCall(_RTClassName, IterPrevTo)(This, Position);
+    
+    This -> LastPosition = LastPosition;
+}
+
+RTMethod(int , CSVP_STFTIterlyzer, Extract, _Spectrum* Dest, int Index)
+{
+    int Ret = CDSP2_List_Int_Extract(& This -> PulseList, Index);
+    RCall(_List_Spectrum, Extract)(& This -> SpecList, Dest, Index);
+    return Ret;
+}
+
+RTMethod(int , CSVP_STFTIterlyzer, Fetch, _Spectrum* Dest, int Index)
+{
+    int Ret = CDSP2_List_Int_Fetch(& This -> PulseList, Index);
+    RCall(_List_Spectrum, Fetch)(& This -> SpecList, Dest, Index);
+    return Ret;
+}
+
+#undef  _List_Spectrum
+#undef  _List_Int
+#undef  _Spectrum
+

@@ -1,0 +1,68 @@
+#define _Wave _C(CDSP2_Wave, _, _T1)
+#define _List_Int CDSP2_List_Int
+#define _List_Sinusoid _C(CSVP_List_Sinusoid, _, _T1)
+#define _List_DataFrame _C(CDSP2_List_DataFrame, _, _T1)
+#define _SinusoidItersizer _C(CSVP_SinusoidItersizer, _, _T1)
+
+RTFunc(void, CSVP_SinusoidalFromSinuList, _Wave* Dest, _List_Int* PulseList,
+    _List_Sinusoid* SinuList, _List_DataFrame* PhseList)
+{
+    int i;
+    int HopSize = PulseList -> Frames[1] - PulseList -> Frames[0];
+    RCall(_Wave, Resize)(Dest, TopOf(PulseList -> Frames));
+    
+    _SinusoidItersizer Synth;
+    RCall(_SinusoidItersizer, Ctor)(& Synth);
+    Synth.Option.PhaseControl = CSVP_PhaseFlag_Regen;
+    
+    RCall(_List_Int, From)(& Synth.PulseList, PulseList);
+    RCall(_List_Sinusoid, From)(& Synth.SinuList, SinuList);
+    for(i = 0; i <= PhseList -> Frames_Index; i ++)
+        RCall(_SinusoidItersizer, AddPhase)(& Synth, & PhseList -> Frames[i],
+            PulseList -> Frames[i]);
+    
+    RCall(_SinusoidItersizer, SetWave)(& Synth, Dest);
+    RCall(_SinusoidItersizer, SetPosition)(& Synth, PulseList -> Frames[1]);
+    RCall(_SinusoidItersizer, SetInitPhase)(& Synth, & PhseList -> Frames[1]);
+    
+    int Init = PulseList -> Frames[0] + 1;
+    RCall(_SinusoidItersizer, PrevTo)(& Synth, Init);
+    RCall(_SinusoidItersizer, IterNextTo)(& Synth,
+        TopOf(PulseList -> Frames) - 10);
+    
+    _T1* Ptr = RCall(_Wave, GetUnsafePtr)(Dest);
+    for(i = 0; i < 50; i ++)
+        Ptr[i + Init] *= (_T1)i / 50.0;
+    
+    RCall(_SinusoidItersizer, Dtor)(& Synth);
+}
+
+RTFunc(void, CSVP_NoiseTurbFromSinuList, _Wave* Dest, _Wave* Sorc,
+    _List_Int* PulseList, _List_Sinusoid* SinuList, _List_DataFrame* PhseList)
+{
+    _Wave SinuWave;
+    RCall(_Wave, CtorSize)(& SinuWave, Sorc -> Size);
+    RCall(CSVP_SinusoidalFromSinuList, _T1)(& SinuWave, PulseList,
+        SinuList, PhseList);
+    RCall(CSVP_NoiseTurbFromWave, _T1)(Dest, Sorc, & SinuWave);
+    
+    RCall(_Wave, Dtor)(& SinuWave);
+}
+
+RTFunc(void, CSVP_NoiseTurbFromWave, _Wave* Dest, _Wave* Sorc, _Wave* Sinu)
+{
+    int MinSize = Sorc -> Size < Sinu -> Size ? Sorc -> Size : Sinu -> Size;
+    
+    RCall(_Wave, Resize)(Dest, MinSize);
+    _T1* DPtr = RCall(_Wave, GetUnsafePtr)(Dest);
+    _T1* SPtr = RCall(_Wave, GetUnsafePtr)(Sorc);
+    _T1* SinuPtr = RCall(_Wave, GetUnsafePtr)(Sinu);
+    RCall(CDSP2_VSub, _T1)(DPtr, SPtr, SinuPtr, MinSize);
+}
+
+#undef  _Wave
+#undef  _List_Int
+#undef  _List_Sinusoid
+#undef  _List_DataFrame
+#undef  _SinusoidItersizer
+

@@ -1,0 +1,104 @@
+/*    
+    Class: PMatch
+    
+        Control point interpolater.
+    
+        PMatch stands for "Point Match".
+        
+        This is a template class.
+        
+        Parent:
+        
+            <RObject>
+*/
+#define _ClassName PMatch_
+;
+RClass(_RTClassName)
+{
+    RInherit(RObject);
+    
+    /*
+        Variable: X
+        
+            The array which stores X coordinates.
+    */
+    Array_Define(_T1, X);
+    
+    /*
+        Variable: Y
+        
+            The array which stores Y coordinates.
+    */
+    Array_Define(_T2, Y);
+};
+
+/*
+    Function: AddPair
+    
+        Load a control point.
+        
+        Parameters:
+        
+            XVar - The x coordinate.
+        
+            YVar - The y coordinate.
+*/
+RTMethod(void, PMatch, AddPair, _T1 XVar, _T2 YVar);
+
+/*
+    Function: Clear
+    
+        Clear all control points.
+*/
+RTMethod(void, PMatch, Clear);
+
+/*
+    Function: Print
+    
+        Print the coordinates of all control points.
+*/
+RTMethod(void, PMatch, Print);
+
+/*
+    Function: Query
+    
+        Query the y coordinate at a given x position, using linear
+        interpolation.
+        
+        Parameters:
+        
+            XVar - The x coordinate.
+            
+        Returns:
+        
+            The y coordinate, transition rate and index in template struct
+            Transition.
+*/
+RTMethod(_C(Transition, RTAttr_2), PMatch, Query, _T1 XVar);
+
+/*
+    Section: Types
+    
+    The following combinations of types are available
+    
+    (start code)
+    PMatch_Float_Float
+    
+    PMatch_Float_Double
+    
+    PMatch_Double_Float
+    
+    PMatch_Double_Double
+    (end)
+    
+    Section: Aliases
+    
+    PMatch - PMatch_Double_Double
+    PMatch_Ctor - PMatch_Double_Double_Ctor
+    PMatch_Dtor - PMatch_Double_Double_Dtor
+    PMatch_AddPair - PMatch_Double_Double_AddPair
+    PMatch_Clear - PMatch_Double_Double_Clear
+    PMatch_Print - PMatch_Double_Double_Print
+    PMatch_Query - PMatch_Double_Double_Query
+*/
+
