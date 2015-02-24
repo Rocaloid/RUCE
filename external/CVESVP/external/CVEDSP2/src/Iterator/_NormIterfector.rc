@@ -1,0 +1,152 @@
+#define _Wave _C(CDSP2_Wave, _, _T1)
+#define _IWave _C(CDSP2_IWave, _, _T1)
+#define _Gain _C(CDSP2_GainIterfector, _, _T1)
+
+/*
+RClass(_RTClassName)
+{
+    RInherit(RObject);
+    
+    //Public
+    _T1 Gain;
+    _T1 Intensity;
+    int HopSize;
+    
+    //Private
+    _Gain* Subsizer;
+    void* Wave;
+    int LastPosition;
+    int InitPosition;
+};*/
+
+RCtor(_RTClassName)
+{
+    This -> Subsizer = RAlloc_Class(_Gain, 1);
+    RCall(_Gain, Ctor)(This -> Subsizer);
+    This -> Gain = 2;
+    This -> Intensity = -45;
+    This -> HopSize = 256;
+    This -> Wave = NULL;
+    This -> ECurve = NULL;
+    This -> LastPosition = 0;
+    This -> InitPosition = 0;
+    RInit(_RTClassName);
+}
+
+RDtor(_RTClassName)
+{
+    RCall(_Gain, Dtor)(This -> Subsizer);
+    RFree(This -> Subsizer);
+}
+
+RTMethod(void, CDSP2_NormIterfector, SetWave, void* Sorc)
+{
+    This -> Wave = Sorc;
+    RCall(_Gain, SetWave)(This -> Subsizer, Sorc);
+}
+
+RTMethod(void, CDSP2_NormIterfector, SetOutWave, void* Sorc)
+{
+    RCall(_Gain, SetOutWave)(This -> Subsizer, Sorc);
+}
+
+RTMethod(void, CDSP2_NormIterfector, SetEnergyWave, void* Sorc)
+{
+    This -> ECurve = Sorc;
+}
+
+RTMethod(void, CDSP2_NormIterfector, SetHopSize, int HopSize)
+{
+    This -> HopSize = HopSize;
+}
+
+RTMethod(void, CDSP2_NormIterfector, SetGain, _T1 Gain)
+{
+    This -> Gain = Gain;
+}
+
+RTMethod(void, CDSP2_NormIterfector, SetIntensity, _T1 Intensity)
+{
+    This -> Intensity = Intensity;
+}
+
+RTMethod(void, CDSP2_NormIterfector, SetPosition, int Position)
+{
+    This -> LastPosition = Position;
+    This -> InitPosition = Position;
+    RCall(_Gain, SetPosition)(This -> Subsizer, Position);
+}
+
+#define _NormCore() \
+    _T1 Local; \
+    if(! This -> ECurve) \
+    { \
+        Local = RCall(CDSP2_MeanEnergyFromWaveDB, _T1) \
+            (This -> Wave, This -> LastPosition - 256, 512); \
+    }else \
+    { \
+        _T1* EPtr = RCall(_IWave, GetUnsafePtr)(This -> ECurve); \
+        Local = EPtr[This -> LastPosition]; \
+    } \
+    _T1 New = Local + 20 * log10(This -> Gain * This -> Gain); \
+    if(New > This -> Intensity) \
+        New = This -> Intensity; \
+    _T1 Gain = pow(10, (New - Local) / 40.0)
+
+#define _NormInit() do { \
+    if(This -> LastPosition == This -> InitPosition) \
+    { \
+        _NormCore(); \
+        RCall(_Gain, Add)(This -> Subsizer, Gain, This -> LastPosition); \
+    } \
+    } while(0)
+
+RTMethod(void, CDSP2_NormIterfector, IterNextTo, int Position)
+{
+    _NormInit();
+    while(This -> LastPosition < Position - This -> HopSize)
+    {
+        This -> LastPosition += This -> HopSize;
+        
+        _NormCore();
+        
+        RCall(_Gain, Add)(This -> Subsizer, Gain, This -> LastPosition);
+        RCall(_Gain, IterNextTo)(This -> Subsizer, This -> LastPosition);
+    }
+}
+
+RTMethod(void, CDSP2_NormIterfector, IterPrevTo, int Position)
+{
+    _NormInit();
+    while(This -> LastPosition > Position + This -> HopSize)
+    {
+        This -> LastPosition -= This -> HopSize;
+        
+        _NormCore();
+        
+        RCall(_Gain, Add)(This -> Subsizer, Gain, This -> LastPosition);
+        RCall(_Gain, IterPrevTo)(This -> Subsizer, This -> LastPosition);
+    }
+}
+
+RTMethod(void, CDSP2_NormIterfector, PrevTo, int Position)
+{
+    _NormInit();
+    int OrigPosition = This -> LastPosition;
+    This -> LastPosition = This -> InitPosition;
+    while(This -> LastPosition > Position + This -> HopSize)
+    {
+        This -> LastPosition -= This -> HopSize;
+        
+        _NormCore();
+        
+        RCall(_Gain, Add)(This -> Subsizer, Gain, This -> LastPosition);
+    }
+    RCall(_Gain, PrevTo)(This -> Subsizer, Position);
+}
+
+
+#undef  _Wave
+#undef  _IWave
+#undef  _Gain
+

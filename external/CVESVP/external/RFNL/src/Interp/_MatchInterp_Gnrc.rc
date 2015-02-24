@@ -1,0 +1,14 @@
+//Generic Template PMatch Interpolation Implementation
+
+#undef _T3
+#define _T3 Non
+#include "_MatchInterp_Gnrc_Base.rc"
+
+#undef _T3
+#define _T3 Linear
+#include "_MatchInterp_Gnrc_Base.rc"
+
+#undef _T3
+#define _T3 Cosine
+#include "_MatchInterp_Gnrc_Base.rc"
+

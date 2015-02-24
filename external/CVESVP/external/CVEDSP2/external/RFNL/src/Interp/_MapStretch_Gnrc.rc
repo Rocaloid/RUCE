@@ -1,0 +1,16 @@
+//Generic Template Series Mapping, Compression & Expansion Implementation
+
+//Let's rock!
+
+#undef _T3
+#define _T3 Non
+#include "_MapStretch_Gnrc_Base.rc"
+
+#undef _T3
+#define _T3 Linear
+#include "_MapStretch_Gnrc_Base.rc"
+
+#undef _T3
+#define _T3 Cosine
+#include "_MapStretch_Gnrc_Base.rc"
+

@@ -1,0 +1,109 @@
+/src/Include/RFNL.h
+
+    [Module:DFT]
+    /src/DFT/DFT.h
+    
+        [Group:BitRev]
+        /src/DFT/BitRev.h
+            [Arch:Generic]
+            /src/DFT/BitRev_Gnrc.c
+                [Type] - 1st Template
+                /src/DFT/_BitRev_Gnrc.h
+                /src/DFT/_BitRev_Gnrc.rc
+        
+        [Group:DFT]
+            [Arch:Generic]
+            /src/DFT/DFT_Gnrc.c
+                [Type] - 1st Template
+                /src/DFT/_DFT_Gnrc.rc
+                    [Arch-Independent] - 2nd Template
+                    /src/DFT/_DFT_Arch.rc
+                /src/DFT/_DFT_Gnrc.h
+                    [Arch-Independent] - 2nd Template
+                    /src/DFT/_DFT_Arch.h
+
+    [Module:Vec]
+    /src/Vec/Vec.h
+    
+        [Arch:Generic]
+            [Group:VecBasic]
+            /src/Vec/VecBasic_Gnrc.c
+                [Type] - 1st Template
+                /src/Vec/_VecBasic_Gnrc.h
+                /src/Vec/_VecBasic_Gnrc.rc
+            [Group:VecMath]
+            /src/Vec/VecMath_Gnrc.c
+                [Type] - 1st Template
+                /src/Vec/_VecMath_Gnrc.h
+                /src/Vec/_VecMath_Gnrc.rc
+    
+    [Module:FMath]
+    /src/FMath/FMath.h
+    /src/FMath/FMath.c
+        [Type] - 1st Template
+        /src/Vec/_FMath_Comm.h
+        /src/Vec/_FMath_Comm.rc
+    
+        [Arch:Generic]
+            [Type] - 1st Template
+            /src/Vec/_FMath_Gnrc.h
+            /src/Vec/_FMath_Pk_Gnrc.h
+    
+    [Module:Interp]
+    /src/Interp/Interp.h
+    
+        [Arch:Generic]
+            [Group:Interp]
+            /src/Interp/InterpBase_Gnrc.h
+                [Type] - 1st Template
+                /src/Interp/_InterpBase_Gnrc.h
+            [Group:GenPeak]
+            /src/Interp/GenPeak_Gnrc.h
+            /src/Interp/GenPeak_Gnrc.c
+                [Type] - 1st Template
+                /src/Interp/_GenPeak_Gnrc.h
+                /src/Interp/_GenPeak_Gnrc.rc
+            [Group:MatchInterp]
+            /src/Interp/MatchInterp_Gnrc.h
+            /src/Interp/MatchInterp_Gnrc.c
+                [Type] - 1st Template
+                /src/Interp/_MatchInterp_Gnrc.h
+                /src/Interp/_MatchInterp_Gnrc.rc
+                    [Interpolation Methods] - 2nd Template
+                    /src/Interp/_MatchInterp_Gnrc_Base.rc
+            [Group:MapStretch]
+            /src/Interp/MapStretch_Gnrc.h
+            /src/Interp/MapStretch_Gnrc.c
+                [Type] - 1st Template
+                /src/Interp/_MapStretch_Gnrc.h
+                /src/Interp/_MapStretch_Gnrc.rc
+                    [Interpolation Methods] - 2nd Template
+                    /src/Interp/_MapStretch_Gnrc_Base.rc
+            [Group:Resample]
+            /src/Interp/Resample_Gnrc.h
+            /src/Interp/Resample_Gnrc.c
+                [Type] - 1st Template
+                /src/Interp/_Resample_Gnrc.h
+                /src/Interp/_Resample_Gnrc.rc
+                    [Interpolation Methods] - 2nd Template
+                    /src/Interp/_Resample_Gnrc_Base.rc
+            [Group:OffsetFetch]*
+            /src/Interp/OffsetFetch_Gnrc.h*
+            /src/Interp/OffsetFetch_Gnrc.c*
+                [Type] - 1st Template
+                /src/Interp/_OffsetFetch_Gnrc.h*
+                /src/Interp/_OffsetFetch_Gnrc.rc*
+                    [Interpolation Methods] - 2nd Template
+                    /src/Interp/_OffsetFetch_Gnrc_Base.rc*
+
+    [Module:FWindow]
+    /src/FWindow/FWindow.h
+
+        [Arch:Generic]
+            [Class:FWindow]
+            /src/FWindow/FWindow_Gnrc.h
+            /src/FWindow/FWindow_Gnrc.c
+                [Type] - 1st Template
+                /src/FWindow/_FWindow_Gnrc.h*
+                /src/FWindow/_FWindow_Gnrc.rc*
+

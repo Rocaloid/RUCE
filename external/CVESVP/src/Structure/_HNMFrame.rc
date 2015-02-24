@@ -1,0 +1,219 @@
+#define _Sinusoid _C(CSVP_Sinusoid, _, _T1)
+#define _DataFrame _C(CDSP2_DataFrame, _, _T1)
+#define _Spectrum _C(CDSP2_Spectrum, _, _T1)
+#define _HNMContour _C(CSVP_HNMContour, _, _T1)
+#define _PMatch _C(PMatch_, _T1, _, _T1)
+#define _GenPeak _C(CDSP2_GenPeak_, _T1, _, _T1)
+#define _MatchInterp_Linear _C(CDSP2_MatchInterp_Linear_, _T1, _, _T1)
+
+RCtor(_RTClassName)
+{
+    RCall(_Sinusoid, Ctor)(& This -> Hmnc);
+    This -> Size = 0;
+    This -> Noiz = NULL;
+    This -> SampleRate = 44100;
+    
+    RInit(_RTClassName);
+}
+
+RDtor(_RTClassName)
+{
+    RCall(_Sinusoid, Dtor)(& This -> Hmnc);
+    if(This -> Noiz != NULL)
+        RFree(This -> Noiz);
+}
+
+RTMethod(void, CSVP_HNMFrame, CtorSize, int Size, int HNum)
+{
+    RCall(_Sinusoid, CtorSize)(& This -> Hmnc, HNum);
+    This -> Size = Size;
+    This -> Noiz = RCall(RAlloc, _T1)(Size / 2 + 1);
+    This -> SampleRate = 44100;
+    
+    RInit(_RTClassName);
+}
+
+RTMethod(void, CSVP_HNMFrame, Resize, int Size, int HNum)
+{
+    RCall(_Sinusoid, Resize)(& This -> Hmnc, HNum);
+    if(Size != This -> Size)
+    {
+        This -> Size = Size;
+        This -> Noiz = (_T1*)realloc(This -> Noiz, (Size / 2 + 1)
+            * sizeof(_T1));
+    }
+}
+
+RTMethod(void, CSVP_HNMFrame, Clear)
+{
+    RCall(_Sinusoid, Clear)(& This -> Hmnc);
+    RCall(CDSP2_VSet, _T1)(This -> Noiz, 0, This -> Size / 2 + 1);
+}
+
+RTMethod(void, CSVP_HNMFrame, From, _RTClassName* Sorc)
+{
+    RCall(_RTClassName, Resize)(This, Sorc -> Size, Sorc -> Hmnc.Size);
+    RCall(_Sinusoid, From)(& This -> Hmnc, & Sorc -> Hmnc);
+    RCall(CDSP2_VCopy, _T1)(This -> Noiz, Sorc -> Noiz, Sorc -> Size / 2 + 1);
+    This -> SampleRate = Sorc -> SampleRate;
+}
+
+RTMethod(void, CSVP_HNMFrame, InterpFrom, _RTClassName* Sorc1,
+    _RTClassName* Sorc2, _T1 Ratio)
+{
+    RAssert(Sorc1 -> Size == Sorc2 -> Size, "Size of sources does not match.");
+    RCall(_RTClassName, Resize)(This, Sorc1 -> Size, Sorc1 -> Hmnc.Size);
+    RCall(_Sinusoid, InterpFrom)(& This -> Hmnc,
+        & Sorc1 -> Hmnc, & Sorc2 -> Hmnc, Ratio);
+    
+    RCall(CDSP2_VSet,  _T1)(This -> Noiz, 0, This -> Size / 2 + 1);
+    RCall(CDSP2_VFCMA, _T1)(This -> Noiz, Sorc1 -> Noiz, 1.0 - Ratio,
+        This -> Size / 2 + 1);
+    RCall(CDSP2_VFCMA, _T1)(This -> Noiz, Sorc2 -> Noiz, Ratio,
+        This -> Size / 2 + 1);
+}
+
+RTMethod(static void, CSVP_HNMFrame, _FromSpectrum, _DataFrame* Dest,
+    _Spectrum* Sorc, _RTClassName* Prev, _T1 F0, int SinuNum, int GenPhase)
+{
+    _Spectrum TempSpec;
+    int  Size = Sorc -> Size;
+    int  DataSize = Size / 2 + 1;
+    
+    int  SampleRate = Sorc -> SampleRate;
+    _T1* TempReal = RCall(RAlloc, _T1)(Size);
+    _T1* Wind = RCall(RAlloc, _T1)(Size);
+    
+    RCall(_RTClassName, Resize)(This, Size, SinuNum);
+    RCall(_Spectrum, CtorSize)(& TempSpec, Size);
+    //TODO: Temporary window generation.
+    RCall(CDSP2_GenHanning, _T1)(Wind, Size);
+    _Spectrum* NewSorc = RCall(_Spectrum, AllocConvSpecRO)
+        (Sorc, CDSP2_LinearMagn);
+    TempSpec.MagnType = CDSP2_LinearMagn;
+    
+    if(Prev)
+    {
+        if(GenPhase)
+        RCall(_Sinusoid, SFromSpectrumWithPhase)(& This -> Hmnc, Dest, Sorc,
+            & Prev -> Hmnc, F0);
+        else
+        RCall(_Sinusoid, SFromSpectrum)(& This -> Hmnc, Sorc, & Prev -> Hmnc,
+            F0);
+    }else
+    {
+        if(GenPhase)
+        RCall(_Sinusoid, FromSpectrumWithPhase)(& This -> Hmnc, Dest, Sorc, F0);
+        else
+        RCall(_Sinusoid, FromSpectrum)(& This -> Hmnc, Sorc, F0);
+    }
+    RCall(_Sinusoid, ToReal)(& This -> Hmnc, TempReal, Size, SampleRate);
+    RCall(_Spectrum, FromRealW)(& TempSpec, TempReal, Wind);
+    
+    RCall(CDSP2_VCopy, _T1)(TempReal, NewSorc -> Magn, DataSize);
+    RCall(CDSP2_VSub , _T1)(TempReal, TempReal, TempSpec.Magn, DataSize);
+    RCall(CDSP2_VCMax, _T1)(TempReal, TempReal, 0, DataSize);
+    
+    //TODO: Implement SIMD accelerated vector log in RFNL.
+    int i;
+    for(i = 0; i < DataSize; i ++)
+    {
+        This -> Noiz[i] = log(TempReal[i]);
+        if(This -> Noiz[i] < -999) This -> Noiz[i] = -999;
+    }
+    
+    _PMatch Peaks;
+    RCall(_PMatch, Ctor)(& Peaks);
+    _GenPeak(& Peaks, This -> Noiz, 16, DataSize);
+    _MatchInterp_Linear(This -> Noiz, & Peaks, -999, DataSize);
+    
+    RFree(TempReal);
+    RFree(Wind);
+    RCall(_PMatch, Dtor)(& Peaks);
+    RCall(_Spectrum, Dtor)(& TempSpec);
+    RCall(_Spectrum, FreeConvSpecRO)(Sorc, NewSorc);
+}
+
+RTMethod(void, CSVP_HNMFrame, FromSpectrum, _Spectrum* Sorc, _T1 F0,
+    int SinuNum)
+{
+    RCall(_RTClassName, _FromSpectrum)(This, NULL, Sorc, NULL, F0, SinuNum, 0);
+}
+
+RTMethod(void, CSVP_HNMFrame, FromSpectrumWithPhase, _DataFrame* Dest,
+    _Spectrum* Sorc, _T1 F0, int SinuNum)
+{
+    RCall(_RTClassName, _FromSpectrum)(This, Dest, Sorc, NULL, F0, SinuNum, 1);
+}
+
+RTMethod(void, CSVP_HNMFrame, SFromSpectrum, _Spectrum* Sorc,
+    _RTClassName* Prev, _T1 F0, int SinuNum)
+{
+    RCall(_RTClassName, _FromSpectrum)(This, NULL, Sorc, Prev, F0, SinuNum, 0);
+}
+
+RTMethod(void, CSVP_HNMFrame, SFromSpectrumWithPhase, _DataFrame* Dest,
+    _Spectrum* Sorc, _RTClassName* Prev, _T1 F0, int SinuNum)
+{
+    RCall(_RTClassName, _FromSpectrum)(This, Dest, Sorc, Prev, F0, SinuNum, 1);
+}
+
+RTMethod(void, CSVP_HNMFrame, ToContour, _HNMContour* Dest)
+{
+    RCall(_HNMContour, Resize)(Dest, This -> Size);
+    RCall(CDSP2_VCopy, _T1)(Dest -> Noiz, This -> Noiz, This -> Size / 2 + 1);
+    
+    int i;
+    _PMatch BinMatch;
+    RCall(_PMatch, Ctor)(& BinMatch);
+    
+    for(i = 0; i < This -> Hmnc.Size; i ++)
+    {
+        _T1 Freq = This -> Hmnc.Freq[i];
+        _T1 Bin  = Freq / (_T1)This -> SampleRate * (_T1)This -> Size;
+        _T1 Magn = log(This -> Hmnc.Ampl[i]);
+        RCall(_PMatch, AddPair)(& BinMatch, Bin, Magn);
+    }
+    //Cubic interpolation can be better.
+    _C(CDSP2_MatchInterp_Cosine_, _T1, _, _T1)(Dest -> Hmnc, & BinMatch, -999,
+        This -> Size / 2 + 1);
+    
+    RCall(_PMatch, Dtor)(& BinMatch);
+}
+
+RTMethod(void, CSVP_HNMFrame, FromContour, _HNMContour* Sorc, _T1 Pitch,
+    _T1 UFreq)
+{
+    int i;
+    int N = UFreq / Pitch;
+    RCall(_RTClassName, Resize)(This, Sorc -> Size, N);
+    for(i = 0; i < This -> Hmnc.Size; i ++)
+        This -> Hmnc.Freq[i] = Pitch * (i + 1);
+    RCall(_RTClassName, FromContourA)(This, Sorc);
+}
+
+RTMethod(void, CSVP_HNMFrame, FromContourA, _HNMContour* Sorc)
+{
+    int i;
+    RCall(_RTClassName, Resize)(This, Sorc -> Size, This -> Hmnc.Size);
+    RCall(CDSP2_VCopy, _T1)(This -> Noiz, Sorc -> Noiz, This -> Size / 2 + 1);
+    for(i = 0; i < This -> Hmnc.Size; i ++)
+    {
+        _T1 Freq  = This -> Hmnc.Freq[i];
+        _T1 Bin   = Freq / (_T1)This -> SampleRate * (_T1)This -> Size;
+        int LBin  = (int)Bin;
+        int Ratio = Bin - LBin;
+        _T1 Magn  = RCall(RFNL_Interp_Linear_Gnrc, _T1)
+            (Sorc -> Hmnc[LBin], Sorc -> Hmnc[LBin + 1], Ratio);
+        This -> Hmnc.Ampl[i] = exp(Magn);
+    }
+}
+
+#undef  _GenPeak
+#undef  _MatchInterp_Linear
+#undef  _Sinusoid
+#undef  _DataFrame
+#undef  _Spectrum
+#undef  _HNMContour
+#undef  _PMatch
+

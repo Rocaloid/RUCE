@@ -1,0 +1,8 @@
+*~
+*.nd
+*.html
+*.css
+*.js
+
+build/*
+build

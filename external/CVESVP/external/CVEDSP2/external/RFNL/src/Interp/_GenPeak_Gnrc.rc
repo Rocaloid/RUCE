@@ -1,0 +1,24 @@
+//Generic Template Series to PMatch generator Implementation
+
+#undef DestType
+#define DestType _C(PMatch_, _T1, _, _T2)
+
+RTFunc(void, RFNL_GenPeak_Gnrc,
+             DestType* Dest,
+             _T2* Sorc, int Interval, int Size)
+{
+    int MaxNum = Size / Interval;
+    int HalfInterval = Interval / 2;
+    RCall(DestType, Clear)(Dest);
+    
+    int i;
+    for(i = 0; i < MaxNum; i ++)
+    {
+        int LBound = (i + 0) * Interval;
+        int HBound = (i + 1) * Interval;
+        HBound = HBound > Size ? Size : HBound;
+        _T2 Max = RCall(RFNL_VMaxElmt_Gnrc, _T2)(Sorc, LBound, HBound);
+        RCall(DestType, AddPair)(Dest, ((_T2)(LBound + HBound)) * 0.5f, Max);
+    }
+}
+

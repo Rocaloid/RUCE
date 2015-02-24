@@ -1,0 +1,84 @@
+#undef __SortType
+#define __SortType _C(__SortType, _, _T1)
+
+RClass(__SortType)
+{
+    _T1 Data;
+    int Index;
+};
+
+RTFunc(static int, Sort_CmpLess_Index, const void* a, const void* b)
+{
+    return ((__SortType*)a) -> Data < ((__SortType*)b) -> Data;
+}
+
+RTFunc(static int, Sort_CmpMore_Index, const void* a, const void* b)
+{
+    return ((__SortType*)a) -> Data > ((__SortType*)b) -> Data;
+}
+
+RTFunc(static int, Sort_CmpLess, const void* a, const void* b)
+{
+    return *((_T1*)a) < *((_T1*)b);
+}
+
+RTFunc(static int, Sort_CmpMore, const void* a, const void* b)
+{
+    return *((_T1*)a) > *((_T1*)b);
+}
+
+#define Sort_Index_Core(Func) \
+    int i; \
+    Array_Gtor(__SortType, Tmp); \
+    Array_Resize(__SortType, Tmp, Num); \
+    for(i = 0; i < Num; i ++) \
+    { \
+        Tmp[i].Data = Sorc[i]; \
+        Tmp[i].Index = i; \
+    }\
+    qsort(Tmp, Num, sizeof(__SortType), _C(Func, _, _T1)); \
+    for(i = 0; i < Num; i ++) \
+    { \
+        Dest[i] = Tmp[i].Data; \
+        Index[i] = Tmp[i].Index; \
+    } \
+    Array_Dtor(__SortType, Tmp)
+
+#define Sort_Core(Func) \
+    int i; \
+    for(i = 0; i < Num; i ++) \
+        Dest[i] = Sorc[i]; \
+    qsort(Dest, Num, sizeof(_T1), _C(Func, _, _T1));
+
+RTFunc(void, Sort_IncIndex, _T1* Dest, int* Index, _T1* Sorc, int Num)
+{
+    Sort_Index_Core(Sort_CmpMore_Index);
+}
+
+RTFunc(void, Sort_DecIndex, _T1* Dest, int* Index, _T1* Sorc, int Num)
+{
+    Sort_Index_Core(Sort_CmpLess_Index);
+}
+
+RTFunc(void, Sort_Inc, _T1* Dest, _T1* Sorc, int Num)
+{
+    Sort_Core(Sort_CmpMore);
+}
+
+RTFunc(void, Sort_Dec, _T1* Dest, _T1* Sorc, int Num)
+{
+    Sort_Core(Sort_CmpLess);
+}
+
+//Compiler warning prevention. NEVER call this.
+RTFunc(void, __SORT_RC_OMIT_UNUSED)
+{
+    _C(Sort_CmpLess_Index, _, _T1)(0, 0);
+    _C(Sort_CmpMore_Index, _, _T1)(0, 0);
+    _C(Sort_CmpLess, _, _T1)(0, 0);
+    _C(Sort_CmpMore, _, _T1)(0, 0);
+}
+
+#undef Sort_Index_Core
+#undef Sort_Core
+

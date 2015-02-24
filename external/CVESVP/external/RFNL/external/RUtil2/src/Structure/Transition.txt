@@ -1,0 +1,32 @@
+/*    
+    Struct: Transition
+    
+        Just as its name.
+        
+        This is a template struct.
+*/
+#define _ClassName Transition_
+;RClass(_RTClassName)
+{
+    /*
+        Variable: X
+        
+            The transition rate.
+    */
+    _T1 X;
+    
+    /*
+        Variable: Y
+        
+            The y coordinate.
+    */
+    _T2 Y;
+    
+    /*
+        Variable: LowerIndex
+        
+            The index of lower element.
+    */
+    int LowerIndex;
+};
+

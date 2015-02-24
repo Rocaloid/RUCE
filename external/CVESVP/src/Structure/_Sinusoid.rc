@@ -1,0 +1,393 @@
+#define _Spectrum _C(CDSP2_Spectrum, _, _T1)
+#define _DataFrame _C(CDSP2_DataFrame, _, _T1)
+
+#define _XYPair _C(CSVP_XYPair, _, _T1)
+
+typedef struct
+{
+    _T1 X;
+    int IntX;
+    _T1 Y;
+} _XYPair;
+
+RCtor(_RTClassName)
+{
+    This -> Size = 0;
+    Array_Ctor(_T1, This -> Freq);
+    Array_Ctor(_T1, This -> Ampl);
+    
+    RInit(_RTClassName);
+}
+
+RDtor(_RTClassName)
+{
+    Array_Dtor(_T1, This -> Freq);
+    Array_Dtor(_T1, This -> Ampl);
+}
+
+RTMethod(void, CSVP_Sinusoid, CtorSize, int Size)
+{
+    This -> Size = Size;
+    Array_Ctor(_T1, This -> Freq);
+    Array_Ctor(_T1, This -> Ampl);
+    Array_Resize(_T1, This -> Freq, Size);
+    Array_Resize(_T1, This -> Ampl, Size);
+    This -> Freq_Index = Size - 1;
+    This -> Ampl_Index = Size - 1;
+    
+    RInit(_RTClassName);
+}
+
+RTMethod(void, CSVP_Sinusoid, Resize, int Size)
+{
+    if(Size != This -> Size)
+    {
+        This -> Size = Size;
+        Array_Resize(_T1, This -> Freq, Size);
+        Array_Resize(_T1, This -> Ampl, Size);
+        This -> Freq_Index = Size - 1;
+        This -> Ampl_Index = Size - 1;
+    }
+}
+
+RTMethod(void, CSVP_Sinusoid, From, _RTClassName* Sorc)
+{
+    RCall(_RTClassName, Resize)(This, Sorc -> Size);
+    
+    RCall(CDSP2_VCopy, _T1)(This -> Freq, Sorc -> Freq, Sorc -> Size);
+    RCall(CDSP2_VCopy, _T1)(This -> Ampl, Sorc -> Ampl, Sorc -> Size);
+}
+
+RTMethod(void, CSVP_Sinusoid, InterpFrom, _RTClassName* Sorc1,
+    _RTClassName* Sorc2, _T1 Ratio)
+{
+    int MaxSize;
+    if(Sorc2 -> Size > Sorc1 -> Size)
+        MaxSize = Sorc2 -> Size;
+    else
+        MaxSize = Sorc1 -> Size;
+    RCall(_RTClassName, From)(This, Sorc1);
+    RCall(_RTClassName, Resize)(This, MaxSize);
+    
+    int i;
+    for(i = Sorc1 -> Size; i < This -> Size; i ++)
+    {
+        This -> Freq[i] = Sorc2 -> Freq[i];
+        This -> Ampl[i] = Sorc2 -> Ampl[i];
+    }
+    for(i = 0; i < Sorc2 -> Size; i ++)
+    {
+        This -> Freq[i] += (Sorc2 -> Freq[i] - This -> Freq[i]) * Ratio;
+        This -> Ampl[i] += (Sorc2 -> Ampl[i] - This -> Ampl[i]) * Ratio;
+    }
+    if(Sorc2 -> Size < Sorc1 -> Size)
+        for(i --; i < Sorc1 -> Size; i ++)
+            This -> Ampl[i] *= (1.0 - Ratio);
+}
+
+RTMethod(void, CSVP_Sinusoid, Clear)
+{
+    RCall(CDSP2_VSet, _T1)(This -> Freq, 0, This -> Size);
+    RCall(CDSP2_VSet, _T1)(This -> Ampl, 0, This -> Size);
+}
+
+RTMethod(void, CSVP_Sinusoid, ToReal, _T1* Dest, int Size, int SampleRate)
+{
+    _T1 k = 2.0 * M_PI / (_T1)SampleRate;
+    int N = This -> Size;
+    
+    int i, j;
+    RCall(CDSP2_VSet, _T1)(Dest, 0, Size);
+    
+    //For each sinusoid
+    for(i = 0; i < N; i ++)
+    {
+        _T1 Ampl = This -> Ampl[i];
+        _T1 Freq = This -> Freq[i] * k;
+        
+        _T1 X[4], Y[4];
+        //For each sample
+        for(j = 0; j < Size - 3; j += 4)
+        {
+            X   [    0]  = (_T1)(j + 0) * Freq;
+            X   [    1]  = (_T1)(j + 1) * Freq;
+            X   [    2]  = (_T1)(j + 2) * Freq;
+            X   [    3]  = (_T1)(j + 3) * Freq;
+            
+            RCall(RFNL_Pk4PCos_Gnrc, _T1)(Y, X);
+            
+            Dest[j + 0] += Y[0] * Ampl;
+            Dest[j + 1] += Y[1] * Ampl;
+            Dest[j + 2] += Y[2] * Ampl;
+            Dest[j + 3] += Y[3] * Ampl;
+        }
+        for(; j < Size; j ++)
+        {
+            Dest[j] += Ampl * RCall(RFNL_PCos_Gnrc, _T1)((_T1)j * Freq);
+        }
+    }
+}
+
+RTMethod(void, CSVP_Sinusoid, ToSpectrum, _Spectrum* Dest)
+{
+    int Size = Dest -> Size;
+    int SampleRate = Dest -> SampleRate;
+    _T1* Tmp = RCall(RAlloc, _T1)(Size);
+    RCall(_RTClassName, ToReal)(This, Tmp, Size, SampleRate);
+    //TODO: Static window generation to speed up.
+    RCall(CDSP2_Hanning, _T1)(Tmp, Tmp, Size);
+    RCall(_Spectrum, FromReal)(Dest, Tmp);
+    RFree(Tmp);
+}
+
+RTFunc(static _XYPair, CSVP_PeakFromSpectrum, _Spectrum* Sorc, int LInt,
+    int HInt)
+{
+    _XYPair Ret;
+    
+    _Spectrum* NewSorc = RCall(_Spectrum, AllocConvSpecRO)(Sorc, CDSP2_LogMagn);
+    
+    //TODO: Vectorization
+    //Find spectral peak
+    int Max_X = LInt;
+    _T1 Max_Y = NewSorc -> Magn[LInt];
+    int i;
+    for(i = LInt; i < HInt; i ++)
+    {
+        if(NewSorc -> Magn[i] > Max_Y)
+        {
+            Max_Y = NewSorc -> Magn[i];
+            Max_X = i;
+        }
+    }
+    
+    //Quadratic interpolation
+    _T1 a, b, c;
+    _T1 a1, a2;
+    _T1 x;
+    a = NewSorc -> Magn[Max_X - 1];
+    b = NewSorc -> Magn[Max_X + 0];
+    c = NewSorc -> Magn[Max_X + 1];
+    a1 = (a + c) / 2.0 - b;
+    a2 = c - b - a1;
+    x = - a2 / a1 * 0.5;
+    
+    x = (fabs(x) < 1.0) ? x : 0;
+    
+    Ret.IntX = Max_X;
+    Ret.X = ((_T1)Max_X + x) * Sorc -> SampleRate / Sorc -> Size;
+    Ret.Y = a1 * x * x + a2 * x + b;
+    Ret.Y = Ret.Y > b * 1.05 ? b * 1.05 : Ret.Y;
+    
+    //Magnitude restoration
+    Ret.Y -= log(Sorc -> Size / 4);
+    Ret.Y = exp(Ret.Y);
+    
+    RCall(_Spectrum, FreeConvSpecRO)(Sorc, NewSorc);
+    return Ret;
+}
+
+RTMethod(static void, CSVP_Sinusoid, _FromSpectrum, _DataFrame* Dest,
+    _Spectrum* Sorc, _RTClassName* Prev, _T1 F0, int GenPhase)
+{
+    int i;
+    
+    _T1 Center;
+    _T1 LBound, HBound;
+    int LInt, HInt;
+    if(GenPhase)
+        RCall(_DataFrame, Resize)(Dest, This -> Size);
+    
+    for(i = 0; i < This -> Size; i ++)
+    {
+        Center = (i + 1) * F0;
+        if(Prev && i >= Prev -> Size)
+        {
+            This -> Freq[i] = Center;
+            This -> Ampl[i] = 0;
+            if(GenPhase)
+                Dest -> Data[i] = 0;
+            continue;
+        }
+        
+        if(Prev && Prev -> Ampl[i] == 0)
+        {
+            This -> Freq[i] = Prev -> Freq[i];
+            This -> Ampl[i] = 0;
+            if(GenPhase)
+                Dest -> Data[i] = 0;
+        }else
+        {
+            LBound = Center - F0 / 2.0f;
+            HBound = Center + F0 / 2.0f;
+            LInt   = (int)(LBound * Sorc -> Size / Sorc -> SampleRate);
+            HInt   = (int)(HBound * Sorc -> Size / Sorc -> SampleRate);
+            _XYPair TempPair;
+            TempPair = RCall(CSVP_PeakFromSpectrum, _T1)(Sorc, LInt, HInt);
+            This -> Freq[i] = TempPair.X;
+            This -> Ampl[i] = TempPair.Y;
+            
+            //[0, 2pi]
+            if(GenPhase)
+                Dest -> Data[i] = Sorc -> Phse[TempPair.IntX] + M_PI;
+        }
+    }
+}
+
+RTMethod(void, CSVP_Sinusoid, FromSpectrum, _Spectrum* Sorc, _T1 F0)
+{
+    RCall(_RTClassName, _FromSpectrum)(This, NULL, Sorc, NULL, F0, 0);
+}
+
+RTMethod(void, CSVP_Sinusoid, FromSpectrumWithPhase, _DataFrame* Dest,
+    _Spectrum* Sorc, _T1 F0)
+{
+    RCall(_RTClassName, _FromSpectrum)(This, Dest, Sorc, NULL, F0, 1);
+}
+
+RTMethod(void, CSVP_Sinusoid, SFromSpectrum, _Spectrum* Sorc,
+    _RTClassName* Prev, _T1 F0)
+{
+    RCall(_RTClassName, _FromSpectrum)(This, NULL, Sorc, Prev, F0, 0);
+}
+
+RTMethod(void, CSVP_Sinusoid, SFromSpectrumWithPhase, _DataFrame* Dest,
+    _Spectrum* Sorc, _RTClassName* Prev, _T1 F0)
+{
+    RCall(_RTClassName, _FromSpectrum)(This, Dest, Sorc, Prev, F0, 1);
+}
+
+RTMethod(void, CSVP_Sinusoid, KillDeviatedHarmonics, _T1 Delta)
+{
+    int i;
+    for(i = 1; i < This -> Size; i ++)
+    {
+        _T1 Center = (i + 1) * This -> Freq[0];
+        if(fabs(This -> Freq[i] - Center) > Delta)
+            This -> Ampl[i] = 0; //Mark as dead.
+    }
+}
+
+RTMethod(static void, CSVP_Sinusoid, _GDToReal, _T1* Dest, _DataFrame* Phse,
+    int Size, int SampleRate)
+{
+    _T1 Mult = 2.0 * M_PI / SampleRate;
+    _T1* t = RCall(RAlloc, _T1)(Size);
+    _T1* Tmp1 = RCall(RAlloc, _T1)(Size);
+    int i;
+    for(i = 0; i < Size; i ++)
+        t[i] = i - Size / 2;
+    RCall(CDSP2_VCMul, _T1)(t, t, Mult, Size);
+    
+    RCall(CDSP2_VSet, _T1)(Dest, 0, Size);
+    for(i = 0; i < This -> Size; i ++)
+    {
+        if(This -> Ampl[i] == 0.0) continue;
+        RCall(CDSP2_VCMul, _T1)(Tmp1, t, This -> Freq[i], Size);
+        RCall(CDSP2_VCAdd, _T1)(Tmp1, Tmp1, Phse -> Data[i], Size);
+        RCall(CDSP2_VCos , _T1)(Tmp1, Tmp1, Size);
+        RCall(CDSP2_VFCMA, _T1)(Dest, Tmp1, This -> Ampl[i], Size);
+    }
+    
+    RFree(Tmp1);
+    RFree(t);
+}
+
+#define GDUpperBound 5
+RTMethod(void, CSVP_Sinusoid, GradientDescentWithPhase, _DataFrame* Phse,
+    _T1* Sorc, int Size, int SampleRate, int Iteration, _T1 Alpha)
+{
+    _T1 Mult = 2.0 * M_PI / SampleRate;
+    _T1* t = RCall(RAlloc, _T1)(Size);
+    _T1* Tmp1 = RCall(RAlloc, _T1)(Size);
+    _T1* Tmp2 = RCall(RAlloc, _T1)(Size);
+    _T1 Err;
+    int i, n;
+    for(i = 0; i < Size; i ++)
+        t[i] = i - Size / 2;
+    RCall(CDSP2_VCMul, _T1)(t, t, Mult, Size);
+    
+    #define EstSub(DestTmp) \
+        RCall(_RTClassName, _GDToReal)(This, DestTmp, Phse, Size, SampleRate); \
+        RCall(CDSP2_VSub, _T1)(Tmp1, Sorc, DestTmp, Size)
+    
+    _T1* dAmpl = RCall(RAlloc, _T1)(This -> Size);
+    _T1* dPhse = RCall(RAlloc, _T1)(This -> Size);
+    _T1* OAmpl = RCall(RAlloc, _T1)(This -> Size);
+    _T1* OPhse = RCall(RAlloc, _T1)(This -> Size);
+    RCall(CDSP2_VCopy, _T1)(OAmpl, This -> Ampl, This -> Size);
+    RCall(CDSP2_VCopy, _T1)(OPhse, Phse -> Data, This -> Size);
+    
+    for(i = 0; i < This -> Size; i ++)
+        Phse -> Data[i] += M_PI;
+    
+    EstSub(Tmp1);
+    RCall(CDSP2_VMul, _T1)(Tmp2, Tmp1, Tmp1, Size);
+    _T1 OErr = RCall(CDSP2_VSum, _T1)(Tmp2, 0, Size);
+    
+    for(n = 0; n < Iteration; n ++)
+    {
+        EstSub(Tmp1);
+        
+        //Gradient of Ampl
+        for(i = 0; i < GDUpperBound; i ++)
+        {
+            if(This -> Ampl[i] == 0.0)
+            {
+                dAmpl[i] = 0;
+                continue;
+            }
+            RCall(CDSP2_VCMul, _T1)(Tmp2, t, This -> Freq[i], Size);
+            RCall(CDSP2_VCAdd, _T1)(Tmp2, Tmp2, Phse -> Data[i], Size);
+            RCall(CDSP2_VCos , _T1)(Tmp2, Tmp2, Size);
+            RCall(CDSP2_VMul , _T1)(Tmp2, Tmp1, Tmp2, Size);
+            dAmpl[i] = -2 * RCall(CDSP2_VSum ,_T1)(Tmp2, 0, Size) * Alpha;
+        }
+        
+        //Gradient of Phse
+        for(i = 0; i < GDUpperBound; i ++)
+        {
+            if(This -> Ampl[i] == 0.0)
+            {
+                dPhse[i] = 0;
+                continue;
+            }
+            RCall(CDSP2_VCMul, _T1)(Tmp2, t, This -> Freq[i], Size);
+            RCall(CDSP2_VCAdd, _T1)(Tmp2, Tmp2, Phse -> Data[i], Size);
+            RCall(CDSP2_VSin , _T1)(Tmp2, Tmp2, Size);
+            RCall(CDSP2_VMul , _T1)(Tmp2, Tmp1, Tmp2, Size);
+            dPhse[i] = 2 * RCall(CDSP2_VSum ,_T1)(Tmp2, 0, Size)
+                     * This -> Ampl[i] * Alpha;
+        }
+        
+        RCall(CDSP2_VSub, _T1)(This -> Ampl, This -> Ampl, dAmpl, GDUpperBound);
+        RCall(CDSP2_VSub, _T1)(Phse -> Data, Phse -> Data, dPhse, GDUpperBound);
+    }
+    
+    for(i = 0; i < This -> Size; i ++)
+        Phse -> Data[i] -= M_PI;
+    
+    RCall(CDSP2_VMul, _T1)(Tmp2, Tmp1, Tmp1, Size);
+    Err = RCall(CDSP2_VSum, _T1)(Tmp2, 0, Size);
+    
+    if(Err > OErr)
+    {
+        //Training failed.
+        RCall(CDSP2_VCopy, _T1)(This -> Ampl, OAmpl, This -> Size);
+        RCall(CDSP2_VCopy, _T1)(Phse -> Data, OPhse, This -> Size);
+    }
+    
+    RFree(OAmpl);
+    RFree(OPhse);
+    RFree(dAmpl);
+    RFree(dPhse);
+    RFree(t);
+    RFree(Tmp1);
+    RFree(Tmp2);
+}
+
+
+#undef  _DataFrame
+#undef  _Spectrum
+#undef  _XYPair
+

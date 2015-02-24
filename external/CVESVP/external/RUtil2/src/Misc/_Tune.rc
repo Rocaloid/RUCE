@@ -1,0 +1,130 @@
+#define _PitchToSPN _C(Tune_PitchToSPN, _, _T1)
+#define _SPNToPitch _C(Tune_SPNToPitch, _, _T1)
+#define _PitchToFreq _C(Tune_PitchToFreq, _, _T1)
+#define _FreqToPitch _C(Tune_FreqToPitch, _, _T1)
+
+RTFunc(_T1, Tune_PitchToSPN, _T1 Pitch_Raw, String* Dest)
+{
+    int Pitch;
+    int id;
+    int s;
+    
+    _T1 Ret;
+    
+    #ifdef _T1_IntLike
+    Pitch = Pitch_Raw;
+    Ret = 0;
+    #else
+    Pitch = round(Pitch_Raw);
+    Ret = Pitch_Raw - Pitch;
+    #endif
+    
+    s = Pitch / 12;
+    id = Pitch % 12;
+    
+    if(id < 0)
+    {
+        id = 12 + id;
+        --s;
+    }
+
+    Dest -> Data_Index = sprintf(Dest -> Data, 
+                                "%s%d", 
+                                 PNTable[id][SemitoneTable[id] ? PNMode : 0], 
+                                 s - 1);
+    return Ret;
+}
+
+RTFunc(_T1, Tune_SPNToPitch, String* SPN)
+{
+    int SPNLen = String_GetLength(SPN);
+    RAssert(SPNLen > 1);
+    
+    char ChChr = SPN -> Data[1];
+    if(ChChr == '#' || ChChr == 'b')  // If it's semitone... XD
+    {
+        RAssert(SPNLen > 2);
+        for(int i = 1; i < 11; ++i)  // PNTable[0] and PNTable[1] is tritone.
+        {
+            if(! (SemitoneTable[i]))
+                continue;
+            for(int j = 0; j < 3; ++j)
+            {
+                if(String_EqualNChars(SPN, PNTable[i][j], 2))
+                    return 12 * (atoi(String_GetChars(SPN) + 2) + 1) + i;
+            }
+        }
+    }
+    else    // It's tritone!
+    {
+        for(int i = 0; i < 12; ++i)
+        {
+            if(SPN -> Data[0] == PNTable[i][0][0])
+                return 12 * (atoi(String_GetChars(SPN) + 1) + 1) + i;
+        }
+    }
+    RAssert(0);
+    return -233333;
+}
+
+RTFunc(_T1, Tune_FreqToPitch, _T1 Freq)
+{
+    RAssert(Freq > 0);
+    #if _T1_TID == _TID_Float || defined(_T1_IntLike)
+    return (_T1)(69.0f + 12.0f * log2f(Freq / 440.0f));
+    #else
+    return 69.0f + 12.0f * log2(Freq / 440.0f);
+    #endif
+}
+
+RTFunc(_T1, Tune_PitchToFreq, _T1 Pitch)
+{
+    #if _T1_TID == _TID_Float || defined(_T1_IntLike)
+    return (_T1)(440 * powf(2.0f, (Pitch - 69.0f) / 12.0f));
+    #else
+    return 440 * pow(2.0f, (Pitch - 69.0f) / 12.0f);
+    #endif
+}
+
+RTFunc(_T1, Tune_AddCentToFreq, _T1 Freq, _T1 Cent)
+{
+    #if _T1_TID == _TID_Float || defined(_T1_IntLike)
+    return (_T1)(Freq * powf(2.0f, Cent / 1200.0f));
+    #else
+    return Freq * pow(2.0f, Cent / 1200.0f);
+    #endif
+}
+
+RTFunc(_T1, Tune_CalcCentFromFreq, _T1 Freq1, _T1 Freq2)
+{
+    #if _T1_TID == _TID_Float || defined(_T1_IntLike)
+    return (_T1)(1200.0f * log2f(Freq1 / Freq2));
+    #else
+    return 1200.0f * log2(Freq1 / Freq2);
+    #endif
+}
+
+RTFunc(_T1, Tune_BeatToTime, _T1 BPM, _T1 BeatCnt)
+{
+    return (_T1)(BeatCnt / BPM * 60.0f);
+}
+
+RTFunc(_T1, Tune_TimeToBeat, _T1 BPM, _T1 Time)
+{
+    return (_T1)(BPM / (Time / 60.0f));
+}
+
+RTFunc(_T1, Tune_FreqToSPN, _T1 Freq, String* Dest)
+{
+    return _PitchToSPN(_FreqToPitch(Freq), Dest);
+}
+
+RTFunc(_T1, Tune_SPNToFreq, String* SPN)
+{
+    return _PitchToFreq(_SPNToPitch(SPN));
+}
+
+#undef _FreqToPitch
+#undef _PitchToSPN
+#undef _SPNToPitch
+#undef _PitchToFreq

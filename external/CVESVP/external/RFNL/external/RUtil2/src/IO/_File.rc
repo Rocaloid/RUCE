@@ -1,0 +1,16 @@
+RTFunc(_T1, File_Read, File* This)
+{
+    _T1 tmp;
+    Trash = fread(& tmp, sizeof(_T1), 1, This -> BaseStream);
+    This -> FilePtr += sizeof(_T1);
+    fseek(This -> BaseStream, This -> FilePtr, SEEK_SET);
+    return tmp;
+}
+
+RTFunc(void, File_Write, File* This, _T1 Sorc)
+{
+    fwrite(& Sorc, sizeof(_T1), 1, This -> BaseStream);
+    This -> FilePtr += sizeof(_T1);
+    fseek(This -> BaseStream, This -> FilePtr, SEEK_SET);
+}
+
