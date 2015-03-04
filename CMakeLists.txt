@@ -84,4 +84,4 @@ endif()
 # Workaround for CMake version older than 3.1
 # Remove this and set the minimum required version to 3.1
 # when we make sure everyone is having CMake 3.1
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
