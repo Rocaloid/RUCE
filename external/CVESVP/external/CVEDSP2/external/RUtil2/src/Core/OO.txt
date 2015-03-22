@@ -1,0 +1,415 @@
+/*
+    Title: OO
+
+        Object Oriented Programming in C.
+*/
+
+/*
+    Variable: __ClassID__
+
+        The counter which assigns each RClass a unique class number.
+        
+        Automatically increases by 1 when a RCtor for a RClass is defined.
+*/
+int __ClassID__;
+
+/*
+    Section: RClass
+
+    Macro: RClass
+
+        Defines a RClass.
+        
+        Usage:
+        
+        (start code)
+        RClass(ClassName)
+        {
+            ...
+        };
+        (end)
+        
+        Example:
+        
+        (start code)
+        RClass(MyClass)
+        {
+            RInherit(RObject);
+            int a;
+            int b;
+            int c;
+        };
+        (end)
+        
+    See also:
+    
+        <RInherit>
+        
+        <RCtor>
+        
+        <RDtor>
+        
+        <RInit>
+        
+        
+    Macro: RInherit
+
+        Inherit a RClass from another RClass.
+        
+        All RClasses should at least inherit RObject.
+        
+        Usage:
+        
+        (start code)
+        RClass(ClassName)
+        {
+            RInherit(BaseClassName);
+            ...
+        };
+        (end)
+        
+        Example:
+        
+        (start code)
+        RClass(MyBaseClass)
+        {
+            RInherit(RObject);
+            int a;
+            int b;
+            int c;
+        };
+        
+        RClass(MyParentClass)
+        {
+            RInherit(MyBaseClass);
+            int d;
+            int e;
+            int f;
+        };
+        (end)
+        
+    See also:
+    
+        <RClass>
+        
+        
+    Macro: RCtor
+
+        Defines the constructor of a RClass.
+        
+        All RClasses should have a constructor.
+        
+        Usage:
+        
+        > RCtor(a)
+        
+        This is equivalent to
+        
+        > void a_Ctor(a* This)
+        
+        Example:
+        
+        (start code)
+        RClass(MyClass)
+        {
+            RInherit(RObject);
+            int a;
+            int b;
+            int c;
+        };
+        
+        RCtor(MyClass)
+        {
+            This -> a = 0;
+            This -> b = 0;
+            This -> c = 0;
+            RInit(MyClass);
+        };
+        (end)
+        
+    See also:
+    
+        <RClass>
+        
+        <RInit>
+        
+        <RDtor>
+        
+        
+    Macro: RDtor
+
+        Defines the destructor of a RClass.
+        
+        All RClasses should have a destructor.
+        
+        Usage:
+        
+        > RDtor(a)
+        
+        This is equivalent to
+        
+        > void a_Dtor(a* This)
+        
+        Example:
+        
+        (start code)
+        RClass(MyBaseClass)
+        {
+            RInherit(RObject);
+            int a;
+            int b;
+            int c;
+        };
+        
+        RDtor(MyClass)
+        {
+            This -> a = 0;
+            This -> b = 0;
+            This -> c = 0;
+        };
+        (end)
+        
+    See also:
+    
+        <RClass>
+        
+        <RCtor>
+        
+        
+    Macro: RInit
+
+        Assigns the ClassID to the object.
+        
+        Should be placed in the end of every RCtors.
+        
+        Usage:
+        
+        > RInit(ClassName);
+        
+        Example:
+        
+        (start code)
+        RClass(MyClass)
+        {
+            RInherit(RObject);
+            int a;
+            int b;
+            int c;
+        };
+        
+        RCtor(MyClass)
+        {
+            This -> a = 0;
+            This -> b = 0;
+            This -> c = 0;
+            RInit(MyClass);
+        };
+        (end)
+
+
+    Macro: RNew
+    
+        Calls constructor functions for multiple objects of the same type.
+        
+        Usage:
+        
+        > RNew(TypeName, & obj1, & obj2, & obj3, ...);
+        
+        Equivalent to
+        
+        (start code)
+        TypeName_Ctor(& obj1);
+        TypeName_Ctor(& obj2);
+        TypeName_Ctor(& obj3);
+        ...
+        (end)
+        
+        Example:
+        (start code)
+        String a, b, c;
+        
+        RNew(String, & a, & b, & c);
+        
+        ...
+        (end)
+    
+    Macro: RDelete
+    
+        Automatically calls destructors of multiple objects.
+        
+        Usage:
+        
+        > RDelete(& obj1, & obj2, & obj3, ...);  
+              
+        Equivalent to
+        
+        (start code)
+        TypeName1_Ctor(& obj1);
+        TypeName2_Ctor(& obj2);
+        TypeName3_Ctor(& obj3);
+        ...
+        (end)
+        
+        Example:
+        (start code)
+        String a, b, c;
+        MyClass d, e, f;
+        
+        RNew(String, & a, & b, & c);
+        RNew(MyClass, & d, & e, & f);
+        
+        ...
+        
+        RDelete(& a, & b, & c, & d, & e, & f);
+        (end code)
+    
+        
+    Section: RInterface
+
+    Macro: (Obsoleted)RInterface_Start
+
+        Marks the start of RInterface definition.
+        
+        Usage:
+        
+        > RInterface_Start();
+        
+    See also:
+    
+        <RInterface_Add>
+        
+        
+    Macro: (Obsoleted)RInterface_Add
+
+        Add a method to a RInterface method.
+        
+        Usage:
+            
+        > RInterface_Add(ClassName, MethodName)(Arg1, Arg2, ...);
+        
+        Example:
+        
+        (start code)
+        int MyClass_Method(MyClass* This)
+        {
+            ...
+        }
+        
+        int MyClass2_Method(MyClass2* This)
+        {
+            ...
+        }
+
+        int IObject_Method(RObject* This)
+        {
+            RInterface_Start();
+            RInterface_Add(MyClass, Method)(MyBase(MyClass));
+            RInterface_Add(MyClass2, Method)(MyBase(MyClass2));
+            return 0;
+        }
+        (end)
+        
+    See also:
+    
+        <RInterface_Start>
+    
+    
+    Section: Template Programming
+    
+    Macro: RTMethod
+    
+        Defines a method for a template class.
+        
+        Usage:
+        
+        > RTMethod(RetType, ClassName, Method, Parameter1, Parameter2, ...)
+        
+        Equivalent to
+        
+        > RetType ClassName_Method_...(Parameter1, Parameter2, ...)
+        
+        Example:
+        (start code)
+        RClass(_RTClassName)
+        {
+            RInherit(RObject);
+            Array_Define(_T1, X);
+            Array_Define(_T2, Y);
+        };
+
+        RTMethod(void, PMatch, AddPair, _T1 XVar, _T2 YVar);
+        (end)
+        
+        (start code)
+        RTMethod(void, PMatch, AddPair, _T1 XVar, _T2 YVar)
+        {
+            int Index;
+            Array_IncFind(Index, _T1, This -> X, XVar);
+            Array_Insert(_T2, This -> Y, Index, YVar);
+            Array_Insert(_T1, This -> X, Index, XVar);
+        }
+        (end)
+        (Adapted from src/Structure/_PMatch.h and _PMatch.rc)
+        
+        
+    Macro: RTFunc
+    
+        Defines a template function.
+        
+        Usage:
+        
+        > RTFunc(RetType, Method, Parameter1, Parameter2, ...)
+        
+        Equivalent to
+        
+        > RetType Method_...(Parameter1, Parameter2, ...)
+        
+        See Also:
+        
+        <RTMethod>
+    
+        
+    Section: Auxillaries
+
+    Macro: MyBase
+
+        Converts 'This' pointer to a specified base class.
+        
+        Usage:
+        
+        > MyBase(BaseClassName);
+        
+        Example:
+        
+        (start code)
+        RClass(MyClass)
+        {
+            RInherit(RObject);
+        };
+        
+        RCtor(MyClass)
+        {
+            printf("My ClassID is %d\n", MyBase(RObject) -> ClassID);
+            RInit(MyClass);
+        };
+        (end)
+        
+        See also:
+        
+            <RInherit>
+    
+    
+    Macro: RCall
+    
+        Syntactic sugar for calling methods of RClasses.
+        
+        Usage:
+        
+        > RCall(Class, Method)(Arg1, Arg2, ...);
+        
+        Equivalent to
+        
+        > Class_Method(Arg1, Arg2, ...);
+
+*/
+

@@ -1,0 +1,206 @@
+//Generic Template Fast Window Generator Implementation
+
+#undef SizeFuncType
+#undef ValuFuncType
+#define SizeFuncType _C(RFNL_FWSizeFunc, _, _T1)
+#define ValuFuncType _C(RFNL_FWValuFunc, _, _T1)
+
+RCtor(_RTClassName)
+{
+    RInit(_RTClassName);
+    Array_Ctor(_T1*, This -> Buff);
+    This -> SizeFunc = (SizeFuncType)0;
+    This -> ValuFunc = (ValuFuncType)0;
+    This -> MinVar = 0;
+    This -> MaxVar = 0;
+    This -> Interval = 0;
+}
+
+RDtor(_RTClassName)
+{
+    _C(RFNL_FWindow_Gnrc_, _T1, _Reset)(This);
+    Array_Dtor(_T1*, This -> Buff);
+}
+
+RTMethod(void, RFNL_FWindow_Gnrc, SetPara,
+    _T1 MinVar, _T1 MaxVar, _T1 Interval)
+{
+    This -> MinVar = MinVar;
+    This -> MaxVar = MaxVar;
+    This -> Interval = Interval;
+}
+
+RTMethod(void, RFNL_FWindow_Gnrc, SetFunc,
+    SizeFuncType SizeFunc, ValuFuncType ValuFunc)
+{
+    This -> SizeFunc = SizeFunc;
+    This -> ValuFunc = ValuFunc;
+}
+
+RTMethod(int , RFNL_FWindow_Gnrc, Initialize)
+{
+    //Funcs not specified.
+    if(This -> SizeFunc == 0 || This -> ValuFunc == 0)
+        return 0;
+    //Wrong parameters.
+    if(This -> MaxVar < This -> MinVar || This -> Interval <= 0)
+        return 0;
+    
+    int Size;
+    int MaxSize = INT_MIN;
+    int i = 0;
+    _T1 Var;
+    for(Var = This -> MinVar; Var < This -> MaxVar; Var += This -> Interval)
+    {
+        Size = This -> SizeFunc(Var);
+        MaxSize = Size > MaxSize ? Size : MaxSize;
+        //Negative size error
+        if(Size < 0) return 0;
+        i ++;
+    }
+    Size = This -> SizeFunc(This -> MaxVar);
+    MaxSize = Size > MaxSize ? Size : MaxSize;
+    
+    //Setup array
+    _C(RFNL_FWindow_Gnrc_, _T1, _Reset)(This);
+    Array_Resize(_T1*, This -> Buff, i);
+    This -> Buff_Index = i - 1;
+    for(i = 0; i <= This -> Buff_Index; i ++)
+        This -> Buff[i] = RCall(RAlloc, _T1)(MaxSize);
+    
+    //Generate Windows
+    for(i = 0; i <= This -> Buff_Index; i ++)
+    {
+        int j, Offset;
+        _T1* IBuff = This -> Buff[i];
+        Var = This -> MinVar + This -> Interval * i;
+        Size = This -> SizeFunc(Var);
+        Offset = (MaxSize - Size) / 2;
+        
+        //Put window at the center of IBuff.
+        for(j = 0; j < Offset; j ++)
+            IBuff[j] = 0;
+        for(; j < MaxSize - Offset; j ++)
+            IBuff[j] = This -> ValuFunc(j - Offset, Size);
+        for(; j < MaxSize; j ++)
+            IBuff[j] = 0;
+    }
+    
+    This -> MaxSize = MaxSize;
+    return 1;
+}
+
+RTMethod(int , RFNL_FWindow_Gnrc, Generate, _T1* Dest, _T1 Var)
+{
+    _T1 Ratio = (Var - This -> MinVar) / This -> Interval;
+    int LIndex = (int)Ratio;
+    Ratio -= LIndex;
+    
+    _T1 LVar  = This -> MinVar + This -> Interval * LIndex;
+    _T1 HVar  = LVar + This -> Interval;
+    HVar = HVar > This -> MaxVar ? This -> MaxVar : HVar;
+    
+    int Size = This -> SizeFunc(Var);
+    int Offset = (This -> MaxSize - Size) / 2;
+    //printf("%d %d %d\n", This -> MaxSize, Size, Offset);
+    
+    RCall(RFNL_VCMul_Gnrc, _T1)
+        (Dest, This -> Buff[LIndex] + Offset, 1.0 - Ratio, Size);
+    
+    //Overflow prevention
+    if(LIndex >= This -> Buff_Index) LIndex --;
+    RCall(RFNL_VFCMA_Gnrc, _T1)
+        (Dest, This -> Buff[LIndex + 1] + Offset, Ratio, Size);
+    
+    return Size;
+}
+
+RTMethod(void, RFNL_FWindow_Gnrc, Reset)
+{
+    int i;
+    for(i = 0; i <= This -> Buff_Index; i ++)
+        RFree(This -> Buff[i]);
+    This -> Buff_Index = - 1;
+}
+
+//Common Windows
+RTFunc(_T1, RFNL_Hanning_Valu_Gnrc, _T1 Var, int Size)
+{
+    return 0.5f * (1.0f - 
+        RCall(RFNL_PCos_Gnrc, _T1)(2 * M_PI * Var / (Size - 1.0f)));
+}
+RTFunc(int, RFNL_Hanning_Size_Gnrc, _T1 Var)
+{
+    return (int)Var;
+}
+
+RTFunc(_T1, RFNL_Hamming_Valu_Gnrc, _T1 Var, int Size)
+{
+    return 0.54f - 0.46f *
+        RCall(RFNL_PCos_Gnrc, _T1)(2 * M_PI * Var / (Size - 1.0f));
+}
+RTFunc(int, RFNL_Hamming_Size_Gnrc, _T1 Var)
+{
+    return (int)Var;
+}
+
+RTFunc(_T1, RFNL_Blackman_Valu_Gnrc, _T1 Var, int Size)
+{
+    _T1 RealSize = Size - 1.0f;
+    return 0.42f - 0.5f
+        * RCall(RFNL_PCos_Gnrc, _T1)(2 * M_PI * Var / RealSize)
+        + 0.08f * RCall(RFNL_PCos_Gnrc, _T1)(4 * M_PI * Var / RealSize);
+}
+RTFunc(int, RFNL_Blackman_Size_Gnrc, _T1 Var)
+{
+    return (int)Var;
+}
+
+#undef  __RFNL_Hanning
+#undef  __RFNL_Hamming
+#undef  __RFNL_Blackman
+#define __RFNL_Hanning(i) \
+    0.5f * (1.0f - RCall(RFNL_PCos_Gnrc, _T1)((i) * Factor))
+#define __RFNL_Hamming(i) \
+    0.54f - 0.46f * RCall(RFNL_PCos_Gnrc, _T1)((i) * Factor)
+#define __RFNL_Blackman(i) \
+    0.42f - 0.5f * RCall(RFNL_PCos_Gnrc, _T1)((i) * Factor) \
+          + 0.08f * RCall(RFNL_PCos_Gnrc, _T1)((i) * Factor * 2.0f)
+
+//Instant Window
+RTFunc(void, RFNL_Hanning_Gnrc, _T1* Dest, _T1* Sorc, int Size)
+{
+    _T1 Factor = 2.0f * M_PI / (Size - 1.0f);
+    __RFNL_Unroll_Window4_Gnrc(__RFNL_Hanning);
+}
+
+RTFunc(void, RFNL_Hamming_Gnrc, _T1* Dest, _T1* Sorc, int Size)
+{
+    _T1 Factor = 2.0f * M_PI / (Size - 1.0f);
+    __RFNL_Unroll_Window4_Gnrc(__RFNL_Hamming);
+}
+
+RTFunc(void, RFNL_Blackman_Gnrc, _T1* Dest, _T1* Sorc, int Size)
+{
+    _T1 Factor = 2.0f * M_PI / (Size - 1.0f);
+    __RFNL_Unroll_Window4_Gnrc(__RFNL_Blackman);
+}
+
+RTFunc(void, RFNL_GenHanning_Gnrc, _T1* Dest, int Size)
+{
+    _T1 Factor = 2.0f * M_PI / (Size - 1.0f);
+    __RFNL_Unroll_CWindow4_Gnrc(__RFNL_Hanning);
+}
+
+RTFunc(void, RFNL_GenHamming_Gnrc, _T1* Dest, int Size)
+{
+    _T1 Factor = 2.0f * M_PI / (Size - 1.0f);
+    __RFNL_Unroll_CWindow4_Gnrc(__RFNL_Hamming);
+}
+
+RTFunc(void, RFNL_GenBlackman_Gnrc, _T1* Dest, int Size)
+{
+    _T1 Factor = 2.0f * M_PI / (Size - 1.0f);
+    __RFNL_Unroll_CWindow4_Gnrc(__RFNL_Blackman);
+}
+

@@ -1,0 +1,89 @@
+#define _Spectrum _C(CDSP2_Spectrum, _, _T1)
+#define _Wave _C(CDSP2_Wave, _, _T1)
+#define _IWave _C(CDSP2_IWave, _, _T1)
+#define F2B(F) (F * FFTSize / SampleRate)
+#define B2F(B) (((_T1)B) * ((_T1)SampleRate) / FFTSize)
+#define _PMatch _C(PMatch_, _T1, _, _T1)
+
+RTFunc(static _T1, CSVP_YIN_DiffSum, _T1* Sorc, _T1* Temp, int L, int T, int W)
+{
+    RCall(CDSP2_VSub, _T1)(Temp, & Sorc[L], & Sorc[L + T], W);
+    RCall(CDSP2_VMul, _T1)(Temp, Temp, Temp, W);
+    _T1 Ret = RCall(CDSP2_VSum, _T1)(Temp, 0, W);
+    
+    return Ret;
+}
+
+RTFunc(_T1, CSVP_F0FromWave_YIN, void* Sorc, int Position, _T1 MinFreq, int W,
+    _T1 Threshold)
+{
+    int SampleRate = ((_Wave*)Sorc) -> SampleRate;
+    _T1* Wave = RCall(_IWave, GetUnsafePtr)(Sorc);
+    
+    int L = SampleRate / MinFreq;
+    if(L > 1024) L = 1024;
+    
+    _T1* Temp = RCall(RAlloc, _T1)(W);
+    _T1* d = RCall(RAlloc, _T1)(L);
+    _T1* d2 = RCall(RAlloc, _T1)(L);
+    
+    RCall(CDSP2_VSet, _T1)(d2, 100, L);
+    int LMark = -1;
+    int i;
+    for(i = 1; i < L; i ++)
+    {
+        d[i] = RCall(CSVP_YIN_DiffSum, _T1)(Wave, Temp, Position, i, W);
+        _T1 s = RCall(CDSP2_VSum, _T1)(d, 1, i);
+        d2[i] = d[i] * i / s;
+        
+        if(d2[i] < Threshold)
+            if(LMark < 0)
+                LMark = i * 1.5;
+        if(i == LMark) break;
+    }
+    
+    //Neglect undefinite estimations.
+    if(LMark < 0)
+    {
+        RFree(Temp);
+        RFree(d);
+        RFree(d2);
+        return 0;
+    }
+    if(LMark > L) LMark = L;
+    
+    int Pos = 1;
+    _T1 Min = d2[1];
+    for(i = 1; i < LMark; i ++)
+        if(d2[i] < Min)
+        {
+            Min = d2[i];
+            Pos = i;
+        }
+    
+    _T1 a, b, c;
+    _T1 a1, a2;
+    _T1 x;
+    a = d2[Pos - 1];
+    b = d2[Pos + 0];
+    c = d2[Pos + 1];
+    a1 = (a + c) / 2.0 - b;
+    a2 = c - b - a1;
+    x = - a2 / a1 * 0.5;
+    
+    if(fabs(x) > 1.0)
+        x = 0;
+    
+    _T1 Ret = (_T1)SampleRate / ((_T1)Pos + x);
+    
+    RFree(Temp);
+    RFree(d);
+    RFree(d2);
+    
+    return Ret;
+}
+
+#undef  _Spectrum
+#undef  _Wave
+#undef  _IWave
+

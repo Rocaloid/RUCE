@@ -1,0 +1,264 @@
+#define _Wave _C(CDSP2_Wave, _, _T1)
+#define _Spectrum _C(CDSP2_Spectrum, _, _T1)
+#define _List_Int CDSP2_List_Int
+#define _List_HNMFrame _C(CSVP_List_HNMFrame, _, _T1)
+#define _HNMFrame _C(CSVP_HNMFrame, _, _T1)
+#define _DataFrame _C(CDSP2_DataFrame, _, _T1)
+#define _SinusoidItersizer _C(CSVP_SinusoidItersizer, _, _T1)
+#define _STFTItersizer _C(CSVP_STFTItersizer, _, _T1)
+
+RCtor(_RTClassName)
+{
+    RCall(_RTClassName, CtorSize)(This, 0);
+    This -> SeparateNoiz = 0;
+}
+
+RDtor(_RTClassName)
+{
+    RCall(_List_Int, Dtor)(& This -> PulseList);
+    RCall(_List_HNMFrame, Dtor)(& This -> HNMList);
+    RCall(_SinusoidItersizer, Dtor)(This -> SubsizerS);
+    RCall(_STFTItersizer    , Dtor)(This -> SubsizerF);
+    
+    RFree(This -> SubsizerS);
+    RFree(This -> SubsizerF);
+}
+
+RTMethod(void, CSVP_HNMItersizer, CtorSize, int Size)
+{
+    RCall(_List_Int, Ctor)(& This -> PulseList);
+    RCall(_List_HNMFrame, Ctor)(& This -> HNMList);
+    
+    This -> SubsizerS = RAlloc_Class(_SinusoidItersizer, 1);
+    This -> SubsizerF = RAlloc_Class(_STFTItersizer, 1);
+    
+    This -> HopSize = 0;
+    This -> Size = Size;
+    This -> InitPosition = 0;
+    This -> Option.PhaseControl = 0;
+    This -> SeparateNoiz = 0;
+    
+    RCall(_SinusoidItersizer, Ctor)(This -> SubsizerS);
+    if(Size == 0)
+        RCall(_STFTItersizer, Ctor)(This -> SubsizerF);
+    else
+        RCall(_STFTItersizer, CtorSize)(This -> SubsizerF, Size);
+    
+    This -> SubsizerF -> UseWindow = 1;
+    RInit(_RTClassName);
+}
+
+RTMethod(void, CSVP_HNMItersizer, Resize, int Size)
+{
+    RCall(_STFTItersizer, Resize)(This -> SubsizerF, Size);
+    This -> Size = Size;
+}
+
+RTMethod(void, CSVP_HNMItersizer, From, _RTClassName* Sorc)
+{
+    if(Sorc -> Size != This -> Size)
+        RCall(_RTClassName, Resize)(This, Sorc -> Size);
+    RCall(_List_Int, From)(& This -> PulseList, & Sorc -> PulseList);
+    RCall(_List_HNMFrame, From)(& This -> HNMList, & Sorc -> HNMList);
+    
+    RCall(_SinusoidItersizer, From)(This -> SubsizerS, Sorc -> SubsizerS);
+    RCall(_STFTItersizer    , From)(This -> SubsizerF, Sorc -> SubsizerF);
+    
+    This -> HopSize = Sorc -> HopSize;
+    This -> InitPosition = Sorc -> InitPosition;
+    This -> Option = Sorc -> Option;
+    This -> SeparateNoiz = Sorc -> SeparateNoiz;
+}
+
+RTMethod(void, CSVP_HNMItersizer, Clear)
+{
+    RCall(_List_Int, Clear)(& This -> PulseList);
+    RCall(_List_HNMFrame, Clear)(& This -> HNMList);
+    RCall(_SinusoidItersizer, Clear)(This -> SubsizerS);
+    RCall(_STFTItersizer    , Clear)(This -> SubsizerF);
+}
+
+RTMethod(void, CSVP_HNMItersizer, SetWave, void* Sorc)
+{
+    RCall(_SinusoidItersizer, SetWave)(This -> SubsizerS, Sorc);
+    if(! This -> SeparateNoiz)
+        RCall(_STFTItersizer, SetWave)(This -> SubsizerF, Sorc);
+}
+
+RTMethod(void, CSVP_HNMItersizer, SetNoizWave, void* Sorc)
+{
+    RCall(_STFTItersizer, SetWave)(This -> SubsizerF, Sorc);
+    This -> SeparateNoiz = 1;
+}
+
+RTMethod(void, CSVP_HNMItersizer, SetInitPhase, _DataFrame* Sorc)
+{
+    RCall(_SinusoidItersizer, SetInitPhase)(This -> SubsizerS, Sorc);
+}
+
+RTMethod(void, CSVP_HNMItersizer, SetPosition, int Position)
+{
+    RCall(_SinusoidItersizer, SetPosition)(This -> SubsizerS, Position);
+    RCall(_STFTItersizer    , SetPosition)(This -> SubsizerF, Position);
+    This -> InitPosition = Position;
+}
+
+RTMethod(void, CSVP_HNMItersizer, SetHopSize, int HopSize)
+{
+    This -> HopSize = HopSize;
+    RCall(_STFTItersizer, SetHopSize)(This -> SubsizerF, HopSize);
+}
+
+RTMethod(int , CSVP_HNMItersizer, GetPosition)
+{
+    return RCall(_SinusoidItersizer, GetPosition)(This -> SubsizerS);
+}
+
+RTMethod(static void, CSVP_HNMItersizer, _GenResidual, int LIndex, int HIndex)
+{
+    //Dump data into SubsizerF.
+    int DataSize = This -> Size / 2 + 1;
+    _Spectrum TempSpec;
+    RCall(_Spectrum, CtorSize)(& TempSpec, This -> Size);
+    TempSpec.MagnType = CDSP2_LogMagn;
+    
+    int i, j;
+    for(i = LIndex; i <= HIndex; i ++)
+    {
+        _HNMFrame* TempHNM = & This -> HNMList.Frames[i];
+        RCall(CDSP2_VCopy, _T1)(TempSpec.Magn, TempHNM -> Noiz, DataSize);
+        //TODO: Vectorized random number generation
+        for(j = 0; j < DataSize; j ++)
+            TempSpec.Phse[j] = (_T1)rand() / (_T1)RAND_MAX * 2 * M_PI - M_PI;
+        RCall(_STFTItersizer, Add)(This -> SubsizerF, & TempSpec,
+            This -> PulseList.Frames[i]);
+    }
+    
+    RCall(_Spectrum, Dtor)(& TempSpec);
+}
+
+RTMethod(static void, CSVP_HNMItersizer, _CopyOption)
+{
+    This -> SubsizerS -> Option.PhaseControl = This -> Option.PhaseControl;
+}
+
+RTMethod(void, CSVP_HNMItersizer, IterNextTo, int Position)
+{
+    RAssert(This -> SubsizerS -> Wave, "require wave.");
+    RAssert(This -> HopSize, "require hopsize.");
+    RAssert(Position > This -> SubsizerS -> LastPosition, "destination position"
+        " earlier than source position.");
+    
+    RCall(_RTClassName, _CopyOption)(This);
+    
+    //Calculate start and end indexes.
+    int Start  = RCall(_SinusoidItersizer, GetPosition)(This -> SubsizerS);
+    int End    = Position;
+    int LIndex = RCall(_List_Int, IndexAfter )(& This -> PulseList, Start);
+    int HIndex = RCall(_List_Int, IndexBefore)(& This -> PulseList, End);
+    int HNext  = HIndex + 1;
+    int LPrev  = LIndex - 4;
+    //Overflow protection
+    if(HIndex >= This -> PulseList.Frames_Index)
+    {
+        HNext  = This -> PulseList.Frames_Index;
+        RCall(_SinusoidItersizer, Add)(This -> SubsizerS,
+            & This -> HNMList.Frames[HNext].Hmnc,
+            This -> PulseList.Frames[HNext] + This -> HopSize);
+    }
+    if(LPrev < 0) LPrev = 0;
+    if(LIndex == HIndex) return;
+    
+    //Dump data into SubsizerS.
+    int i;
+    for(i = LPrev; i <= HNext; i ++)
+    {
+        RCall(_SinusoidItersizer, Add)(This -> SubsizerS,
+            & This -> HNMList.Frames[i].Hmnc, This -> PulseList.Frames[i]);
+    }
+    //Call _GenResidual subroutine.
+    RCall(_RTClassName, _GenResidual)(This, LIndex, HIndex);
+    
+    //Synthesize
+    RCall(_SinusoidItersizer, IterNextTo)(This -> SubsizerS, Position);
+    RCall(_STFTItersizer    , IterNextTo)(This -> SubsizerF, Position);
+    
+    //Delete
+    int DIndex = RCall(_List_Int, IndexBefore)(& This -> PulseList,
+        Position - CSVP_SinusoidalPreserveSize);
+    int SIndex = RCall(_List_Int, IndexAfter)(& This -> PulseList,
+        This -> InitPosition + CSVP_SinusoidalPreserveSize);
+    if(SIndex < DIndex)
+    {
+        RCall(_List_Int, RemoveRange)(& This -> PulseList, SIndex, DIndex);
+        RCall(_List_HNMFrame, RemoveRange)(& This -> HNMList, SIndex, DIndex);
+    }
+    RCall(_SinusoidItersizer, PPClear)(This -> SubsizerS);
+    RCall(_STFTItersizer, Clear)(This -> SubsizerF);
+}
+
+RTMethod(void, CSVP_HNMItersizer, PrevTo, int Position)
+{
+    RAssert(This -> SubsizerS -> Wave, "require wave.");
+    RAssert(This -> HopSize, "require hopsize.");
+    RAssert(Position < This -> SubsizerS -> InitPosition, "destination position"
+        " later than source position.");
+    
+    RCall(_RTClassName, _CopyOption)(This);
+    
+    //Calculate start and end indexes.
+    int Start  = This -> InitPosition;
+    int End    = Position;
+    
+    if(End < This -> PulseList.Frames[0])
+        End = This -> PulseList.Frames[0] + 1;
+    
+    int LIndex = RCall(_List_Int, IndexAfter )(& This -> PulseList, End);
+    int HIndex = RCall(_List_Int, IndexBefore)(& This -> PulseList, Start);
+    
+    //Dump data into SubsizerS.
+    int i;
+    for(i = LIndex - 1; i <= HIndex + 1; i ++)
+    {
+        RCall(_SinusoidItersizer, Add)(This -> SubsizerS,
+            & This -> HNMList.Frames[i].Hmnc, This -> PulseList.Frames[i]);
+    }
+    //Call _GenResidual subroutine.
+    RCall(_RTClassName, _GenResidual)(This, LIndex, HIndex);
+    
+    //Synthesize
+    int OrigPosition = RCall(_STFTItersizer, GetPosition)(This -> SubsizerF);
+    RCall(_STFTItersizer, SetPosition)(This -> SubsizerF, Start);
+    RCall(_SinusoidItersizer, PrevTo)(This -> SubsizerS, End);
+    RCall(_STFTItersizer, IterPrevTo)(This -> SubsizerF, End);
+    RCall(_STFTItersizer, SetPosition)(This -> SubsizerF, OrigPosition);
+    
+    //Delete
+    /* These are better removed together as IterNextTo is finished.
+    RCall(_List_Int, RemoveRange)(& This -> PulseList, LIndex + 1, HIndex - 4);
+    RCall(_List_HNMFrame, RemoveRange)(& This -> HNMList,
+        LIndex + 1, HIndex - 4);*/
+    RCall(_SinusoidItersizer, PPClear)(This -> SubsizerS);
+    RCall(_STFTItersizer, Clear)(This -> SubsizerF);
+}
+
+RTMethod(void, CSVP_HNMItersizer, Add, _HNMFrame* Sorc, int Position)
+{
+    int i = RCall(_List_Int, Add)(& This -> PulseList, Position);
+    RCall(_List_HNMFrame, Add)(& This -> HNMList, Sorc, i);
+}
+
+RTMethod(void, CSVP_HNMItersizer, AddPhase, _DataFrame* Sorc, int Position)
+{
+    RCall(_SinusoidItersizer, AddPhase)(This -> SubsizerS, Sorc, Position);
+}
+
+#undef  _Wave
+#undef  _Spectrum
+#undef  _List_Int
+#undef  _List_HNMFrame
+#undef  _HNMFrame
+#undef  _DataFrame
+#undef  _SinusoidItersizer
+#undef  _STFTItersizer
+

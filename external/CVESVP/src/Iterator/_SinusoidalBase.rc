@@ -1,0 +1,191 @@
+#define _Wave _C(CDSP2_Wave, _, _T1)
+#define _List_Int CDSP2_List_Int
+#define _STFTIterlyzer _C(CSVP_STFTIterlyzer, _, _T1)
+#define _PMatch _C(PMatch_, _T1, _, _T1)
+
+#define _CheckMembers() \
+    RAssert(This -> Wave, "require wave."); \
+    RAssert(This -> RefF0, "require pitch curve.")
+
+RCtor(_RTClassName)
+{
+    RCall(_RTClassName, CtorSize)(This, ANALSIZE);
+}
+
+RDtor(_RTClassName)
+{
+    RCall(_List_Int, Dtor)(& This -> PulseList);
+    Array_Dtor(_T1, This -> FreqList);
+    
+    RCall(_STFTIterlyzer, Dtor)(This -> Sublyzer0);
+    RCall(_STFTIterlyzer, Dtor)(This -> Sublyzer1);
+    
+    RFree(This -> Sublyzer0);
+    RFree(This -> Sublyzer1);
+}
+
+RTMethod(void, CSVP_SinusoidalBase, CtorSize, int Size)
+{
+    This -> Sublyzer0 = RAlloc_Class(_STFTIterlyzer, 1);
+    This -> Sublyzer1 = RAlloc_Class(_STFTIterlyzer, 1);
+    
+    RCall(_List_Int, Ctor)(& This -> PulseList);
+    Array_Ctor(_T1, This -> FreqList);
+    
+    RCall(_STFTIterlyzer, CtorSize)(This -> Sublyzer0, Size);
+    RCall(_STFTIterlyzer, CtorSize)(This -> Sublyzer1, Size);
+    RCall(_STFTIterlyzer, SetHopSize)(This -> Sublyzer0, ANALHOP);
+    RCall(_STFTIterlyzer, SetHopSize)(This -> Sublyzer1, ANALHOP);
+    This -> Size = Size;
+    
+    This -> Wave = NULL;
+    This -> LastPosition = 0;
+    This -> InitPosition = 0;
+    This -> RefF0 = NULL;
+    RInit(_RTClassName);    
+}
+
+RTMethod(void, CSVP_SinusoidalBase, Resize, int Size)
+{
+    if(Size != This -> Size)
+    {
+        This -> Size = Size;
+        RCall(_STFTIterlyzer, Resize)(This -> Sublyzer0, Size);
+        RCall(_STFTIterlyzer, Resize)(This -> Sublyzer1, Size);
+    }
+}
+
+RTMethod(void, CSVP_SinusoidalBase, From, _RTClassName* Sorc)
+{
+    RCall(_List_Int, From)(& This -> PulseList, & Sorc -> PulseList);
+    RCall(_STFTIterlyzer, From)(This -> Sublyzer0, Sorc -> Sublyzer0);
+    RCall(_STFTIterlyzer, From)(This -> Sublyzer1, Sorc -> Sublyzer1);
+    
+    This -> Wave = Sorc -> Wave;
+    This -> LastPosition = Sorc -> LastPosition;
+    This -> InitPosition = Sorc -> InitPosition;
+    This -> RefF0 = Sorc -> RefF0;
+}
+
+RTMethod(void, CSVP_SinusoidalBase, Clear)
+{
+    RCall(_List_Int, Clear)(& This -> PulseList);
+    This -> FreqList_Index = -1;
+    
+    RCall(_STFTIterlyzer, Clear)(This -> Sublyzer0);
+    RCall(_STFTIterlyzer, Clear)(This -> Sublyzer1);
+}
+
+RTMethod(void, CSVP_SinusoidalBase, SetWave, void* Sorc)
+{
+    This -> Wave = Sorc;
+    RCall(_STFTIterlyzer, SetWave)(This -> Sublyzer0, Sorc);
+    RCall(_STFTIterlyzer, SetWave)(This -> Sublyzer1, Sorc);
+}
+
+RTMethod(void, CSVP_SinusoidalBase, SetHopSize, int HopSize)
+{
+    RCall(_STFTIterlyzer, SetHopSize)(This -> Sublyzer0, HopSize);
+    RCall(_STFTIterlyzer, SetHopSize)(This -> Sublyzer1, HopSize);
+}
+
+RTMethod(void, CSVP_SinusoidalBase, SetPosition, int Position)
+{
+    RAssert(This -> Wave, "improper call sequence(Wave not set yet).");
+    
+    This -> LastPosition = Position;
+    This -> InitPosition = Position;
+    RCall(_STFTIterlyzer, SetPosition)(This -> Sublyzer0, Position + 0);
+    RCall(_STFTIterlyzer, SetPosition)(This -> Sublyzer1, Position + 1);
+}
+
+RTMethod(int , CSVP_SinusoidalBase, GetPosition)
+{
+    return This -> LastPosition;
+}
+
+RTMethod(void, CSVP_SinusoidalBase, SetPitch, _PMatch* Sorc)
+{
+    This -> RefF0 = Sorc;
+}
+
+RTMethod(int , CSVP_SinusoidalBase, IterNextTo, int Position)
+{
+    _CheckMembers();
+    RAssert(Position > This -> LastPosition, "destination position earlier "
+        "than last position.");
+    
+    RCall(_STFTIterlyzer, IterNextTo)(This -> Sublyzer0, Position + 0);
+    RCall(_STFTIterlyzer, IterNextTo)(This -> Sublyzer1, Position + 1);
+    RCall(_List_Int, From)(& This -> PulseList,
+        & This -> Sublyzer0 -> PulseList);
+    Array_Resize(_T1, This -> FreqList, This -> PulseList.Frames_Index + 1);
+    This -> FreqList_Index = This -> PulseList.Frames_Index;
+    This -> LastPosition = RCall(_STFTIterlyzer, GetPosition)
+        (This -> Sublyzer0);
+    
+    int i;
+    for(i = 0; i <= This -> PulseList.Frames_Index; i ++)
+    {
+        _T1 Freq = RCall(_PMatch, Query)(This -> RefF0,
+            This -> PulseList.Frames[i]).Y;
+        _T1 Candidate = RCall(CSVP_F0FromSuccSpectrum_Peak, _T1)(
+            & This -> Sublyzer0 -> SpecList.Frames[i],
+            & This -> Sublyzer1 -> SpecList.Frames[i], 1,
+            Freq * 0.7, Freq * 1.6);
+        if(! (Candidate > 50 && Candidate < 1500))
+            if(i == 0)
+                Candidate = Freq;
+            else
+                Candidate = This -> FreqList[i - 1];
+        This -> FreqList[i] = Candidate;
+        //printf("%d %f\n", This -> PulseList.Frames[i], Candidate);
+    }
+}
+
+RTMethod(int , CSVP_SinusoidalBase, PrevTo, int Position)
+{
+    _CheckMembers();
+    RAssert(Position < This -> InitPosition, "destination position later than "
+        "initial position");
+    
+    RCall(_STFTIterlyzer, SetPosition)(This -> Sublyzer0,
+        This -> InitPosition + 0);
+    RCall(_STFTIterlyzer, SetPosition)(This -> Sublyzer1,
+        This -> InitPosition + 1);
+    
+    RCall(_STFTIterlyzer, IterPrevTo)(This -> Sublyzer0, Position + 0);
+    RCall(_STFTIterlyzer, IterPrevTo)(This -> Sublyzer1, Position + 1);
+    RCall(_List_Int, From)(& This -> PulseList,
+        & This -> Sublyzer0 -> PulseList);
+    Array_Resize(_T1, This -> FreqList, This -> PulseList.Frames_Index + 1);
+    This -> FreqList_Index = This -> PulseList.Frames_Index;
+    
+    int i;
+    for(i = This -> PulseList.Frames_Index; i >= 0; i --)
+    {
+        _T1 Freq = RCall(_PMatch, Query)(This -> RefF0,
+            This -> PulseList.Frames[i]).Y;
+        _T1 Candidate = RCall(CSVP_F0FromSuccSpectrum_Peak, _T1)(
+            & This -> Sublyzer0 -> SpecList.Frames[i],
+            & This -> Sublyzer1 -> SpecList.Frames[i], 1,
+            Freq * 0.7, Freq * 1.4);
+        if(! (Candidate > 50 && Candidate < 1500))
+            if(i == This -> PulseList.Frames_Index)
+                Candidate = Freq;
+            else
+                Candidate = This -> FreqList[i + 1];
+        This -> FreqList[i] = Candidate;
+    }
+    
+    RCall(_STFTIterlyzer, SetPosition)(This -> Sublyzer0,
+        This -> LastPosition + 0);
+    RCall(_STFTIterlyzer, SetPosition)(This -> Sublyzer1,
+        This -> LastPosition + 1);
+}
+
+#undef  _Wave
+#undef  _List_Int
+#undef  _STFTIterlyzer
+#undef  _PMatch
+

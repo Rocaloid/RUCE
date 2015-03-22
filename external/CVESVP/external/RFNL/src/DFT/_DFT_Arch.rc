@@ -1,0 +1,101 @@
+//Architecture-independent 2nd Template DFT Interface implementation
+
+RTFunc(void, _C(RFNL_RFFT, _, _T2), _T1* DestReal, _T1* DestImag,
+                                    _T1* SorcReal,
+                                    int Power)
+{
+    int Size = pow(2, Power);
+    memset(DestImag, 0, Size * sizeof(_T1));
+    //Inplace fft is not recommended.
+    if(DestReal == SorcReal)
+    {
+        memcpy(DestReal, SorcReal, Size * sizeof(_T1));
+        RCall(_C(__RFNL_FFT_IP, _, _T2), _T1)(DestReal, DestImag, Power);
+    }else
+    {
+        RCall(_C(RFNL_RBitRev, _, _T2), _T1)(DestReal, SorcReal, Power);
+        RCall(_C(RFNL_Radix2, _, _T2), _T1)(DestReal, DestImag, Power);
+    }
+}
+
+RTFunc(void, _C(RFNL_CFFT, _, _T2), _T1* DestReal, _T1* DestImag,
+                                    _T1* SorcReal, _T1* SorcImag,
+                                    int Power)
+{
+    //Inplace fft is not recommended.
+    if(DestReal == SorcReal || DestImag == SorcImag)
+    {
+        int Size = pow(2, Power);
+        memcpy(DestReal, SorcReal, Size * sizeof(_T1));
+        memcpy(DestImag, SorcImag, Size * sizeof(_T1));
+        RCall(_C(__RFNL_FFT_IP, _, _T2), _T1)(DestReal, DestImag, Power);
+    }else
+    {
+        RCall(_C(RFNL_CBitRev, _, _T2), _T1)
+            (DestReal, DestImag, SorcReal, SorcImag, Power);
+        RCall(_C(RFNL_Radix2, _, _T2), _T1)(DestReal, DestImag, Power);
+    }
+}
+
+RTFunc(void, _C(RFNL_IRFFT, _, _T2), _T1* DestReal,
+                                     _T1* SorcReal, _T1* SorcImag,
+                                     int Power)
+{
+    _T1* TempImag;
+    int i;
+    int Size = pow(2, Power);
+    _T1 RcpSize = 1.0f / Size;
+    TempImag = RCall(RAlloc, _T1)(Size);
+    
+    //Inplace fft is not recommended.
+    if(DestReal == SorcReal)
+    {
+        memcpy(DestReal, SorcReal, Size * sizeof(_T1));
+        memcpy(TempImag, SorcImag, Size * sizeof(_T1));
+        //Conjugate
+        RCall(_C(RFNL_VCMul, _, _T2), _T1)(TempImag, TempImag, - 1, Size);
+        RCall(_C(__RFNL_FFT_IP, _, _T2), _T1)(DestReal, TempImag, Power);
+    }else
+    {
+        RCall(_C(RFNL_CBitRev, _, _T2), _T1)
+            (DestReal, TempImag, SorcReal, SorcImag, Power);
+        //Conjugate
+        RCall(_C(RFNL_VCMul, _, _T2), _T1)(TempImag, TempImag, - 1, Size);
+        RCall(_C(RFNL_Radix2, _, _T2), _T1)(DestReal, TempImag, Power);
+    }
+    
+    //Normalize
+    RCall(_C(RFNL_VCMul, _, _T2), _T1)(DestReal, DestReal, RcpSize, Size);
+    RFree(TempImag);
+}
+
+RTFunc(void, _C(RFNL_ICFFT, _, _T2), _T1* DestReal, _T1* DestImag,
+                                     _T1* SorcReal, _T1* SorcImag,
+                                     int Power)
+{
+    int i;
+    int Size = pow(2, Power);
+    _T1 RcpSize = 1.0f / Size;
+    
+    //Inplace fft is not recommended.
+    if(DestReal == SorcReal || DestImag == SorcImag)
+    {
+        memcpy(DestReal, SorcReal, Size * sizeof(_T1));
+        memcpy(DestImag, SorcImag, Size * sizeof(_T1));
+        //Conjugate
+        RCall(_C(RFNL_VCMul, _, _T2), _T1)(DestImag, DestImag, - 1, Size);
+        RCall(_C(__RFNL_FFT_IP, _, _T2), _T1)(DestReal, DestImag, Power);
+    }else
+    {
+        RCall(_C(RFNL_CBitRev, _, _T2), _T1)
+            (DestReal, DestImag, SorcReal, SorcImag, Power);
+        //Conjugate
+        RCall(_C(RFNL_VCMul, _, _T2), _T1)(DestImag, DestImag, - 1, Size);
+        RCall(_C(RFNL_Radix2, _, _T2), _T1)(DestReal, DestImag, Power);
+    }
+    
+    //Normalize
+    RCall(_C(RFNL_VCMul, _, _T2), _T1)(DestReal, DestReal, RcpSize, Size);
+    RCall(_C(RFNL_VCMul, _, _T2), _T1)(DestImag, DestImag, RcpSize, Size);
+}
+

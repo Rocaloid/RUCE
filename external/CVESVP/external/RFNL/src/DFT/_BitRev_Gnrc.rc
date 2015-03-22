@@ -1,0 +1,46 @@
+//Generic Template BitRev implementation
+
+RTFunc(void, RFNL_RBitRev_Gnrc, _T1* DestReal, _T1* SorcReal, int Power)
+{
+    int Size, i, j;
+    int tmp = 0x00000000;
+
+    Size = pow(2, Power);
+    DestReal[0] = SorcReal[0];
+    for(i = 0; i < Size - 1; i ++)
+    {
+        j = Power - 1;
+        while((tmp & (1 << j)) != 0)
+        {
+            tmp &= ~ (1 << j);
+            j --;
+        }
+        tmp |= (1 << j);
+        DestReal[i + 1] = SorcReal[tmp];
+    }
+}
+
+RTFunc(void, RFNL_CBitRev_Gnrc, _T1* DestReal, _T1* DestImag,
+                                _T1* SorcReal, _T1* SorcImag,
+                                int Power)
+{
+    int Size, i, j;
+    int tmp = 0x00000000;
+
+    Size = pow(2, Power);
+    DestReal[0] = SorcReal[0];
+    DestImag[0] = SorcImag[0];
+    for(i = 0; i < Size - 1; i ++)
+    {
+        j = Power - 1;
+        while((tmp & (1 << j)) != 0)
+        {
+            tmp &= ~ (1 << j);
+            j --;
+        }
+        tmp |= (1 << j);
+        DestReal[i + 1] = SorcReal[tmp];
+        DestImag[i + 1] = SorcImag[tmp];
+    }
+}
+

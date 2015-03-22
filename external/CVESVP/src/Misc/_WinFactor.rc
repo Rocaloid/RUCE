@@ -1,0 +1,9 @@
+RTFunc(_T1, CSVP_WinFactorFromWindow, _T1* Sorc, int HopSize, int Length)
+{
+    int i;
+    _T1 Amp = 0;
+    for(i = 0; i < Length / HopSize; i ++)
+        Amp += Sorc[i * HopSize];
+    return 1.0f / Amp;
+}
+

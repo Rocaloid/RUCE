@@ -1,0 +1,93 @@
+RCtor(_RTClassName)
+{
+    RInit(_RTClassName);
+    Array_Ctor(_T1, This -> X);
+    Array_Ctor(_T2, This -> Y);
+    This -> LastIndex = 0;
+}
+
+RDtor(_RTClassName)
+{
+    Array_Dtor(_T1, This -> X);
+    Array_Dtor(_T2, This -> Y);
+}
+
+RTMethod(void, PMatch, From, _RTClassName* Sorc)
+{
+    Array_Resize(_T1, This -> X, Sorc -> X_Index + 1);
+    Array_Resize(_T2, This -> Y, Sorc -> Y_Index + 1);
+    This -> X_Index = Sorc -> X_Index;
+    This -> Y_Index = Sorc -> Y_Index;
+    This -> LastIndex = Sorc -> LastIndex;
+    int i;
+    for(i = 0; i <= This -> X_Index; i ++)
+        This -> X[i] = Sorc -> X[i];
+    for(i = 0; i <= This -> Y_Index; i ++)
+        This -> Y[i] = Sorc -> Y[i];
+}
+
+RTMethod(int , PMatch, AddPair, _T1 XVar, _T2 YVar)
+{
+    int Index;
+    Array_IncFind(Index, _T1, This -> X, XVar);
+    Array_Insert(_T2, This -> Y, Index, YVar);
+    Array_Insert(_T1, This -> X, Index, XVar);
+    return Index;
+}
+
+RTMethod(void, PMatch, InvertTo, _RTClassName* Dest)
+{
+    Array_Resize(_T1, Dest -> X, This -> X_Index + 1);
+    Array_Resize(_T2, Dest -> Y, This -> Y_Index + 1);
+    Dest -> X_Index = This -> X_Index;
+    Dest -> Y_Index = This -> Y_Index;
+    int i;
+    for(i = 0; i <= This -> X_Index; i ++)
+        Dest -> X[i] = This -> Y[i];
+    for(i = 0; i <= This -> Y_Index; i ++)
+        Dest -> Y[i] = This -> X[i];
+}
+
+RTMethod(void, PMatch, Clear)
+{
+    This -> X_Index = - 1;
+    This -> Y_Index = - 1;
+}
+
+RTMethod(void, PMatch, Print)
+{
+    int i;
+    for(i = 0; i <= This -> X_Index; i ++)
+        printf("%lf, %lf\n", This -> X[i], This -> Y[i]);
+}
+
+#undef TransType
+#define TransType _C(Transition, RTAttr_2)
+RTMethod(TransType, PMatch, Query, _T1 XVar)
+{
+    TransType Ret;
+    Array_IncFindFrom(Ret.LowerIndex, _T1, This -> X, XVar, This -> LastIndex);
+    
+    if(Ret.LowerIndex > 0 && This -> X[Ret.LowerIndex - 1] > XVar)
+        Array_IncFind(Ret.LowerIndex, _T1, This -> X, XVar);
+    
+    This -> LastIndex = Ret.LowerIndex;
+    if(Ret.LowerIndex > 0)
+        Ret.LowerIndex --;
+    if(Ret.LowerIndex < This -> X_Index)
+    {
+        Ret.X = (XVar - This -> X[Ret.LowerIndex]) /
+                (This -> X[Ret.LowerIndex + 1] - This -> X[Ret.LowerIndex]);
+        if(XVar < This -> X[0])
+            Ret.Y = This -> Y[0];
+        else
+            Ret.Y = This -> Y[Ret.LowerIndex] * (1.0 - Ret.X) +
+                    This -> Y[Ret.LowerIndex + 1] * Ret.X;
+    }else
+    {
+        Ret.X = 1;
+        Ret.Y = This -> Y[This -> Y_Index];
+    }
+    return Ret;
+}
+

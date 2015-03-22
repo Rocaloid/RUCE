@@ -1,0 +1,54 @@
+#define _IWave _C(CDSP2_IWave, _, _T1)
+
+RCtor(_RTClassName)
+{
+    This -> Data = NULL;
+    This -> Size = 0;
+    RInit(_RTClassName);
+}
+
+RDtor(_RTClassName)
+{
+    free(This -> Data);
+}
+
+RTMethod(void, CDSP2_DataFrame, CtorSize, int Size)
+{
+    This -> Data = RCall(RAlloc, _T1)(Size);
+    This -> Size = Size;
+    RInit(_RTClassName);
+}
+
+RTMethod(void, CDSP2_DataFrame, Resize, int Size)
+{
+    if(This -> Size != Size)
+    {
+        if(This -> Data != NULL)
+            This -> Data = (_T1*)realloc(This -> Data, Size * sizeof(_T1));
+        else
+            This -> Data = malloc(Size * sizeof(_T1));
+        This -> Size = Size;
+    }
+}
+
+RTMethod(void, CDSP2_DataFrame, From, _RTClassName* Sorc)
+{
+    RCall(_RTClassName, Resize)(This, Sorc -> Size);
+    RCall(CDSP2_VCopy, _T1)(This -> Data, Sorc -> Data, Sorc -> Size);
+}
+
+RTMethod(void, CDSP2_DataFrame, Clear)
+{
+    RCall(CDSP2_VSet, _T1)(This -> Data, 0, This -> Size);
+}
+
+RTMethod(void, CDSP2_DataFrame, FromWave, void* Sorc, int Center, int HalfWidth)
+{
+    int Size = HalfWidth * 2;
+    int LBound = Center - HalfWidth;
+    RCall(_RTClassName, Resize)(This, Size);
+    RCall(_IWave, Read)(Sorc, This -> Data, LBound, Size);
+}
+
+#undef  _IWave
+

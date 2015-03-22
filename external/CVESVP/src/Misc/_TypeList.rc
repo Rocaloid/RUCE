@@ -1,0 +1,65 @@
+#define __DefHToPMatch(Type, Accessor) \
+RTMethod(void, _C(CSVP_List, _, Type), HToPMatch, _PMatch* Dest, \
+    CDSP2_List_Int* PulseList, int Index) \
+{ \
+    int i; \
+    int Size = This -> Frames_Index + 1; \
+    if(Size > PulseList -> Frames_Index + 1) \
+        Size = PulseList -> Frames_Index + 1; \
+    RCall(_PMatch, Clear)(Dest); \
+     \
+    for(i = 0; i < Size; i ++) \
+    { \
+        if(This -> Frames[i] Accessor Freq_Index >= Index) \
+            RCall(_PMatch, AddPair)(Dest, PulseList -> Frames[i], \
+                This -> Frames[i] Accessor Freq[Index]); \
+    } \
+} int ___()
+
+#define _T2 _C(CSVP_Sinusoid, _, _T1)
+#define _T3 Sinusoid
+#define _CDSP2_NOSIZE
+#include <CVEDSP2/List/_SizeNumList.rc>
+
+#define _PMatch _C(PMatch_, _T1, _, _T1)
+__DefHToPMatch(Sinusoid, .);
+#undef  _PMatch
+
+#undef  _CDSP2_NOSIZE
+#undef  _T2
+#undef  _T3
+
+#define _T2 _C(CSVP_HNMFrame, _, _T1)
+#define _T3 HNMFrame
+#define _CDSP2_NOSIZE
+#include <CVEDSP2/List/_SizeNumList.rc>
+
+#define _PMatch _C(PMatch_, _T1, _, _T1)
+#define _Sinusoid _C(CSVP_Sinusoid, _, _T1)
+#define _List_Sinusoid _C(CSVP_List_Sinusoid, _, _T1)
+RTMethod(void, CSVP_List_HNMFrame, ToSinuList, _List_Sinusoid* Dest)
+{
+    int i;
+    int Size = This -> Frames_Index + 1;
+    RCall(_List_Sinusoid, Resize)(Dest, Size);
+    for(i = 0; i < Size; i ++)
+        RCall(_Sinusoid, From)(& Dest -> Frames[i], & This -> Frames[i].Hmnc);
+    Dest -> FrameNum = Size;
+}
+
+__DefHToPMatch(HNMFrame, .Hmnc.);
+#undef  _List_Sinusoid
+#undef  _Sinusoid _C(CSVP_Sinusoid, _, _T1)
+#undef  _PMatch
+
+
+#undef  _CDSP2_NOSIZE
+#undef  _T2
+#undef  _T3
+
+#define _T2 _C(CSVP_HNMContour, _, _T1)
+#define _T3 HNMContour
+#include <CVEDSP2/List/_SizeNumList.rc>
+#undef  _T2
+#undef  _T3
+

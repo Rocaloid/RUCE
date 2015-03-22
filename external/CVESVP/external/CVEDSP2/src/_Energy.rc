@@ -1,0 +1,59 @@
+#define _IWave _C(CDSP2_IWave, _, _T1)
+#define _Wave _C(CDSP2_Wave, _, _T1)
+
+RTFunc(_T1, CDSP2_EnergyFromWave, void* Sorc, int LBound, int Size)
+{
+    _T1* Real = RCall(RAlloc, _T1)(Size);
+    int i;
+    _T1 Ret = 0;
+    
+    RCall(_IWave, Read)(Sorc, Real, LBound, Size);
+    
+    //DC Removal
+    _T1 DC = RCall(CDSP2_VSum, _T1)(Real, 0, Size) / (_T1)Size;
+    RCall(CDSP2_VCSub, _T1)(Real, Real, DC, Size);
+    
+    for(i = 0; i < Size; i ++)
+        Ret += Real[i] * Real[i];
+    RFree(Real);
+    return Ret;
+}
+
+RTFunc(_T1, CDSP2_MeanEnergyFromWave, void* Sorc, int LBound, int Size)
+{
+    return RCall(CDSP2_EnergyFromWave, _T1)(Sorc, LBound, Size) / (_T1)Size;
+}
+
+RTFunc(_T1, CDSP2_MeanEnergyFromWaveDB, void* Sorc, int LBound, int Size)
+{
+    return 20.0 * log10(RCall(CDSP2_MeanEnergyFromWave, _T1)
+        (Sorc, LBound, Size));
+}
+
+#define _LLimit 0.00000001
+RTFunc(_T1, CDSP2_EnergyCurveFromWaveDB, _Wave* Dest, _Wave* Sorc, int Size)
+{
+    RCall(_Wave, Resize)(Dest, Sorc -> Size);
+    _T1* Ptr = RCall(_Wave, GetUnsafePtr)(Sorc);
+    _T1* DPtr = RCall(_Wave, GetUnsafePtr)(Dest);
+    _T1 Sum = 0;
+    int i;
+    
+    for(i = 0; i < Size; i ++)
+        Sum += Ptr[i] * Ptr[i];
+    for(i = 0; i < Sorc -> Size - Size; i ++)
+    {
+        _T1 SafeDiv = (_T1)Sum / Size;
+        if(SafeDiv < _LLimit) SafeDiv = _LLimit;
+        DPtr[i + Size / 2] = 20.0 * log10(SafeDiv);
+        Sum += Ptr[i + Size] * Ptr[i + Size] - Ptr[i] * Ptr[i];
+    }
+    for(; i < Sorc -> Size; i ++)
+        DPtr[i] = DPtr[Sorc -> Size - Size - 1];
+    for(i = 0; i < Size / 2; i ++)
+        DPtr[i] = DPtr[Size / 2];
+}
+
+#undef _IWave
+#undef _Wave
+

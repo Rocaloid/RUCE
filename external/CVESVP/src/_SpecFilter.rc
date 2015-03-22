@@ -1,0 +1,137 @@
+#define _Spectrum _C(CDSP2_Spectrum, _, _T1)
+#define _List_Spectrum _C(CDSP2_List_Spectrum, _, _T1)
+
+#define F2B(F, FS, Size) ((Size) * (F) / (FS))
+#define _Init_1P \
+    int Bin = F2B(Freq, Dest -> SampleRate, Dest -> Size); \
+    int VSize = Dest -> Size / 2 + 1;
+
+#define _Init_2P \
+    int LBin = F2B(LFreq, Dest -> SampleRate, Dest -> Size); \
+    int HBin = F2B(HFreq, Dest -> SampleRate, Dest -> Size); \
+    int VSize = Dest -> Size / 2 + 1;
+
+#define _Init_L \
+    if(Dest -> Frames_Index <= 0) return;
+
+#define _Iteration \
+    int i; \
+    for(i = 0; i <= Dest -> Frames_Index; i ++)
+
+RTFunc(void, CSVP_SpecLowPass, _Spectrum* Dest, _T1 Freq)
+{
+    _Init_1P
+    
+    if(Dest -> MagnType == CDSP2_LinearMagn)
+    {
+        RCall(CDSP2_VSet, _T1)(Dest -> Magn + Bin, 0, VSize - Bin);
+    }else
+    {
+        RCall(CDSP2_VSet, _T1)(Dest -> Magn + Bin, - 1000, VSize - Bin);
+    }
+}
+
+RTFunc(void, CSVP_SpecHighPass, _Spectrum* Dest, _T1 Freq)
+{
+    _Init_1P
+    
+    if(Dest -> MagnType == CDSP2_LinearMagn)
+    {
+        RCall(CDSP2_VSet, _T1)(Dest -> Magn, 0, Bin);
+    }else
+    {
+        RCall(CDSP2_VSet, _T1)(Dest -> Magn, - 1000, Bin);
+    }
+}
+
+RTFunc(void, CSVP_SpecBandPass, _Spectrum* Dest, _T1 LFreq, _T1 HFreq)
+{
+    _Init_2P
+    
+    if(Dest -> MagnType == CDSP2_LinearMagn)
+    {
+        RCall(CDSP2_VSet, _T1)(Dest -> Magn, 0, LBin);
+        RCall(CDSP2_VSet, _T1)(Dest -> Magn + HBin, 0, VSize - HBin);
+    }else
+    {
+        RCall(CDSP2_VSet, _T1)(Dest -> Magn, - 1000, LBin);
+        RCall(CDSP2_VSet, _T1)(Dest -> Magn + HBin, - 1000, VSize - HBin);
+    }
+}
+
+RTFunc(void, CSVP_SpecBandStop, _Spectrum* Dest, _T1 LFreq, _T1 HFreq)
+{
+    _Init_2P
+    
+    if(Dest -> MagnType == CDSP2_LinearMagn)
+    {
+        RCall(CDSP2_VSet, _T1)(Dest -> Magn + LBin, 0, HBin - LBin);
+    }else
+    {
+        RCall(CDSP2_VSet, _T1)(Dest -> Magn + LBin, - 1000, HBin - LBin);
+    }
+}
+
+RTFunc(void, CSVP_SpecFilter, _Spectrum* Dest, _T1* Sorc)
+{
+    int VSize = Dest -> Size / 2 + 1;
+    
+    char OrigType = Dest -> MagnType;
+    RCall(_Spectrum, MagnConv)(Dest, CDSP2_LinearMagn);
+    RCall(CDSP2_VMul, _T1)(Dest -> Magn, Dest -> Magn, Sorc, VSize);
+    RCall(_Spectrum, MagnConv)(Dest, OrigType);
+}
+
+RTFunc(void, CSVP_LSpecLowPass, _List_Spectrum* Dest, _T1 Freq)
+{
+    _Init_L
+    
+    _Iteration
+    {
+        RCall(CSVP_SpecLowPass, _T1)(Dest -> Frames + i, Freq);
+    }
+}
+
+RTFunc(void, CSVP_LSpecHighPass, _List_Spectrum* Dest, _T1 Freq)
+{
+    _Init_L
+    
+    _Iteration
+    {
+        RCall(CSVP_SpecHighPass, _T1)(Dest -> Frames + i, Freq);
+    }
+}
+
+RTFunc(void, CSVP_LSpecBandPass, _List_Spectrum* Dest, _T1 LFreq, _T1 HFreq)
+{
+    _Init_L
+    
+    _Iteration
+    {
+        RCall(CSVP_SpecBandPass, _T1)(Dest -> Frames + i, LFreq, HFreq);
+    }
+}
+
+RTFunc(void, CSVP_LSpecBandStop, _List_Spectrum* Dest, _T1 LFreq, _T1 HFreq)
+{
+    _Init_L
+    
+    _Iteration
+    {
+        RCall(CSVP_SpecBandStop, _T1)(Dest -> Frames + i, LFreq, HFreq);
+    }
+}
+
+RTFunc(void, CSVP_LSpecFilter, _List_Spectrum* Dest, _T1* Sorc)
+{
+    _Init_L
+    
+    _Iteration
+    {
+        RCall(CSVP_SpecFilter, _T1)(Dest -> Frames + i, Sorc);
+    }
+}
+
+#undef _Spectrum
+#undef _List_Spectrum
+

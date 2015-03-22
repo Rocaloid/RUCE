@@ -1,0 +1,45 @@
+#define _HNMFrame _C(CSVP_HNMFrame, _, _T1)
+#define _HNMContour _C(CSVP_HNMContour, _, _T1)
+
+RTFunc(void, CSVP_ApplyDecay, _HNMContour* Dest, CSVP_SpectralDecay* Sorc,
+    int SampleRate)
+{
+    int i;
+    int Center = Sorc -> Center * Dest -> Size / SampleRate;
+    int Bound  = Sorc -> Bound  * Dest -> Size / SampleRate;
+    
+    for(i = 0; i < Center; i ++)
+    {
+        Dest -> Hmnc[i] -= (_T1)i / (_T1)Center * Sorc -> Intensity;
+        Dest -> Noiz[i] -= (_T1)i / (_T1)Center * Sorc -> Intensity;
+    }
+    for(; i < Bound; i ++)
+    {
+        _T1 R = 1.0 - (_T1)(i - Center) / (_T1)(Bound - Center);
+        Dest -> Hmnc[i] -= R * Sorc -> Intensity;
+        Dest -> Noiz[i] -= R * Sorc -> Intensity;
+    }
+}
+
+RTFunc(_T1 , CSVP_EnergyFromHNMFrame, _HNMFrame* Sorc)
+{
+    int i;
+    _T1 Ret = 0;
+    for(i = 0; i < Sorc -> Hmnc.Size; i ++)
+        Ret += Sorc -> Hmnc.Ampl[i] * Sorc -> Hmnc.Ampl[i];
+    return Ret;
+}
+
+RTFunc(_T1 , CSVP_EnergyFromHNMContour, _HNMContour* Sorc)
+{
+    int i;
+    _T1 Ret = 0;
+    for(i = 0; i < Sorc -> Size / 2 + 1; i ++)
+        Ret += exp(2.0 * Sorc -> Hmnc[i]);
+    return Ret;
+}
+
+
+#undef  _HNMFrame
+#undef  _HNMContour
+

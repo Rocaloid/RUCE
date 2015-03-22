@@ -1,0 +1,85 @@
+//Generic Template DFT implementation
+
+//Typical in-place radix-2 fft. No instruction set-specific optimizations.
+//Slow but tiny and Gnrc.
+RTFunc(void, RFNL_Radix2_Gnrc, _T1* Real, _T1* Imag, int Power)
+{
+    int Layer;
+    int i, j, k, pmul, current, another, currentBase;
+    int Size;
+    _T1 ReFactor, ImFactor;
+    _T1 Re, Im;
+    _T1 TPOS, TPOSTP;
+    
+    Size = pow(2, Power);
+    TPOS = 2 * 3.1415926535 / Size;
+    
+    //For each layer in fft.
+    for(Layer = 1; Layer <= Power; Layer ++)
+    {
+        j = pow(2, Layer - 1);
+        pmul = pow(2, Power - Layer); //W_Amount ^ (0 to p interval j)
+        for(i = 0; i < pmul; i ++)
+        {
+            currentBase = i * 2 * j;
+            TPOSTP = TPOS * pmul;
+            
+            for(k = 0; k < j; k ++)
+            {
+                current = currentBase + k;
+                another = current + j;
+                
+                ReFactor = cos(TPOSTP * k);
+                ImFactor = - sin(TPOSTP * k);
+
+                Re = Real[another];
+                Real[another] = Real[another] * ReFactor - Imag[another] * ImFactor;
+                Imag[another] = Imag[another] * ReFactor + Re * ImFactor;
+
+                Re = Real[current];
+                Im = Imag[current];
+                Real[current] += Real[another];
+                Imag[current] += Imag[another];
+
+                Real[another] = Re - Real[another];
+                Imag[another] = Im - Imag[another];
+            }
+        }
+    }
+}
+
+RTFunc(void, __RFNL_FFT_IP_Gnrc, _T1* DestReal, _T1* DestImag, int Power)
+{
+    int Size = pow(2, Power);
+    _T1* TempReal = RCall(RAlloc, _T1)(Size);
+    _T1* TempImag = RCall(RAlloc, _T1)(Size);
+    RCall(RFNL_CBitRev_Gnrc, _T1)
+        (TempReal, TempImag, DestReal, DestImag, Power);
+    memcpy(DestReal, TempReal, Size * sizeof(_T1));
+    memcpy(DestImag, TempImag, Size * sizeof(_T1));
+    RCall(RFNL_Radix2_Gnrc, _T1)
+        (DestReal, DestImag, Power);
+    RFree(TempReal);
+    RFree(TempImag);
+}
+
+RTFunc(void, RFNL_FFTReflect_Gnrc, _T1* DestReal, _T1* DestImag, int Power)
+{
+    int i;
+    int Size = pow(2, Power);
+    for(i = 0; i < Size / 2 + 1; i ++)
+    {
+        DestReal[i] = DestReal[i];
+        DestImag[i] = DestImag[i];
+    }
+    for(i = 0; i < Size / 2 - 1; i ++)
+    {
+        DestReal[i + Size / 2 + 1] = + DestReal[Size / 2 - i - 1];
+        DestImag[i + Size / 2 + 1] = - DestImag[Size / 2 - i - 1];
+    }
+}
+
+#define _T2 Gnrc
+#include "_DFT_Arch.rc"
+#undef _T2
+

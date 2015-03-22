@@ -1,0 +1,67 @@
+RCtor(_RTClassName)
+{
+    This -> Size = 0;
+    This -> Hmnc = NULL;
+    This -> Noiz = NULL;
+    
+    RInit(_RTClassName);
+}
+
+RDtor(_RTClassName)
+{
+    if(This -> Hmnc != NULL)
+        RFree(This -> Hmnc);
+    if(This -> Noiz != NULL)
+        RFree(This -> Noiz);
+}
+
+RTMethod(void, CSVP_HNMContour, CtorSize, int Size)
+{
+    This -> Size = Size;
+    This -> Hmnc = RCall(RAlloc, _T1)(Size / 2 + 1);
+    This -> Noiz = RCall(RAlloc, _T1)(Size / 2 + 1);
+    
+    RInit(_RTClassName);
+}
+
+RTMethod(void, CSVP_HNMContour, Resize, int Size)
+{
+    if(Size != This -> Size)
+    {
+        int Half = Size / 2 + 1;
+        This -> Size = Size;
+        This -> Hmnc = (_T1*)realloc(This -> Hmnc, Half * sizeof(_T1));
+        This -> Noiz = (_T1*)realloc(This -> Noiz, Half * sizeof(_T1));
+    }
+}
+
+RTMethod(void, CSVP_HNMContour, From, _RTClassName* Sorc)
+{
+    if(Sorc -> Size <= 0) return;
+    RCall(_RTClassName, Resize)(This, Sorc -> Size);
+    RCall(CDSP2_VCopy, _T1)(This -> Hmnc, Sorc -> Hmnc, Sorc -> Size / 2 + 1);
+    RCall(CDSP2_VCopy, _T1)(This -> Noiz, Sorc -> Noiz, Sorc -> Size / 2 + 1);
+}
+
+RTMethod(void, CSVP_HNMContour, InterpFrom, _RTClassName* Sorc1,
+    _RTClassName* Sorc2, _T1 Ratio)
+{
+    RAssert(Sorc1 -> Size == Sorc2 -> Size, "Size of sources does not match.");
+    RCall(_RTClassName, Resize)(This, Sorc1 -> Size);
+    
+    int Size = This -> Size / 2 + 1;
+    RCall(CDSP2_VSet,  _T1)(This -> Hmnc, 0, Size);
+    RCall(CDSP2_VSet,  _T1)(This -> Noiz, 0, Size);
+    RCall(CDSP2_VFCMA, _T1)(This -> Hmnc, Sorc1 -> Hmnc, 1.0 - Ratio, Size);
+    RCall(CDSP2_VFCMA, _T1)(This -> Hmnc, Sorc2 -> Hmnc, Ratio      , Size);
+    RCall(CDSP2_VFCMA, _T1)(This -> Noiz, Sorc1 -> Noiz, 1.0 - Ratio, Size);
+    RCall(CDSP2_VFCMA, _T1)(This -> Noiz, Sorc2 -> Noiz, Ratio      , Size);
+}
+
+RTMethod(void, CSVP_HNMContour, Clear)
+{
+    if(This -> Size <= 0) return;
+    RCall(CDSP2_VSet, _T1)(This -> Hmnc, 0, This -> Size / 2 + 1);
+    RCall(CDSP2_VSet, _T1)(This -> Noiz, 0, This -> Size / 2 + 1);
+}
+
