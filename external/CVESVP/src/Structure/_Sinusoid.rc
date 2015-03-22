@@ -177,7 +177,7 @@ RTFunc(static _XYPair, CSVP_PeakFromSpectrum, _Spectrum* Sorc, int LInt,
     Ret.IntX = Max_X;
     Ret.X = ((_T1)Max_X + x) * Sorc -> SampleRate / Sorc -> Size;
     Ret.Y = a1 * x * x + a2 * x + b;
-    Ret.Y = Ret.Y > b * 1.05 ? b * 1.05 : Ret.Y;
+    Ret.Y = Ret.Y > b + 0.15 ? b + 0.15 : Ret.Y; // in case the amplitude gets too large
     
     //Magnitude restoration
     Ret.Y -= log(Sorc -> Size / 4);
