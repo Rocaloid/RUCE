@@ -111,7 +111,7 @@ int RUCE_ParsePara(RUCE_UnitParam* Dest, int argc, char** argv)
             
         case 9:
             Dest -> FixedLength = atof(argv[8]) / 1000.0f;
-            if(Dest -> FixedLength <= 0.0f)
+            if(Dest -> FixedLength < 0.0f)
             {
                 Ret = 0;
                 fprintf(stderr, "[Error] Invalid fixed length as '%s'.\n",
