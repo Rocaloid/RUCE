@@ -20,11 +20,21 @@
 #include <libwintf8.h>
 
 int main() {
+    // Print out welcome message
     WTF8::cout << "Rocaloid test program, version Nanodesu" << std::endl
                << std::endl
                << "It works!" << std::endl
                << "能用了的说！" << std::endl
                << "稼働できるなのです！" << std::endl
                << std::endl;
+
+    // Print out command line arguments
+    auto argv = WTF8::getargv();
+    WTF8::cout << "Arguments:";
+    for(const auto &i : argv) {
+        WTF8::cout << " '" << i << '\'';
+    }
+    WTF8::cout << std::endl;
+
     return 0;
 }
