@@ -9,8 +9,8 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 endif()
 
-aux_source_directory(src SRC_SOURCES)
-add_library(wintf8 STATIC ${SRC_SOURCES})
+aux_source_directory(src WINTF8_SRC_SOURCES)
+add_library(wintf8 STATIC ${WINTF8_SRC_SOURCES})
 
 set_target_properties(wintf8 PROPERTIES
     CXX_STANDARD 11
@@ -28,10 +28,10 @@ set_target_properties(wintf8 PROPERTIES
 # Arrange header files for external use
 add_custom_command(TARGET wintf8 POST_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory "include/libwintf8")
 add_custom_command(TARGET wintf8 POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/src/libwintf8.h" "include/libwintf8.h")
-file(GLOB_RECURSE SRC_HEADERS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/src" "src/*.h")
-list(REMOVE_ITEM SRC_HEADERS "libwintf8.h" "utils.h")
-foreach(SRC_HEADER ${SRC_HEADERS})
-    add_custom_command(TARGET wintf8 POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/src/${SRC_HEADER}" "include/libwintf8/${SRC_HEADER}")
+file(GLOB_RECURSE WINTF8_SRC_HEADERS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/src" "src/*.h")
+list(REMOVE_ITEM WINTF8_SRC_HEADERS "libwintf8.h" "utils.h")
+foreach(WINTF8_SRC_HEADER ${WINTF8_SRC_HEADERS})
+    add_custom_command(TARGET wintf8 POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/src/${WINTF8_SRC_HEADER}" "include/libwintf8/${WINTF8_SRC_HEADER}")
 endforeach()
 target_include_directories(wintf8 INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/include")
 

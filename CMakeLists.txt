@@ -9,13 +9,16 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 endif()
 
-file(GLOB_RECURSE SRC_SOURCES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "src/*.c")
-add_executable(Rocaloid STATIC ${SRC_SOURCES})
+file(GLOB_RECURSE ROCALOID_SRC_SOURCES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "src/*.cpp")
+add_executable(Rocaloid ${ROCALOID_SRC_SOURCES})
 
 set_target_properties(Rocaloid PROPERTIES
     CXX_STANDARD 11
     POSITION_INDEPENDENT_CODE ON
 )
+
+add_subdirectory(lib/libWinTF8)
+target_link_libraries(Rocaloid PUBLIC wintf8)
 
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")  # Test subproject
     install(TARGETS Rocaloid
