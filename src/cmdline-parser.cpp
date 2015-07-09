@@ -30,17 +30,17 @@ CmdlineParser::CmdlineParser(OptionManager &option_manager) :
     mOptionManager(option_manager) {
 }
 
-void CmdlineParser::ParseArgv(const std::vector<WTF8::u8string> &argv) {
+void CmdlineParser::parse_argv(const std::vector<WTF8::u8string> &argv) {
     if(argv.size() >= 5) {
-        LogArgv(argv);
-        AnalyseArgv(argv);
+        log_argv(argv);
+        analyze_argv(argv);
     } else {
-        PrintHelp(argv[0]);
+        print_help(argv[0]);
         std::exit(argv.size() == 1 ? 0 : 1);
     }
 }
 
-void CmdlineParser::PrintHelp(const WTF8::u8string &argv0) {
+void CmdlineParser::print_help(const WTF8::u8string &argv0) {
     WTF8::cerr << "Usage: "
                << argv0
                << " <input file> <output file> <pitch percent> <velocity> [<flags> [<offset> <length require> [<fixed length> [<end blank> [<volume> [<modulation> [<pitch bend>...]]]]]]]"
@@ -49,7 +49,7 @@ void CmdlineParser::PrintHelp(const WTF8::u8string &argv0) {
                << std::endl << std::endl;
 }
 
-void CmdlineParser::LogArgv(const std::vector<WTF8::u8string> &argv) {
+void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) {
     WTF8::clog << "Args:";
     for(const auto &argi : argv) {
         WTF8::clog << ' ' << argi;
@@ -57,7 +57,7 @@ void CmdlineParser::LogArgv(const std::vector<WTF8::u8string> &argv) {
     WTF8::clog << std::endl;
 }
 
-void CmdlineParser::AnalyseArgv(const std::vector<WTF8::u8string> &argv) {
+void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
     const unsigned STATE_BINARY = 0;
     const unsigned STATE_INPUT_FILE = 1;
     unsigned state = STATE_BINARY;
@@ -70,7 +70,7 @@ void CmdlineParser::AnalyseArgv(const std::vector<WTF8::u8string> &argv) {
 		state++;
 		break;
 	    case STATE_INPUT_FILE:
-	        mOptionManager.mInputFile = argi;
+	        mOptionManager.m_input_file = argi;
 		WTF8::clog << "Input File: " << argi << std::endl;
 		state++;
 		break;

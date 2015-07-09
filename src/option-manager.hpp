@@ -30,11 +30,11 @@ namespace RUCE {
 class OptionManager {
 public:
     OptionManager();
-    WTF8::u8string GetInputFile();
+    WTF8::u8string get_input_file();
 private:
-    WTF8::u8string mInputFile;
+    WTF8::u8string m_input_file;
     friend class CmdlineParser;
-    static int mOptionManagerCount;
+    static int m_option_manager_count;
 };
 
 }

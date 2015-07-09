@@ -23,15 +23,15 @@
 namespace RUCE {
 
 OptionManager::OptionManager() {
-    if(mOptionManagerCount) 
+    if(m_option_manager_count) 
         throw std::runtime_error("Cannot create another OptionManager instance");
-    mOptionManagerCount++;
+    m_option_manager_count++;
 }
 
-int OptionManager::mOptionManagerCount = 0;
+int OptionManager::m_option_manager_count = 0;
 
-WTF8::u8string OptionManager::GetInputFile() {
-    return mInputFile;
+WTF8::u8string OptionManager::get_input_file() {
+    return m_input_file;
 }
 
 }

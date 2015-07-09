@@ -32,7 +32,7 @@ int main() {
 
     {
         CmdlineParser cmdline_parser(option_manager);
-        cmdline_parser.ParseArgv(WTF8::getargv());
+        cmdline_parser.parse_argv(WTF8::getargv());
     }
 
     return 0;
