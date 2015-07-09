@@ -26,8 +26,8 @@ SOFTWARE.
 
 */
 
-#ifndef PROXY_PTR_H
-#define PROXY_PTR_H
+#ifndef PROXY_PTR_HPP
+#define PROXY_PTR_HPP
 
 #include <memory>
 

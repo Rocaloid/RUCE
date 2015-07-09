@@ -1,6 +1,6 @@
 /*
   Rocaloid
-  Copyright (C) 2015 StarBrilliant <m13253@hotmail.com>
+  Copyright (C) <YEAR> <YOUR NAME>
   
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,11 +16,11 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
-#include <libwintf8.h>
+#include "template-class.hpp"
 
-int main() {
-    WTF8::cerr << "Rocaloid synthesizer, version nanodesu" << std::endl << std::endl;
+namespace RUCE {
+    
+    TemplateClass::TemplateClass();
 
-    return 0;
 }
+
