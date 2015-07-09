@@ -18,20 +18,10 @@
 */
 
 #include "option-manager.hpp"
-#include <stdexcept>
 
 namespace RUCE {
 
 OptionManager::OptionManager() {
-    if(m_option_manager_count) 
-        throw std::runtime_error("Cannot create another OptionManager instance");
-    m_option_manager_count++;
-}
-
-int OptionManager::m_option_manager_count = 0;
-
-WTF8::u8string OptionManager::get_input_file() {
-    return m_input_file;
 }
 
 }

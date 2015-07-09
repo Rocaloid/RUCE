@@ -28,13 +28,12 @@ namespace RUCE {
  * Store global status
  */
 class OptionManager {
+    friend class CmdlineParser;
 public:
     OptionManager();
-    WTF8::u8string get_input_file();
-private:
-    WTF8::u8string m_input_file;
-    friend class CmdlineParser;
-    static int m_option_manager_count;
+    WTF8::u8string get_input_file() const { return input_file; }
+protected:
+    WTF8::u8string input_file;
 };
 
 }
