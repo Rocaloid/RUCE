@@ -70,6 +70,7 @@ void CmdlineParser::AnalyseArgv(const std::vector<WTF8::u8string> &argv) {
 		break;
 	    case STATE_INPUT_FILE:
 	        mOptionManager.mInputFile = argi;
+		WTF8::clog << "Input File: " << argi << std::endl;
 		state++;
 		break;
 	    default:
