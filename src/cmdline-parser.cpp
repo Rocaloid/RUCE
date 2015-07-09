@@ -28,11 +28,7 @@
 namespace RUCE {
 
 CmdlineParser::CmdlineParser(OptionManager &option_manager) : 
-<<<<<<< HEAD
     option_manager(option_manager) {
-=======
-    m_option_manager(option_manager) {
->>>>>>> a1f198ce05c013c4595c8fe7936dd5d2f560ee29
 }
 
 void CmdlineParser::parse_argv(const std::vector<WTF8::u8string> &argv) {
@@ -65,7 +61,7 @@ void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) const {
 void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
     option_manager.input_file_name = argv[1];
     option_manager.output_file_name = argv[2];
-    option_manager.pitch = tuner.note_name_to_freq(argv[3]);
+    option_manager.output_pitch = tuner.note_name_to_freq(argv[3]);
 }
 
 }

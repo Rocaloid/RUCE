@@ -18,12 +18,13 @@
 */
 
 #include "tuner.hpp"
+#include <cmath>
 
 namespace RUCE {
 
 double Tuner::midi_id_to_freq(uint8_t midi_id) const {
-    static const double freq_table[128] = {
-    }
+    static const double M_2_POW_INV_12 = 1.05946309435929530984; // 2^(1/12)
+    return pow(M_2_POW_INV_12, int(midi_id)-69) + 440.0;
 }
 
 }
