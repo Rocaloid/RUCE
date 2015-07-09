@@ -32,6 +32,9 @@ class CmdlineParser {
 public:
     CmdlineParser(OptionManager &option_manager);
     void ParseArgv(const std::vector<WTF8::u8string> &argv);
+    void PrintHelp(const WTF8::u8string &argv0);
+private:
+    void LogArgv(const std::vector<WTF8::u8string> &argv);
 };
 
 }
