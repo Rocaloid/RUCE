@@ -36,6 +36,7 @@ public:
 private:
     void LogArgv(const std::vector<WTF8::u8string> &argv);
     void AnalyseArgv(const std::vector<WTF8::u8string> &argv);
+    OptionManager &mOptionManager;
 };
 
 }
