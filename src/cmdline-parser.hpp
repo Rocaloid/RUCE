@@ -16,23 +16,24 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
-#include <libwintf8/argv.h>
-#include <libwintf8/termio.h>
-#include "cmdline-parser.hpp"
+#ifndef RUCE_CMDLINE_PARSER_HPP
+#define RUCE_CMDLINE_PARSER_HPP
+
+#include <vector>
+#include <libwintf8/u8str.h>
 #include "option-manager.hpp"
 
-int main() {
-    using namespace RUCE;
+namespace RUCE {
 
-    OptionManager option_manager; // full lifetime object
+/**
+ * Parse command line arguments, check errors and store them
+ */
+class CmdlineParser {
+public:
+    CmdlineParser(OptionManager &option_manager);
+    void ParseArgv(const std::vector<WTF8::u8string> &argv);
+};
 
-    WTF8::cerr << "Rocaloid synthesizer, version Nanodesu" << std::endl << std::endl;
-
-    {
-        CmdlineParser cmdline_parser(option_manager);
-        cmdline_parser.ParseArgv(WTF8::getargv());
-    }
-
-    return 0;
 }
+
+#endif
