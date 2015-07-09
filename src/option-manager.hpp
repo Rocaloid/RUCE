@@ -33,11 +33,11 @@ public:
     OptionManager();
     WTF8::u8string get_input_file_name() const { return input_file_name; }
     WTF8::u8string get_output_file_name() const { return output_file_name; }
-    uint8_t get_output_pitch() const { return output_pitch; }
+    int get_output_pitch() const { return output_pitch; }
 protected:
     WTF8::u8string input_file_name;
     WTF8::u8string output_file_name;
-    uint8_t output_pitch;
+    int output_pitch;
 };
 
 }
