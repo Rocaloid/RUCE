@@ -74,6 +74,10 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
                 WTF8::clog << "Input File: " << argi << std::endl;
                 state++;
                 break;
+            case STATE_OUTPUT_FILE:
+                m_option_manager.m_output_file = argi;
+                WTF8::clog << "Output File: " << argi << std::endl;
+                break;
             default:
                 WTF8::clog << "Dropped paramater: " << argi << std::endl;
         }

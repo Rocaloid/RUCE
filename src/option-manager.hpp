@@ -32,8 +32,10 @@ class OptionManager {
 public:
     OptionManager();
     WTF8::u8string get_input_file() const { return m_input_file; }
+    WTF8::u8string get_output_file() const { return m_output_file; }
 protected:
     WTF8::u8string m_input_file;
+    WTF8::u8string m_output_file;
 };
 
 }
