@@ -22,9 +22,39 @@
 
 namespace RUCE {
 
-double Tuner::midi_id_to_freq(uint8_t midi_id) const {
+int Tuner::note_name_to_midi_id(const WTF8::u8string &note_name) const {
+    static const int note_name_table[7] = {
+      /* A   B  C  D  E  F  G */
+         9, 11, 0, 2, 4, 5, 7
+    };
+
+    if(note_name.length() < 2)
+        throw TunerError();
+    char bare_name = note_name[0];
+    if(bare_name < 'A' || bare_name > 'G')
+        throw TunerError();
+    int midi_id = note_name_table[bare_name-'A'];
+
+    const char *sharp_ptr = &note_name.c_str()[1];
+    if(*sharp_ptr == '#') {
+        ++midi_id;
+        ++sharp_ptr;
+    }
+
+    char *end_ptr;
+    long octave_id = std::strtol(sharp_ptr, &end_ptr, 10);
+    if(end_ptr == sharp_ptr || octave_id < -1 || octave_id > 9)
+        throw TunerError();
+
+    midi_id += (int(octave_id)+1)*12;
+    if(midi_id >= 128)
+        throw TunerError();
+    return midi_id;
+}
+
+double Tuner::midi_id_to_freq(int midi_id) const {
     static const double M_2_POW_INV_12 = 1.05946309435929530984; // 2^(1/12)
-    return pow(M_2_POW_INV_12, int(midi_id)-69) + 440.0;
+    return pow(M_2_POW_INV_12, midi_id-69) + 440.0;
 }
 
 }
