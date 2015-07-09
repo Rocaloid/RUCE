@@ -23,6 +23,7 @@
 #include <vector>
 #include <libwintf8/u8str.h>
 #include "option-manager.hpp"
+#include "tuner.hpp"
 
 namespace RUCE {
 
@@ -34,10 +35,12 @@ public:
     CmdlineParser(OptionManager &option_manager);
     void parse_argv(const std::vector<WTF8::u8string> &argv);
     void print_help(const WTF8::u8string &argv0);
+protected:
+    OptionManager &option_manager;
+    Tuner tuner;
 private:
     void log_argv(const std::vector<WTF8::u8string> &argv);
     void analyze_argv(const std::vector<WTF8::u8string> &argv);
-    OptionManager &mOptionManager;
 };
 
 }

@@ -1,6 +1,6 @@
 /*
     Rocaloid
-    Copyright (C) 2015 StarBrilliant <m13253@hotmail.com>
+    Copyright (C) <YEAR> <YOUR NAME>
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -17,27 +17,14 @@
     see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RUCE_OPTION_MANAGER_HPP
-#define RUCE_OPTION_MANAGER_HPP
-
-#include <libwintf8/u8str.h>
+#include "tuner.hpp"
 
 namespace RUCE {
 
-/**
- * Store global status
- */
-class OptionManager {
-    friend class CmdlineParser;
-public:
-    OptionManager();
-    WTF8::u8string get_input_file_name() const { return input_file_name; }
-    WTF8::u8string get_output_file_name() const { return output_file_name; }
-protected:
-    WTF8::u8string input_file_name;
-    WTF8::u8string output_file_name;
-};
+double Tuner::midi_id_to_freq(uint8_t midi_id) const {
+    static const double freq_table[128] = {
+    }
+}
 
 }
 
-#endif

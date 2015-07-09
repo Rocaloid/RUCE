@@ -23,11 +23,12 @@
 #include <libwintf8/termio.h>
 #include <libwintf8/u8str.h>
 #include "option-manager.hpp"
+#include "tuner.hpp"
 
 namespace RUCE {
 
 CmdlineParser::CmdlineParser(OptionManager &option_manager) : 
-    mOptionManager(option_manager) {
+    option_manager(option_manager) {
 }
 
 void CmdlineParser::parse_argv(const std::vector<WTF8::u8string> &argv) {
@@ -40,7 +41,7 @@ void CmdlineParser::parse_argv(const std::vector<WTF8::u8string> &argv) {
     }
 }
 
-void CmdlineParser::print_help(const WTF8::u8string &argv0) {
+void CmdlineParser::print_help(const WTF8::u8string &argv0) const {
     WTF8::cerr << "Usage: "
                << argv0
                << " <input file> <output file> <pitch percent> <velocity> [<flags> [<offset> <length require> [<fixed length> [<end blank> [<volume> [<modulation> [<pitch bend>...]]]]]]]"
@@ -49,7 +50,7 @@ void CmdlineParser::print_help(const WTF8::u8string &argv0) {
                << std::endl << std::endl;
 }
 
-void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) {
+void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) const {
     WTF8::clog << "Args:";
     for(const auto &argi : argv) {
         WTF8::clog << ' ' << argi;
@@ -58,26 +59,9 @@ void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) {
 }
 
 void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
-    const unsigned STATE_BINARY = 0;
-    const unsigned STATE_INPUT_FILE = 1;
-    unsigned state = STATE_BINARY;
-
-    for(const auto &argi : argv) {
-            switch(state)
-        {
-            case STATE_BINARY:
-                // just drop it
-                state++;
-                break;
-            case STATE_INPUT_FILE:
-                mOptionManager.m_input_file = argi;
-                WTF8::clog << "Input File: " << argi << std::endl;
-                state++;
-                break;
-            default:
-                WTF8::clog << "Dropped paramater: " << argi << std::endl;
-        }
-    }
+    option_manager.input_file_name = argv[1];
+    option_manager.output_file_name = argv[2];
+    option_manager.pitch = 
 }
 
 }
