@@ -19,6 +19,8 @@
 #ifndef RUCE_OPTION_MANAGER_HPP
 #define RUCE_OPTION_MANAGER_HPP
 
+#include <libwintf8/u8str.h>
+
 namespace RUCE {
 
 /**
@@ -26,6 +28,12 @@ namespace RUCE {
  */
 class OptionManager {
 public:
+    OptionManager();
+    WTF8::u8string GetInputFile();
+    OptionManager *GetOptionManager();
+private:
+    WTF8::u8string mInputFile;
+    friend class CmdlineParser;
     OptionManager();
 };
 
