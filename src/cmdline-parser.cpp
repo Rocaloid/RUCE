@@ -63,20 +63,20 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
     unsigned state = STATE_BINARY;
 
     for(const auto &argi : argv) {
-    	switch(state)
-	{
-	    case STATE_BINARY:
-	        // just drop it
-		state++;
-		break;
-	    case STATE_INPUT_FILE:
-	        mOptionManager.m_input_file = argi;
-		WTF8::clog << "Input File: " << argi << std::endl;
-		state++;
-		break;
-	    default:
-	        WTF8::clog << "Dropped paramater: " << argi << std::endl;
-	}
+            switch(state)
+        {
+            case STATE_BINARY:
+                // just drop it
+                state++;
+                break;
+            case STATE_INPUT_FILE:
+                mOptionManager.m_input_file = argi;
+                WTF8::clog << "Input File: " << argi << std::endl;
+                state++;
+                break;
+            default:
+                WTF8::clog << "Dropped paramater: " << argi << std::endl;
+        }
     }
 }
 
