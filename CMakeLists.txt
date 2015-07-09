@@ -17,6 +17,7 @@ set_target_properties(Rocaloid PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
+target_link_libraries(Rocaloid PUBLIC m)  # libm math library
 add_subdirectory(lib/libWinTF8)
 target_link_libraries(Rocaloid PUBLIC wintf8)
 add_subdirectory(lib/libb64-1.2.1)
