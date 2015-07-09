@@ -26,7 +26,8 @@
 
 namespace RUCE {
 
-CmdlineParser::CmdlineParser(OptionManager &option_manager) {
+CmdlineParser::CmdlineParser(OptionManager &option_manager) : 
+    mOptionManager(option_manager) {
 }
 
 void CmdlineParser::ParseArgv(const std::vector<WTF8::u8string> &argv) {
@@ -61,8 +62,6 @@ void CmdlineParser::AnalyseArgv(const std::vector<WTF8::u8string> &argv) {
     const unsigned STATE_INPUT_FILE = 1;
     unsigned state = STATE_BINARY;
 
-    OptionManager *optionManager = OptionManager::GetOptionManager();
-
     for(const auto &argi : argv) {
     	switch(state)
 	{
@@ -71,7 +70,8 @@ void CmdlineParser::AnalyseArgv(const std::vector<WTF8::u8string> &argv) {
 		state++;
 		break;
 	    case STATE_INPUT_FILE:
-	        optionManager->mInputFile = argi;
+	        mOptionManager.mInputFile = argi;
+		WTF8::clog << "Input File: " << argi << std::endl;
 		state++;
 		break;
 	    default:

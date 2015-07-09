@@ -31,11 +31,10 @@ class OptionManager {
 public:
     OptionManager();
     WTF8::u8string GetInputFile();
-    OptionManager *GetOptionManager();
 private:
     WTF8::u8string mInputFile;
     friend class CmdlineParser;
-    OptionManager();
+    static int mOptionManagerCount;
 };
 
 }
