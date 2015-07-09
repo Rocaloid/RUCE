@@ -25,6 +25,9 @@
 
 namespace RUCE {
 
+/**
+ * Conversion among note name, MIDI key ID, and frequency
+ */
 class Tuner {
     class TunerError;
 public:
