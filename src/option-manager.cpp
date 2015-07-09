@@ -23,5 +23,17 @@ namespace RUCE {
 OptionManager::OptionManager() {
 }
 
+static OptionManager *optionManager = NULL;
+
+OptionManager *OptionManager::GetOptionManager() {
+    if(!optionManager)
+        optionManager = new OptionManager;
+    return optionManager;
+}
+
+WTF::u8string OptionManager::GetInputFile() {
+    return mInputFile;
+}
+
 }
 
