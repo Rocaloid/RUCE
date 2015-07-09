@@ -40,7 +40,7 @@ void CmdlineParser::ParseArgv(const std::vector<WTF8::u8string> &argv) {
 void CmdlineParser::PrintHelp(const WTF8::u8string &argv0) {
     WTF8::cerr << "Usage: "
                << argv0
-               << "<input file> <output file> <pitch percent> <velocity> [<flags> [<offset> <length require> [<fixed length> [<end blank> [<volume> [<modulation> [<pitch bend>...]]]]]]]"
+               << " <input file> <output file> <pitch percent> <velocity> [<flags> [<offset> <length require> [<fixed length> [<end blank> [<volume> [<modulation> [<pitch bend>...]]]]]]]"
                << std::endl << std::endl
                << "For more information, see http://shinta0806be.ldblog.jp/archives/8298940.html"
                << std::endl << std::endl;
