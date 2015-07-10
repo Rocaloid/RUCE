@@ -29,13 +29,13 @@ namespace RUCE {
  * Conversion among note name, MIDI key ID, and frequency
  */
 class Tuner {
-    class TunerError;
 public:
     int note_name_to_midi_id(const WTF8::u8string &note_name) const;
     double midi_id_to_freq(int midi_id) const;
     double note_name_to_freq(const WTF8::u8string &note_name) const {
         return midi_id_to_freq(note_name_to_midi_id(note_name));
     }
+    class TunerError;
 };
 
 class Tuner::TunerError : public std::runtime_error {

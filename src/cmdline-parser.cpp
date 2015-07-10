@@ -62,11 +62,42 @@ void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) const {
 void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
     option_manager.input_file_name = argv[1];
     option_manager.output_file_name = argv[2];
-    option_manager.output_pitch = tuner.note_name_to_midi_id(argv[3]);
-
-    WTF8::clog << "Note name: " << argv[3] << std::endl
-               << "Note ID:   " << tuner.note_name_to_midi_id(argv[3]) << std::endl
-               << "Note freq: " << tuner.note_name_to_freq(argv[3]) << std::endl;
+    try {
+        option_manager.output_pitch = tuner.note_name_to_midi_id(argv[3]);
+    } catch(Tuner::TunerError) {
+        WTF8::cerr << "ERROR: Invalid note name: \"" << argv[3] << '"' << std::endl;
+        std::exit(1);
+    }
+    auto argc = argv.size();
+    size_t argi = 4;
+    try {
+        option_manager.note_velocity = strtonum(std::strtod, argv[4].c_str())/100;
+        ++argi;
+        option_manager.synth_flags = argc > 5 ? argv[5] : "";
+        ++argi;
+        option_manager.left_blank = argc > 6 ? strtonum(std::strtod, argv[6].c_str())/1000 : 0;
+        ++argi;
+        option_manager.required_length = argc > 7 ? strtonum(std::strtod, argv[7].c_str())/1000 : -1;
+        ++argi;
+        option_manager.vowel_length = argc > 8 ? strtonum(std::strtod, argv[8].c_str())/1000 : 0;
+        ++argi;
+        option_manager.right_blank = argc > 9 ? strtonum(std::strtod, argv[9].c_str())/1000 : 0;
+        ++argi;
+        option_manager.note_volume = argc > 10 ? strtonum(std::strtod, argv[10].c_str())/100 : 1;
+        ++argi;
+        option_manager.note_modulation = argc > 11 ? strtonum(std::strtod, argv[11].c_str())/100 : 0;
+        ++argi;
+        option_manager.tempo = 120;
+        if(argc > 12) {
+            const auto &argv12 = argv[12];
+            if(argv12.length() != 0 && argv12[0] == '!')
+                option_manager.tempo = strtonum(std::strtod, &argv[12].c_str()[1]);
+        }
+        option_manager.pitch_bend_str = argc > 13 ? argv[13] : "";
+    } catch(StrToNumError) {
+        WTF8::cerr << "ERROR: Invalid argument #" << argi << ": \"" << argv[argi] << '"' << std::endl;
+        std::exit(1);
+    }
 }
 
 }

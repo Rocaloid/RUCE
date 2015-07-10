@@ -42,7 +42,12 @@ int Tuner::note_name_to_midi_id(const WTF8::u8string &note_name) const {
         ++sharp_ptr;
     }
 
-    long octave_id = strtonum(std::strtol, sharp_ptr, 10);
+    long octave_id;
+    try {
+        octave_id = strtonum(std::strtol, sharp_ptr, 10);
+    } catch(StrToNumError) {
+        throw TunerError();
+    }
     if(octave_id < -1 || octave_id > 9)
         throw TunerError();
 

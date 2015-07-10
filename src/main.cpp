@@ -19,6 +19,7 @@
 
 #include <iostream>
 #include <libwintf8/argv.h>
+#include <libwintf8/initcon.h>
 #include <libwintf8/termio.h>
 #include "cmdline-parser.hpp"
 #include "option-manager.hpp"
@@ -28,6 +29,7 @@ int main() {
 
     OptionManager option_manager; // full lifetime object
 
+    WTF8::set_console_font();
     WTF8::cerr << "Rocaloid synthesizer, version Nanodesu" << std::endl << std::endl;
 
     {
