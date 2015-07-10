@@ -60,7 +60,11 @@ void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) const {
         } else {
             WTF8::clog << ' ';
         }
-        WTF8::clog << argi;
+        if(argi.size() != 0 && argi.find_first_of(' ') == argi.npos) {
+            WTF8::clog << argi;
+        } else {
+            WTF8::clog << '"' << argi << '"';
+        }
     }
     WTF8::clog << std::endl;
 }
