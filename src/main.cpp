@@ -30,7 +30,9 @@ int main() {
     OptionManager option_manager; // full lifetime object
 
     WTF8::set_console_font();
-    WTF8::cerr << "Rocaloid synthesizer, version Nanodesu" << std::endl << std::endl;
+    WTF8::cerr << "Rocaloid 合成器 UTAU 兼容引擎，版本代号 Nanodesu" << std::endl
+               << "自由的歌声合成软件，技术体验版。 http://www.rocaloid.org" << std::endl
+               << std::endl;
 
     {
         CmdlineParser cmdline_parser(option_manager);

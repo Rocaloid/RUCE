@@ -43,18 +43,24 @@ void CmdlineParser::parse_argv(const std::vector<WTF8::u8string> &argv) {
 }
 
 void CmdlineParser::print_help(const WTF8::u8string &argv0) const {
-    WTF8::cerr << "Usage: "
+    WTF8::cerr << "用法："
                << argv0
                << " <input file> <output file> <pitch percent> <velocity> [<flags> [<offset> <length require> [<fixed length> [<end blank> [<volume> [<modulation> [<pitch bend>...]]]]]]]"
                << std::endl << std::endl
-               << "For more information, see http://shinta0806be.ldblog.jp/archives/8298940.html"
+               << "详见 http://shinta0806be.ldblog.jp/archives/8298940.html"
                << std::endl << std::endl;
 }
 
 void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) const {
-    WTF8::clog << "Args:";
+    WTF8::clog << "参数：";
+    bool first = true;
     for(const auto &argi : argv) {
-        WTF8::clog << ' ' << argi;
+        if(first) {
+            first = false;
+        } else {
+            WTF8::clog << ' ';
+        }
+        WTF8::clog << argi;
     }
     WTF8::clog << std::endl;
 }
@@ -65,7 +71,7 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
     try {
         option_manager.output_pitch = tuner.note_name_to_midi_id(argv[3]);
     } catch(Tuner::TunerError) {
-        WTF8::cerr << "ERROR: Invalid note name: \"" << argv[3] << '"' << std::endl;
+        WTF8::cerr << "错误：无效的音名：" << argv[3] << std::endl;
         std::exit(1);
     }
     auto argc = argv.size();
@@ -96,7 +102,7 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
         } else
             option_manager.tempo = 120;
     } catch(StrToNumError) {
-        WTF8::cerr << "ERROR: Invalid argument #" << argi << ": \"" << argv[argi] << '"' << std::endl;
+        WTF8::cerr << "错误：无效的参数 #" << argi << "：" << argv[argi] << std::endl;
         std::exit(1);
     }
     option_manager.pitch_bend_str = argc > 13 ? argv[13] : "";
