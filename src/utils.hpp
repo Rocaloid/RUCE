@@ -24,11 +24,23 @@
 
 namespace RUCE {
 
+/**
+ * Mark unused arguments to avoid compiler warnings
+ *
+ * Usage:
+ *   int func(int a) {
+ *       unused_arg(a);
+ *       return 42;
+ *   }
+ */
 template <typename T>
 static inline void unused_arg(const T &arg) {
     static_cast<void>(arg);
 }
 
+/**
+ * Clamp value in range [a, b]
+ */
 template <typename T>
 static inline T clamp(T value, T a, T b) {
     return a < b ?
@@ -36,11 +48,22 @@ static inline T clamp(T value, T a, T b) {
         value < b ? b : a < value ? a : value;
 }
 
+/**
+ * The exception that strtonum throws to indicate an error
+ */
 class StrToNumError : public std::runtime_error {
 public:
     StrToNumError() : std::runtime_error("Invalid number format") {}
 };
 
+/**
+ * A wrapper to C-style strtol function family
+ * Usage:
+ *   long result1 = strtonum(std::strtol, "42", 10);
+ *   double result2 = strtonum(std::strtod, "0.618");
+ * Throws:
+ *   StrToNumError, when nothing is converted
+ */
 template <typename Fn, typename ...Args>
 static inline auto strtonum(Fn fn, const char *str, Args &&...args) -> decltype(fn(str, nullptr, std::forward<Args>(args)...)) {
     char *endptr;
