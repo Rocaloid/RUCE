@@ -87,17 +87,19 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
         ++argi;
         option_manager.note_modulation = argc > 11 ? strtonum(std::strtod, argv[11].c_str())/100 : 0;
         ++argi;
-        option_manager.tempo = 120;
         if(argc > 12) {
             const auto &argv12 = argv[12];
             if(argv12.length() != 0 && argv12[0] == '!')
                 option_manager.tempo = strtonum(std::strtod, &argv[12].c_str()[1]);
-        }
-        option_manager.pitch_bend_str = argc > 13 ? argv[13] : "";
+            else
+                throw StrToNumError();
+        } else
+            option_manager.tempo = 120;
     } catch(StrToNumError) {
         WTF8::cerr << "ERROR: Invalid argument #" << argi << ": \"" << argv[argi] << '"' << std::endl;
         std::exit(1);
     }
+    option_manager.pitch_bend_str = argc > 13 ? argv[13] : "";
 }
 
 }
