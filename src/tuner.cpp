@@ -19,6 +19,7 @@
 
 #include "tuner.hpp"
 #include <cmath>
+#include "utils.hpp"
 
 namespace RUCE {
 
@@ -41,9 +42,8 @@ int Tuner::note_name_to_midi_id(const WTF8::u8string &note_name) const {
         ++sharp_ptr;
     }
 
-    char *end_ptr;
-    long octave_id = std::strtol(sharp_ptr, &end_ptr, 10);
-    if(end_ptr == sharp_ptr || octave_id < -1 || octave_id > 9)
+    long octave_id = strtonum(std::strtol, sharp_ptr, 10);
+    if(octave_id < -1 || octave_id > 9)
         throw TunerError();
 
     midi_id += (int(octave_id)+1)*12;

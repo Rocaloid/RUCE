@@ -24,6 +24,7 @@
 #include <libwintf8/u8str.h>
 #include "option-manager.hpp"
 #include "tuner.hpp"
+#include "utils.hpp"
 
 namespace RUCE {
 

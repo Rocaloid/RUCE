@@ -17,31 +17,40 @@
     see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RUCE_TUNER_HPP
-#define RUCE_TUNER_HPP
+#ifndef RUCE_UTILS_HPP
+#define RUCE_UTILS_HPP
 
-#include <libwintf8/u8str.h>
 #include <stdexcept>
 
 namespace RUCE {
 
-/**
- * Conversion among note name, MIDI key ID, and frequency
- */
-class Tuner {
-    class TunerError;
+template <typename T>
+static inline void unused_arg(const T &arg) {
+    static_cast<void>(arg);
+}
+
+template <typename T>
+static inline T clamp(T value, T a, T b) {
+    return a < b ?
+        value < a ? a : b < value ? b : value :
+        value < b ? b : a < value ? a : value;
+}
+
+class StrToNumError : public std::runtime_error {
 public:
-    int note_name_to_midi_id(const WTF8::u8string &note_name) const;
-    double midi_id_to_freq(int midi_id) const;
-    double note_name_to_freq(const WTF8::u8string &note_name) const {
-        return midi_id_to_freq(note_name_to_midi_id(note_name));
-    }
+    StrToNumError() : std::runtime_error("Invalid number format") {}
 };
 
-class Tuner::TunerError : public std::runtime_error {
-public:
-    TunerError() : std::runtime_error("Invalid note name") {}
-};
+template <typename Fn, typename ...Args>
+static inline auto strtonum(Fn fn, const char *str, Args &&...args) -> decltype(fn(str, nullptr, std::forward<Args>(args)...)) {
+    char *endptr;
+    auto result = fn(str, &endptr, std::forward<Args>(args)...);
+    if(endptr != str) {
+        return result;
+    } else {
+        throw StrToNumError();
+    }
+}
 
 }
 
