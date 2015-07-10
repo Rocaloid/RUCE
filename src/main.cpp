@@ -19,7 +19,6 @@
 
 #include <iostream>
 #include <libwintf8/argv.h>
-#include <libwintf8/initcon.h>
 #include <libwintf8/termio.h>
 #include "cmdline-parser.hpp"
 #include "option-manager.hpp"
@@ -29,7 +28,6 @@ int main() {
 
     OptionManager option_manager; // full lifetime object
 
-    WTF8::set_console_font();
     WTF8::cerr << "Rocaloid 合成器 UTAU 兼容引擎，版本代号 Nanodesu" << std::endl
                << "自由的歌声合成软件，技术体验版。 http://www.rocaloid.org" << std::endl
                << std::endl;
