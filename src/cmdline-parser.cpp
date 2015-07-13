@@ -117,7 +117,7 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
  * Return value:
  *   [-4096, 4095]
  */
-static int16_t decode_pitch_bend(const char pitch_bend_str[2]) {
+int16_t CmdlineParser::decode_pitch_bend(const char pitch_bend_str[2]) {
     static const int8_t base64_decode_table_[] = {
       /* +   ,   -   .   /   0   1   2   3   4   5   6   7   8   9   :   ; */
         62, -1, -1, -1, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1,
