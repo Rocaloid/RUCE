@@ -41,6 +41,7 @@ protected:
 private:
     void log_argv(const std::vector<WTF8::u8string> &argv) const;
     void analyze_argv(const std::vector<WTF8::u8string> &argv);
+    int16_t decode_pitch_bend(const char pitch_bend_str[2]) const;
 };
 
 }
