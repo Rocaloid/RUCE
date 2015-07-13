@@ -20,8 +20,6 @@ set_target_properties(Rocaloid PROPERTIES
 target_link_libraries(Rocaloid PUBLIC m)  # libm math library
 add_subdirectory(lib/libWinTF8)
 target_link_libraries(Rocaloid PUBLIC wintf8)
-add_subdirectory(lib/libb64-1.2.1)
-target_link_libraries(Rocaloid PUBLIC b64)
 
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")  # Test subproject
     install(TARGETS Rocaloid
