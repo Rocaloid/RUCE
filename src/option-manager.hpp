@@ -20,6 +20,7 @@
 #ifndef RUCE_OPTION_MANAGER_HPP
 #define RUCE_OPTION_MANAGER_HPP
 
+#include <vector>
 #include <libwintf8/u8str.h>
 
 namespace RUCE {
@@ -31,18 +32,19 @@ class OptionManager {
     friend class CmdlineParser;
 public:
     OptionManager();
-    WTF8::u8string get_input_file_name() const { return input_file_name; }
-    WTF8::u8string get_output_file_name() const { return output_file_name; }
+    const WTF8::u8string &get_input_file_name() const { return input_file_name; }
+    const WTF8::u8string &get_output_file_name() const { return output_file_name; }
     int get_output_pitch() const { return output_pitch; }
     double get_note_velocity() const { return note_velocity; }
-    WTF8::u8string get_synth_flags() const { return synth_flags; }
+    const WTF8::u8string &get_synth_flags() const { return synth_flags; }
     double get_left_blank() const { return left_blank; }
     double get_required_length() const { return required_length; }
     double get_vowel_length() const { return vowel_length; }
     double get_right_blank() const { return right_blank; }
     double get_note_volume() const { return note_volume; }
     double get_note_modulation() const { return note_modulation; }
-    WTF8::u8string get_pitch_bend_str() const { return pitch_bend_str; }
+    const WTF8::u8string &get_pitch_bend_str() const { return pitch_bend_str; }
+    const std::vector<double> &get_pitch_bend() const { return pitch_bend; }
 protected:
     // These are parameters passed from UTAU
     // Milliseconds are converted to seconds
@@ -60,6 +62,7 @@ protected:
     double note_modulation;
     double tempo;
     WTF8::u8string pitch_bend_str;
+    std::vector<double> pitch_bend;
 };
 
 }

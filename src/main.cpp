@@ -22,18 +22,19 @@
 #include <libwintf8/termio.h>
 #include "cmdline-parser.hpp"
 #include "option-manager.hpp"
+#include "proxy-ptr.hpp"
 
 int main() {
     using namespace RUCE;
 
-    OptionManager option_manager; // full lifetime object
+    proxy_ptr<OptionManager> option_manager; // full lifetime object
 
     WTF8::cerr << "Rocaloid 合成器 UTAU 兼容引擎，版本代号 Nanodesu" << std::endl
                << "自由的歌声合成软件，技术体验版。 http://www.rocaloid.org" << std::endl
                << std::endl;
 
     {
-        CmdlineParser cmdline_parser(option_manager);
+        CmdlineParser cmdline_parser(*option_manager.get());
         cmdline_parser.parse_argv(WTF8::getargv());
     }
 
