@@ -34,14 +34,14 @@ class CmdlineParser {
 public:
     CmdlineParser(OptionManager &option_manager);
     void parse_argv(const std::vector<WTF8::u8string> &argv);
-    void print_help(const WTF8::u8string &argv0) const;
+    static void print_help(const WTF8::u8string &argv0);
 protected:
     OptionManager &option_manager;
     Tuner tuner;
 private:
-    void log_argv(const std::vector<WTF8::u8string> &argv) const;
+    static void log_argv(const std::vector<WTF8::u8string> &argv);
     void analyze_argv(const std::vector<WTF8::u8string> &argv);
-    int16_t decode_pitch_bend(const char pitch_bend_str[2]) const;
+    static int16_t decode_pitch_bend(const char pitch_bend_str[2]);
 };
 
 }

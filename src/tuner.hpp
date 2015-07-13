@@ -30,9 +30,9 @@ namespace RUCE {
  */
 class Tuner {
 public:
-    int note_name_to_midi_id(const WTF8::u8string &note_name) const;
-    double midi_id_to_freq(int midi_id) const;
-    double note_name_to_freq(const WTF8::u8string &note_name) const {
+    static int note_name_to_midi_id(const WTF8::u8string &note_name);
+    static double midi_id_to_freq(int midi_id);
+    static double note_name_to_freq(const WTF8::u8string &note_name) {
         return midi_id_to_freq(note_name_to_midi_id(note_name));
     }
     class TunerError;

@@ -42,7 +42,7 @@ void CmdlineParser::parse_argv(const std::vector<WTF8::u8string> &argv) {
     }
 }
 
-void CmdlineParser::print_help(const WTF8::u8string &argv0) const {
+void CmdlineParser::print_help(const WTF8::u8string &argv0) {
     WTF8::cerr << "用法："
                << argv0
                << " <input file> <output file> <pitch percent> <velocity> [<flags> [<offset> <length require> [<fixed length> [<end blank> [<volume> [<modulation> [<pitch bend>...]]]]]]]"
@@ -51,7 +51,7 @@ void CmdlineParser::print_help(const WTF8::u8string &argv0) const {
                << std::endl << std::endl;
 }
 
-void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) const {
+void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) {
     WTF8::clog << "参数：";
     bool first = true;
     for(const auto &argi : argv) {
@@ -117,7 +117,7 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
  * Return value:
  *   [-4096, 4095]
  */
-int16_t decode_pitch_bend(const char pitch_bend_str[2]) {
+static int16_t decode_pitch_bend(const char pitch_bend_str[2]) {
     static const int8_t base64_decode_table_[] = {
       /* +   ,   -   .   /   0   1   2   3   4   5   6   7   8   9   :   ; */
         62, -1, -1, -1, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1,
