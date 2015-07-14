@@ -135,6 +135,25 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const 
     }
 }
 
+/**
+ * Parse UTAU encoded pitch bend string to a vector of floating point numbers
+ * Output:
+ *   pitch_bend: Raw data are multiplied by 0.01, so 1 means one unit of pitch
+ *               Garanteed to be between [-40.96, 40.95]
+ * Throws:
+ *   PitchBandParseError: use get_position to fetch the column number where the first error occures
+ * State transition diagram:
+ *   +--------------+  +--------------+  +--------------+
+ *   | begin_of_str |->| pitch_char_1 |->| pitch_char_2 |-\
+ *   +--------------+  +--------------+  +--------------+ |
+ *              /----------^      ^----------/      |     \->+------------+
+ *              |                                   |        | end_of_str |
+ *              |          /------v                 v     /->+------------+
+ *    +-------------+  +--------------+  +--------------+ |
+ *    | sharp_after |<-| repeat_count |<-| sharp_before | |
+ *    +-------------+  +--------------+  +--------------+ |
+ *              \-----------------------------------------/
+ */
 void CmdlineParser::parse_pitch_bend_str(const WTF8::u8string &pitch_bend_str, std::vector<double> &pitch_bend) {
     pitch_bend.clear();
     enum class States {
