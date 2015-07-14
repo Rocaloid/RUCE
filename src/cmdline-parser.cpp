@@ -158,8 +158,8 @@ void CmdlineParser::parse_pitch_bend_str(const WTF8::u8string &pitch_bend_str, s
     pitch_bend.clear();
     enum class States {
         begin_of_str,
-        pitch_char1,
-        pitch_char2,
+        pitch_char_1,
+        pitch_char_2,
         sharp_before,
         repeat_count,
         sharp_after,
@@ -171,15 +171,15 @@ void CmdlineParser::parse_pitch_bend_str(const WTF8::u8string &pitch_bend_str, s
         switch(state) {
         case States::begin_of_str:
             if(pitch_bend_str[pos] != '#') {
-                state = States::pitch_char1;
+                state = States::pitch_char_1;
                 lastpos = pos;
             } else {
                 throw PitchBendParseError(pos);
             }
             break;
-        case States::pitch_char1:
+        case States::pitch_char_1:
             if(pitch_bend_str[pos] != '#') {
-                state = States::pitch_char2;
+                state = States::pitch_char_2;
                 try {
                     pitch_bend_item = double(decode_pitch_bend_item(&pitch_bend_str.data()[lastpos]))/100;
                 } catch(StrToNumError) {
@@ -189,9 +189,9 @@ void CmdlineParser::parse_pitch_bend_str(const WTF8::u8string &pitch_bend_str, s
                 throw PitchBendParseError(pos);
             }
             break;
-        case States::pitch_char2:
+        case States::pitch_char_2:
             if(pitch_bend_str[pos] != '#') {
-                state = States::pitch_char1;
+                state = States::pitch_char_1;
                 lastpos = pos;
                 pitch_bend.push_back(pitch_bend_item);
             } else {
@@ -225,7 +225,7 @@ void CmdlineParser::parse_pitch_bend_str(const WTF8::u8string &pitch_bend_str, s
             break;
         case States::sharp_after:
             if(pitch_bend_str[pos] != '#') {
-                state = States::pitch_char1;
+                state = States::pitch_char_1;
                 lastpos = pos;
             } else {
                 throw PitchBendParseError(pos);
@@ -237,10 +237,10 @@ void CmdlineParser::parse_pitch_bend_str(const WTF8::u8string &pitch_bend_str, s
     case States::begin_of_str:
     case States::sharp_after:
         break;
-    case States::pitch_char2:
+    case States::pitch_char_2:
         pitch_bend.push_back(pitch_bend_item);
         break;
-    case States::pitch_char1:
+    case States::pitch_char_1:
     case States::sharp_before:
     case States::repeat_count:
         throw PitchBendParseError(pitch_bend_str.size());
