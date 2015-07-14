@@ -166,7 +166,7 @@ void CmdlineParser::parse_pitch_bend_str(const WTF8::u8string &pitch_bend_str, s
     } state = States::begin_of_str;
     double pitch_bend_item;
 
-    size_t lastpos = 0;
+    size_t lastpos;
     for(size_t pos = 0; pos < pitch_bend_str.size(); pos++) {
         switch(state) {
         case States::begin_of_str:
