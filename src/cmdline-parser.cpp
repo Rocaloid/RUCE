@@ -19,6 +19,7 @@
 
 #include "cmdline-parser.hpp"
 #include <cstdlib>
+#include <stdexcept>
 #include <vector>
 #include <libwintf8/termio.h>
 #include <libwintf8/u8str.h>
@@ -32,7 +33,17 @@ CmdlineParser::CmdlineParser(OptionManager &option_manager) :
     option_manager(option_manager) {
 }
 
-void CmdlineParser::parse_argv(const std::vector<WTF8::u8string> &argv) {
+class CmdlineParser::PitchBendParseError : public std::runtime_error {
+public:
+    PitchBendParseError(size_t position) :
+        std::runtime_error("Invalid pitch bend parameter"),
+        position(position) {}
+    size_t get_position() const { return position; }
+protected:
+    size_t position;
+};
+
+void CmdlineParser::parse_argv(const std::vector<WTF8::u8string> &argv) const {
     if(argv.size() >= 5) {
         log_argv(argv);
         analyze_argv(argv);
@@ -69,7 +80,7 @@ void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) {
     WTF8::clog << std::endl;
 }
 
-void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
+void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const {
     option_manager.input_file_name = argv[1];
     option_manager.output_file_name = argv[2];
     try {
@@ -110,6 +121,111 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
         std::exit(1);
     }
     option_manager.pitch_bend_str = argc > 13 ? argv[13] : "";
+    try {
+        parse_pitch_bend_str(option_manager.pitch_bend_str, option_manager.pitch_bend);
+    } catch(PitchBendParseError e) {
+        WTF8::cerr << "错误：无效的滑音参数：第 " << e.get_position() << " 列有误" << std::endl
+                   << "    " << option_manager.pitch_bend_str << std::endl
+                   << "    ";
+        for(size_t i = 0; i < e.get_position(); i++) {
+            WTF8::cerr << '~';
+        }
+        WTF8::cerr << '^' << std::endl;
+        std::exit(1);
+    }
+}
+
+void CmdlineParser::parse_pitch_bend_str(const WTF8::u8string &pitch_bend_str, std::vector<double> &pitch_bend) {
+    pitch_bend.clear();
+    enum class States {
+        begin_of_str,
+        pitch_char1,
+        pitch_char2,
+        sharp_before,
+        repeat_count,
+        sharp_after,
+    } state = States::begin_of_str;
+    double pitch_bend_item;
+
+    size_t lastpos = 0;
+    for(size_t pos = 0; pos < pitch_bend_str.size(); pos++) {
+        switch(state) {
+        case States::begin_of_str:
+            if(pitch_bend_str[pos] != '#') {
+                state = States::pitch_char1;
+                lastpos = pos;
+            } else {
+                throw PitchBendParseError(pos);
+            }
+            break;
+        case States::pitch_char1:
+            if(pitch_bend_str[pos] != '#') {
+                state = States::pitch_char2;
+                try {
+                    pitch_bend_item = double(decode_pitch_bend_item(&pitch_bend_str.data()[lastpos]))/100;
+                } catch(StrToNumError) {
+                    throw PitchBendParseError(lastpos);
+                }
+            } else {
+                throw PitchBendParseError(pos);
+            }
+            break;
+        case States::pitch_char2:
+            if(pitch_bend_str[pos] != '#') {
+                state = States::pitch_char1;
+                lastpos = pos;
+                pitch_bend.push_back(pitch_bend_item);
+            } else {
+                state = States::sharp_before;
+            }
+            break;
+        case States::sharp_before:
+            if(pitch_bend_str[pos] != '#') {
+                state = States::repeat_count;
+                lastpos = pos;
+            } else {
+                throw PitchBendParseError(pos);
+            }
+            break;
+        case States::repeat_count:
+            if(pitch_bend_str[pos] != '#') {
+            } else {
+                state = States::sharp_after;
+                long repeat_count;
+                try {
+                    repeat_count = strtonum(std::strtol, pitch_bend_str.substr(lastpos, pos-lastpos).c_str(), 0);
+                } catch(StrToNumError) {
+                    throw PitchBendParseError(lastpos);
+                }
+                if(repeat_count >= 0) {
+                    pitch_bend.insert(pitch_bend.end(), repeat_count, pitch_bend_item);
+                } else {
+                    throw PitchBendParseError(lastpos);
+                }
+            }
+            break;
+        case States::sharp_after:
+            if(pitch_bend_str[pos] != '#') {
+                state = States::pitch_char1;
+                lastpos = pos;
+            } else {
+                throw PitchBendParseError(pos);
+            }
+            break;
+        }
+    }
+    switch(state) {
+    case States::begin_of_str:
+    case States::sharp_after:
+        break;
+    case States::pitch_char2:
+        pitch_bend.push_back(pitch_bend_item);
+        break;
+    case States::pitch_char1:
+    case States::sharp_before:
+    case States::repeat_count:
+        throw PitchBendParseError(pitch_bend_str.size());
+    }
 }
 
 /**
@@ -117,7 +233,7 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) {
  * Return value:
  *   [-4096, 4095]
  */
-int16_t CmdlineParser::decode_pitch_bend(const char pitch_bend_str[2]) {
+int16_t CmdlineParser::decode_pitch_bend_item(const char pitch_bend_str[2]) {
     static const int8_t base64_decode_table_[] = {
       /* +   ,   -   .   /   0   1   2   3   4   5   6   7   8   9   :   ; */
         62, -1, -1, -1, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1,

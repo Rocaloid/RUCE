@@ -31,7 +31,7 @@ int Tuner::note_name_to_midi_id(const WTF8::u8string &note_name) {
 
     if(note_name.length() < 2)
         throw TunerError();
-    char bare_name = note_name[0];
+    char bare_name = note_name[0] & 0xdf;
     if(bare_name < 'A' || bare_name > 'G')
         throw TunerError();
     int midi_id = note_name_table[bare_name-'A'];

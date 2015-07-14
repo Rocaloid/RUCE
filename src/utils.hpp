@@ -20,6 +20,7 @@
 #ifndef RUCE_UTILS_HPP
 #define RUCE_UTILS_HPP
 
+#include <cstring>
 #include <stdexcept>
 
 namespace RUCE {
@@ -62,14 +63,18 @@ public:
  *   long result1 = strtonum(std::strtol, "42", 10);
  *   double result2 = strtonum(std::strtod, "0.618");
  * Throws:
- *   StrToNumError, when nothing is converted
+ *   StrToNumError, when input is not a valid number
  */
 template <typename Fn, typename ...Args>
 static inline auto strtonum(Fn fn, const char *str, Args &&...args) -> decltype(fn(str, nullptr, std::forward<Args>(args)...)) {
-    char *endptr;
-    auto result = fn(str, &endptr, std::forward<Args>(args)...);
-    if(endptr != str) {
-        return result;
+    if(str[0] != '\0') {
+        char *endptr;
+        auto result = fn(str, &endptr, std::forward<Args>(args)...);
+        if(endptr == &str[std::strlen(str)]) {
+            return result;
+        } else {
+            throw StrToNumError();
+        }
     } else {
         throw StrToNumError();
     }
