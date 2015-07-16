@@ -1,11 +1,19 @@
 cmake_minimum_required(VERSION 3.0)
 
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/install/build")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/install/include")
+
 include(ExternalProject)
-ExternalProject_Add(sndfile
+ExternalProject_Add(sndfile_builder
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     CONFIGURE_COMMAND sh "${CMAKE_CURRENT_SOURCE_DIR}/configure" --prefix=<INSTALL_DIR> --enable-static --disable-shared --enable-pic --disable-alsa --disable-sqlite --disable-external-libs
-    BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}"
-    INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}"
+    BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/build"
+    INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/install"
 )
 
-find_library(EXTERNAL_PROJECT_SNDFILE sndfile "${CMAKE_CURRENT_BINARY_DIR}/lib")
+add_library(sndfile STATIC IMPORTED GLOBAL)
+add_dependencies(sndfile sndfile_builder)
+set_target_properties(sndfile PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/install/lib/libsndfile.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}/install/include"
+)
