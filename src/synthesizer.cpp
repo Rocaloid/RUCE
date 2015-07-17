@@ -75,8 +75,9 @@ void Synthesizer::synth_unit() {
     size_t i = 0;
     for(auto &s : p->buffer) {
         s = fastrand() / 16;
+        double instant_pitch = pitch + option_manager.get_pitch_bend(double(i) / p->output_sample_rate);
         for(size_t j = 1; j < 13; j++) {
-            phrases[j] += 2.0 * j * p->tuner.midi_id_to_freq(pitch + fastrand()*4 - 2);
+            phrases[j] += 2.0 * j * p->tuner.midi_id_to_freq(instant_pitch + fastrand()*4 - 2);
         }
         static const double intensity[13] = { 0, 1, 1, 1, 1.0/8, 1.0/64, 1.0/64, 1.0/64, 1.0/8, 1.0/8, 1.0/8, 1.0/8, 1.0/64 };
         for(size_t j = 1; j < 13; j++) {

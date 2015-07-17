@@ -52,8 +52,9 @@ static inline T clamp(T value, T a, T b) {
 /**
  * Return a pseudo-random between [0, 1)
  */
+template <uint32_t seed = 1>
 static inline float fastrand() {
-    static uint32_t mirand = 1;
+    static uint32_t mirand = seed;
     union { 
         uint32_t i;
         float f;

@@ -45,8 +45,18 @@ public:
     double get_right_blank() const { return right_blank; }
     double get_note_volume() const { return note_volume; }
     double get_note_modulation() const { return note_modulation; }
+    double get_tempo() const { return tempo; }
+    double get_pitch_bend_interval() const { return 60.0/96/tempo; }
     const WTF8::u8string &get_pitch_bend_str() const { return pitch_bend_str; }
     const std::vector<double> &get_pitch_bend() const { return pitch_bend; }
+    double get_pitch_bend(double seconds) const {
+        if(seconds < 0)
+            return 0;
+        size_t index = seconds/get_pitch_bend_interval();
+        if(index >= pitch_bend.size())
+            return 0;
+        return pitch_bend.data()[index];
+    }
 
     OptionManager &set_required_length_msec(int32_t value) {
         required_length_msec = value;
