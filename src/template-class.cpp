@@ -21,8 +21,8 @@
 
 namespace RUCE {
 
-    TemplateClass::TemplateClass() {
-    }
+TemplateClass::TemplateClass() {
+}
 
 }
 

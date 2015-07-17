@@ -55,8 +55,8 @@ protected:
     double note_velocity;
     WTF8::u8string synth_flags;
     double left_blank;
-    double required_length;
-    double vowel_length;
+    double required_length; // May be adjusted later
+    double vowel_length;    // May be adjusted later
     double right_blank;
     double note_volume;
     double note_modulation;

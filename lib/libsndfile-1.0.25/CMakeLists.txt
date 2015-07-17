@@ -6,7 +6,7 @@ file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/install/include")
 include(ExternalProject)
 ExternalProject_Add(sndfile_builder
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    CONFIGURE_COMMAND sh "${CMAKE_CURRENT_SOURCE_DIR}/configure" --prefix=<INSTALL_DIR> --enable-static --disable-shared --enable-pic --disable-alsa --disable-sqlite --disable-external-libs
+    CONFIGURE_COMMAND sh "${CMAKE_CURRENT_SOURCE_DIR}/configure" "--host=${CMAKE_SYSTEM_PROCESSOR}" "--prefix=<INSTALL_DIR>" --enable-static --disable-shared --with-pic --disable-alsa --disable-sqlite --disable-external-libs "CC=${CMAKE_C_COMPILER}" "CXX=${CMAKE_CXX_COMPILER}"
     BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/build"
     INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/install"
 )
