@@ -26,18 +26,22 @@
 #include <libwintf8/u8str.h>
 
 typedef struct SNDFILE_tag SNDFILE;
-typedef struct SF_INFO SF_INFO;
+typedef class SndfileHandle SndFileHandle;
 
 namespace RUCE {
 
 class PCMFile {
 public:
     PCMFile();
-    PCMFile(const WTF8::u8string &filename, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);
-    PCMFile &open(const WTF8::u8string &filename, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);
+    PCMFile(const WTF8::u8string &filename, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out, int format = 0, int channels = 0, int sample_rate = 0);
+    PCMFile &open(const WTF8::u8string &filename, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out, int format = 0, int channels = 0, int sample_rate = 0);
     ~PCMFile();
-    bool is_open() const;
     PCMFile &close();
+
+    int64_t frames() const;
+    int format() const;
+    int channels() const;
+    int sample_rate() const;
 
     // frames = samples * channels
     size_t read(short *output_buf, size_t frames);
@@ -50,8 +54,11 @@ public:
     size_t write(const float *input_buf, size_t frames);
     size_t write(const double *input_buf, size_t frames);
 
-    SNDFILE *get_sndfile() const;
-    SF_INFO &get_sndfile_info() const;
+    int64_t seek(int64_t frames, int whence);
+    int command(int cmd, void *data, size_t data_size);
+
+    SndfileHandle &sndfile_cxx() const;
+    SNDFILE *sndfile_c() const;
 
     class FileError;
 private:
@@ -62,6 +69,7 @@ private:
 class PCMFile::FileError : public std::runtime_error {
 public:
     FileError() : std::runtime_error("File operation failed") {}
+    FileError(const char *what) : std::runtime_error(what) {}
 };
 
 }
