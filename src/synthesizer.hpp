@@ -17,31 +17,26 @@
     see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RUCE_TUNER_HPP
-#define RUCE_TUNER_HPP
+#ifndef RUCE_SYNTHESIZER_HPP
+#define RUCE_SYNTHESIZER_HPP
 
-#include <libwintf8/u8str.h>
-#include <stdexcept>
+#include "option-manager.hpp"
+#include "proxy-ptr.hpp"
 
 namespace RUCE {
 
-/**
- * Conversion among note name, MIDI key ID, and frequency
- */
-class Tuner {
+class Synthesizer {
 public:
-    static uint8_t note_name_to_midi_id(const WTF8::u8string &note_name);
-    static double midi_id_to_freq(uint8_t midi_id);
-    static double midi_id_to_freq(double midi_id);
-    static double note_name_to_freq(const WTF8::u8string &note_name) {
-        return midi_id_to_freq(note_name_to_midi_id(note_name));
-    }
-    class TunerError;
-};
-
-class Tuner::TunerError : public std::runtime_error {
-public:
-    TunerError() : std::runtime_error("Invalid note name") {}
+    Synthesizer(OptionManager &option_manager);
+    ~Synthesizer();
+    void check_params();
+    void prepare();
+    void synth_unit();
+protected:
+    OptionManager &option_manager;
+private:
+    struct Private;
+    proxy_ptr<Private> p;
 };
 
 }

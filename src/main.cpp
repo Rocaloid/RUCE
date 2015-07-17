@@ -23,6 +23,7 @@
 #include "cmdline-parser.hpp"
 #include "option-manager.hpp"
 #include "proxy-ptr.hpp"
+#include "synthesizer.hpp"
 
 int main() {
     using namespace RUCE;
@@ -36,6 +37,13 @@ int main() {
     {
         CmdlineParser cmdline_parser(*option_manager.get());
         cmdline_parser.parse_argv(WTF8::getargv());
+    }
+
+    {
+        Synthesizer synth(*option_manager.get());
+        synth.check_params();
+        synth.prepare();
+        synth.synth_unit();
     }
 
     return 0;

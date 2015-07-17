@@ -23,7 +23,7 @@
 
 namespace RUCE {
 
-int Tuner::note_name_to_midi_id(const WTF8::u8string &note_name) {
+uint8_t Tuner::note_name_to_midi_id(const WTF8::u8string &note_name) {
     static const int note_name_table[7] = {
       /* A   B  C  D  E  F  G */
          9, 11, 0, 2, 4, 5, 7
@@ -54,11 +54,16 @@ int Tuner::note_name_to_midi_id(const WTF8::u8string &note_name) {
     midi_id += (int(octave_id)+1)*12;
     if(midi_id >= 128)
         throw TunerError();
-    return midi_id;
+    return uint8_t(midi_id);
 }
 
-double Tuner::midi_id_to_freq(int midi_id) {
+double Tuner::midi_id_to_freq(uint8_t midi_id) {
     // https://en.wikipedia.org/wiki/MIDI_Tuning_Standard
+    static const double M_2_POW_INV_12 = 1.05946309435929530984; // 2^(1/12)
+    return pow(M_2_POW_INV_12, int(midi_id)-69) * 440;
+}
+
+double Tuner::midi_id_to_freq(double midi_id) {
     static const double M_2_POW_INV_12 = 1.05946309435929530984; // 2^(1/12)
     return pow(M_2_POW_INV_12, midi_id-69) * 440;
 }
