@@ -81,6 +81,7 @@ void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) {
 }
 
 void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const {
+    option_manager.pitch_bend.clear();
     option_manager.input_file_name = argv[1];
     option_manager.output_file_name = argv[2];
     try {
@@ -110,10 +111,20 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const 
         ++argi;
         if(argc > 12) {
             const auto &argv12 = argv[12];
-            if(argv12.length() != 0 && argv12[0] == '!')
-                option_manager.tempo = strtonum(std::strtod, &argv[12].c_str()[1]);
-            else
-                throw StrToNumError();
+            if(argv12.compare(0, 1, "!") == 0) {
+                option_manager.tempo = strtonum(std::strtod, &argv12.c_str()[1]);
+            } else {
+                auto pos_Q = argv12.find_first_of('Q');
+                if(pos_Q != argv12.npos) {
+                    option_manager.tempo = strtonum(std::strtod, &argv12.c_str()[pos_Q+1]);
+                    option_manager.pitch_bend_str.clear();
+                    for(argi = 13; argi < argc; ++argi) {
+                        option_manager.pitch_bend.push_back(strtonum(std::strtod, argv[argi].c_str()));
+                    }
+                } else {
+                    throw StrToNumError();
+                }
+            }
         } else
             option_manager.tempo = 120;
     } catch(StrToNumError) {
@@ -121,17 +132,19 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const 
         std::exit(1);
     }
     option_manager.pitch_bend_str = argc > 13 ? argv[13] : "";
-    try {
-        parse_pitch_bend_str(option_manager.pitch_bend_str, option_manager.pitch_bend);
-    } catch(PitchBendParseError e) {
-        WTF8::cerr << "错误：无效的滑音参数：第 " << e.get_position() << " 列有误" << std::endl
-                   << "    " << option_manager.pitch_bend_str << std::endl
-                   << "    ";
-        for(size_t i = 0; i < e.get_position(); i++) {
-            WTF8::cerr << '~';
+    if(!option_manager.pitch_bend_str.empty()) {
+        try {
+            parse_pitch_bend_str(option_manager.pitch_bend_str, option_manager.pitch_bend);
+        } catch(PitchBendParseError e) {
+            WTF8::cerr << "错误：无效的滑音参数：第 " << e.get_position() << " 列有误" << std::endl
+                       << "    " << option_manager.pitch_bend_str << std::endl
+                       << "    ";
+            for(size_t i = 0; i < e.get_position(); i++) {
+                WTF8::cerr << '~';
+            }
+            WTF8::cerr << '^' << std::endl;
+            std::exit(1);
         }
-        WTF8::cerr << '^' << std::endl;
-        std::exit(1);
     }
 }
 
@@ -155,7 +168,6 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const 
  *              \-----------------------------------------/
  */
 void CmdlineParser::parse_pitch_bend_str(const WTF8::u8string &pitch_bend_str, std::vector<double> &pitch_bend) {
-    pitch_bend.clear();
     enum class States {
         begin_of_str,
         pitch_char_1,
