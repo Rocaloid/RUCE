@@ -133,7 +133,7 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const 
         option_manager.pitch_bend_str.clear();
         try {
             for(argi = 13; argi < argc; ++argi) {
-                option_manager.pitch_bend.push_back(strtonum(std::strtod, argv[argi].c_str()));
+                option_manager.pitch_bend.push_back(strtonum(std::strtod, argv[argi].c_str())/100);
             }
         } catch(StrToNumError) {
             WTF8::cerr << "错误：无效的滑音参数：第 " << argi << " 个值有误：" << argv[argi] << std::endl;
