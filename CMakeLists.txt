@@ -21,7 +21,9 @@ set_target_properties(Rocaloid PROPERTIES
 target_link_libraries(Rocaloid PUBLIC m)  # libm math library
 add_subdirectory(lib/libWinTF8)
 target_link_libraries(Rocaloid PUBLIC wintf8)
-add_subdirectory(lib/libsndfile-1.0.25)
+if(NOT USE_SYSTEM_SNDFILE)
+    add_subdirectory(lib/libsndfile-1.0.25)
+endif()
 target_link_libraries(Rocaloid PUBLIC sndfile)
 
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")  # Test subproject
