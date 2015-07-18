@@ -117,8 +117,10 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const 
             } else {
                 auto pos_Q = argv12.find_first_of('Q');
                 if(pos_Q != argv12.npos) {
-                    option_manager.tempo = strtonum(std::strtod, &argv12.c_str()[pos_Q+1]);
                     use_large_scale_pitch_bend = true;
+                    option_manager.tempo = strtonum(std::strtod, &argv12.c_str()[pos_Q+1]);
+                    auto first_pitch_bend_point = argv12.substr(0, pos_Q);
+                    option_manager.pitch_bend.push_back(strtonum(std::strtod, first_pitch_bend_point.c_str())/100);
                 } else {
                     throw StrToNumError();
                 }
@@ -136,7 +138,7 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const 
                 option_manager.pitch_bend.push_back(strtonum(std::strtod, argv[argi].c_str())/100);
             }
         } catch(StrToNumError) {
-            WTF8::cerr << "错误：无效的滑音参数：第 " << argi << " 个值有误：" << argv[argi] << std::endl;
+            WTF8::cerr << "错误：无效的滑音参数：第 " << (argi-11) << " 个值有误：" << argv[argi] << std::endl;
             std::exit(1);
         }
     } else {
