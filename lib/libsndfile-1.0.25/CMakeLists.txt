@@ -14,7 +14,9 @@ ExternalProject_Add(sndfile_builder
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     CONFIGURE_COMMAND sh "${CMAKE_CURRENT_SOURCE_DIR}/configure" ${SNDFILE_HOST_ARGS} "--prefix=<INSTALL_DIR>" --enable-static --disable-shared --with-pic --disable-alsa --disable-sqlite --disable-external-libs "CC=${CMAKE_C_COMPILER}" "CXX=${CMAKE_CXX_COMPILER}"
     BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/build"
+    BUILD_COMMAND $(MAKE) -C src
     INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/install"
+    INSTALL_COMMAND $(MAKE) -C src install
 )
 ExternalProject_Add_Step(sndfile_builder copy_source
     COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_CURRENT_SOURCE_DIR}/src/create_symbols_file.py" "${CMAKE_CURRENT_BINARY_DIR}/build/src/create_symbols_file.py"
