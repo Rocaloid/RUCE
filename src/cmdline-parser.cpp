@@ -82,6 +82,7 @@ void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) {
 
 void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const {
     option_manager.pitch_bend.clear();
+    bool use_large_scale_pitch_bend = false;
     option_manager.input_file_name = argv[1];
     option_manager.output_file_name = argv[2];
     try {
@@ -117,10 +118,7 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const 
                 auto pos_Q = argv12.find_first_of('Q');
                 if(pos_Q != argv12.npos) {
                     option_manager.tempo = strtonum(std::strtod, &argv12.c_str()[pos_Q+1]);
-                    option_manager.pitch_bend_str.clear();
-                    for(argi = 13; argi < argc; ++argi) {
-                        option_manager.pitch_bend.push_back(strtonum(std::strtod, argv[argi].c_str()));
-                    }
+                    use_large_scale_pitch_bend = true;
                 } else {
                     throw StrToNumError();
                 }
@@ -131,8 +129,18 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const 
         WTF8::cerr << "错误：无效的参数 #" << argi << "：" << argv[argi] << std::endl;
         std::exit(1);
     }
-    option_manager.pitch_bend_str = argc > 13 ? argv[13] : "";
-    if(!option_manager.pitch_bend_str.empty()) {
+    if(use_large_scale_pitch_bend) {
+        option_manager.pitch_bend_str.clear();
+        try {
+            for(argi = 13; argi < argc; ++argi) {
+                option_manager.pitch_bend.push_back(strtonum(std::strtod, argv[argi].c_str()));
+            }
+        } catch(StrToNumError) {
+            WTF8::cerr << "错误：无效的滑音参数：第 " << argi << " 个值有误：" << argv[argi] << std::endl;
+            std::exit(1);
+        }
+    } else {
+        option_manager.pitch_bend_str = argc > 13 ? argv[13] : "";
         try {
             parse_pitch_bend_str(option_manager.pitch_bend_str, option_manager.pitch_bend);
         } catch(PitchBendParseError e) {
