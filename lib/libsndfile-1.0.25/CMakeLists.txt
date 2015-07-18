@@ -17,7 +17,7 @@ ExternalProject_Add(sndfile_builder
     INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/install"
 )
 ExternalProject_Add_Step(sndfile_builder copy_source
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/build"
+    COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_CURRENT_SOURCE_DIR}/src/create_symbols_file.py" "${CMAKE_CURRENT_BINARY_DIR}/build/src/create_symbols_file.py"
     DEPENDERS configure
 )
 

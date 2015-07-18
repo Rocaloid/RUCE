@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 # Copyright (C) 2003-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 #
