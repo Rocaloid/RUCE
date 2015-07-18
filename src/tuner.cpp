@@ -19,6 +19,7 @@
 
 #include "tuner.hpp"
 #include <cmath>
+#include <cstdlib>
 #include "utils.hpp"
 
 namespace RUCE {
