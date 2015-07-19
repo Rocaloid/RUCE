@@ -91,7 +91,7 @@ void Synthesizer::synth_unit() {
         };
         for(size_t j = 1; j < pillars; j++) {
             s += std::sin(M_PI * phrases[0][j] / p->output_sample_rate) * intensity[0][j];
-            s += std::sin(M_PI * phrases[1][j] / p->output_sample_rate) * intensity[1][j];
+            s += std::cos(M_PI * phrases[1][j] / p->output_sample_rate) * intensity[1][j];
         }
         s *= option_manager.get_note_volume()/8;
         i++;
