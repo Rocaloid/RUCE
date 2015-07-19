@@ -25,7 +25,6 @@
 #include "option-manager.hpp"
 #include "pcm-file.hpp"
 #include "tuner.hpp"
-#include "utils.hpp"
 
 namespace RUCE {
 
