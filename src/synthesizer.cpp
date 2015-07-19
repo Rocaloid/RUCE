@@ -21,6 +21,7 @@
 #include <cmath>
 #include <ios>
 #include <sndfile.h>
+#include "fast-random.hpp"
 #include "option-manager.hpp"
 #include "pcm-file.hpp"
 #include "tuner.hpp"
@@ -30,6 +31,7 @@ namespace RUCE {
 
 struct Synthesizer::Private {
     Tuner tuner;
+    FastRandom fastrand;
     PCMFile input_file;
     PCMFile output_file;
     static const int32_t output_sample_rate = 44100;
@@ -74,10 +76,10 @@ void Synthesizer::synth_unit() {
     double phrases[13] = { 0 };
     size_t i = 0;
     for(auto &s : p->buffer) {
-        s = fastrand() / 16;
+        s = p->fastrand() / 16;
         double instant_pitch = pitch + option_manager.get_pitch_bend(double(i) / p->output_sample_rate);
         for(size_t j = 1; j < 13; j++) {
-            phrases[j] += 2.0 * j * p->tuner.midi_id_to_freq(instant_pitch + fastrand()*4 - 2);
+            phrases[j] += 2.0 * j * p->tuner.midi_id_to_freq(instant_pitch + p->fastrand()*4 - 2);
         }
         static const double intensity[13] = { 0, 1, 1, 1, 1.0/8, 1.0/64, 1.0/64, 1.0/64, 1.0/8, 1.0/8, 1.0/8, 1.0/8, 1.0/64 };
         for(size_t j = 1; j < 13; j++) {

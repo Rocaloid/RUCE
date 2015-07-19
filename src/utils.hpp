@@ -50,21 +50,6 @@ static inline T clamp(T value, T a, T b) {
 }
 
 /**
- * Return a pseudo-random between [0, 1)
- */
-template <uint32_t seed = 1>
-static inline float fastrand() {
-    static uint32_t mirand = seed;
-    union { 
-        uint32_t i;
-        float f;
-    } a;
-    mirand *= 16807;
-    a.i = (mirand & 0x7fffff) | 0x3f800000;
-    return a.f-1;
-}
-
-/**
  * The exception that strtonum throws to indicate an error
  */
 class StrToNumError : public std::runtime_error {
