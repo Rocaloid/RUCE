@@ -107,7 +107,7 @@ size_t WTF8_wide_to_utf8(char *utf8str, const wchar_t *widestr, int strict, size
         std::string utf8strpp = WTF8::wide_to_utf8(std::wstring(widestr), strict != 0);
         if(utf8str && bufsize != 0) {
             std::memcpy(utf8str, utf8strpp.data(), std::min(utf8strpp.length(), bufsize-1)*sizeof (char));
-            utf8str[std::min(utf8strpp.length(), bufsize)] = '\0';
+            utf8str[std::min(utf8strpp.length(), bufsize-1)] = '\0';
         }
         return utf8strpp.length();
     } catch(WTF8::unicode_conversion_error) {

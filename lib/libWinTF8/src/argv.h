@@ -27,15 +27,50 @@
 
 #ifdef __cplusplus
 namespace WTF8 {
+
+/**
+ * Get the command line arguments of this process
+ *
+ * Result:
+ *   The process name is in [0]
+ *   Other arguments are followed
+ *
+ * Throws:
+ *   std::runtime_error
+ */
 std::vector<u8string> getargv();
+
 }
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * Get the command line arguments of this process
+ *
+ * Result:
+ *   An array of C strings
+ *   The process name is in [0]
+ *   Other arguments are followed
+ *
+ * Errors:
+ *   Upon error, returns NULL
+ *
+ * Cleaning:
+ *   The result must be released with `WTF8_freeargv`
+ */
 char **WTF8_getargv(int *argc);
+
+/**
+ * Free the memory that was allocated with `WTF8_getargv`
+ *
+ * Result:
+ *   NULL
+ */
 char **WTF8_freeargv(char **argv);
+
 #ifdef __cplusplus
 }
 #endif

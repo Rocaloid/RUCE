@@ -28,6 +28,14 @@
 namespace WTF8 {
 
 #ifdef _WIN32
+
+/**
+ * An `std::vsprintf` implementation that does automatic buffer allocation
+ *
+ * Results:
+ *   The result string is in argument `result`
+ *   The return value is the size of `result`
+ */
 static int vasprintf(std::vector<char> &result, const char *format, va_list ap, size_t size_hint = 256) {
     result.clear();
     result.resize(size_hint);

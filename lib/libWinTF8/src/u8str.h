@@ -29,6 +29,11 @@
 
 namespace WTF8 {
 
+/**
+ * A string compatible to `std::string`, that stores UTF-8 string
+ * By marking a variable with the type `WTF8::u8string`,
+ * it could be made clear that the string that this variable stores is UTF-8
+ */
 class u8string : public std::string {
 public:
     explicit u8string() : std::string() {

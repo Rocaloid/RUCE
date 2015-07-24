@@ -53,6 +53,8 @@ const char *getenv(const char *varname) {
 const char *freeenv(const char *envstring) {
 #ifdef _WIN32
     delete_c_str(envstring);
+#else
+    unused_arg(envstring);
 #endif
     return nullptr;
 }

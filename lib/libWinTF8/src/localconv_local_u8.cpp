@@ -42,7 +42,10 @@ std::string local_to_utf8(const std::string &localstr, bool strict) {
     wide_size = MultiByteToWideChar(CP_ACP, strict ? MB_ERR_INVALID_CHARS : 0, localstr.data(), int(localstr.length()), wide_buffer.data(), int(wide_buffer.size()));
     return wide_to_utf8(std::wstring(wide_buffer.data(), wide_size), strict);
 #else
-    return localstr;
+    if(strict)
+        return utf8_validify(localstr, strict);
+    else
+        return localstr;
 #endif
 }
 
@@ -56,7 +59,7 @@ size_t WTF8_local_to_utf8(char *utf8str, const char *localstr, int strict, size_
         std::string utf8strpp = WTF8::local_to_utf8(std::string(localstr), strict != 0);
         if(utf8str && bufsize != 0) {
             std::memcpy(utf8str, utf8strpp.data(), (std::min)(utf8strpp.length(), bufsize-1)*sizeof (char));
-            utf8str[(std::min)(utf8strpp.length(), bufsize)] = '\0';
+            utf8str[(std::min)(utf8strpp.length(), bufsize-1)] = '\0';
         }
         return utf8strpp.length();
     } catch(WTF8::unicode_conversion_error) {
@@ -69,7 +72,7 @@ size_t WTF8_local_to_utf8(char *utf8str, const char *localstr, int strict, size_
         size_t locallen = std::strlen(localstr);
         if(utf8str && bufsize != 0) {
             std::memcpy(utf8str, localstr, std::min(locallen, bufsize-1)*sizeof (char));
-            utf8str[std::min(locallen, bufsize)] = '\0';
+            utf8str[std::min(locallen, bufsize-1)] = '\0';
         }
         return locallen;
     }

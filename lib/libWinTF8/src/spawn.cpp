@@ -244,14 +244,22 @@ WTF8_pid_t WTF8_spawnvp(const char *file, char *const *argv) {
     std::vector<WTF8::u8string> vargv;
     for(size_t i = 0; argv[i]; ++i)
         vargv.push_back(WTF8::u8string(argv[i]));
-    return WTF8::spawnvp_win32(WTF8::u8string(file).to_wide().c_str(), vargv);
+    try {
+        return WTF8::spawnvp_win32(WTF8::u8string(file).to_wide().c_str(), vargv);
+    } catch(WTF8::process_spawn_error) {
+        return WTF8_PROCESS_SPAWN_ERROR;
+    }
 #else
-    return WTF8::spawnvp_posix(file, argv);
+    try {
+        return WTF8::spawnvp_posix(file, argv);
+    } catch(WTF8::process_spawn_error) {
+        return WTF8_PROCESS_SPAWN_ERROR;
+    }
 #endif
 }
 
-int WTF8_waitpid(WTF8_pid_t pid) {
-    return WTF8::waitpid(pid);
+int WTF8_waitpid(WTF8_pid_t pid, int *exit_code) {
+    return WTF8::waitpid(pid, exit_code);
 }
 
 int WTF8_kill(WTF8_pid_t pid, int force) {

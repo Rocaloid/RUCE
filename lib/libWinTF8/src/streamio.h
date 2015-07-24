@@ -28,6 +28,13 @@
 
 namespace WTF8 {
 
+/**
+ * An `std::ifstream` implementation that accepts UTF-8 strings as filename
+ *
+ * Bugs:
+ *   Since `std::ifstream::open(const std::wstring &filename)` is not implementated by MinGW,
+ *   alternative measures (refer to `Boost::NoWide`) must be taken when building on such platform
+ */
 template<typename CharT, typename Traits = std::char_traits<CharT> >
 class basic_ifstream : public std::basic_ifstream<CharT, Traits> {
 public:
@@ -68,6 +75,13 @@ public:
 #endif
 };
 
+/**
+ * An `std::ofstream` implementation that accepts UTF-8 strings as filename
+ *
+ * Bugs:
+ *   Since `std::ofstream::open(const std::wstring &filename)` is not implementated by MinGW,
+ *   alternative measures (refer to `Boost::NoWide`) must be taken when building on such platform
+ */
 template<typename CharT, typename Traits = std::char_traits<CharT> >
 class basic_ofstream : public std::basic_ofstream<CharT, Traits> {
 public:
@@ -108,6 +122,13 @@ public:
 #endif
 };
 
+/**
+ * An `std::fstream` implementation that accepts UTF-8 strings as filename
+ *
+ * Bugs:
+ *   Since `std::fstream::open(const std::wstring &filename)` is not implementated by MinGW,
+ *   alternative measures (refer to `Boost::NoWide`) must be taken when building on such platform
+ */
 template<typename CharT, typename Traits = std::char_traits<CharT> >
 class basic_fstream : public std::basic_fstream<CharT, Traits> {
 public:
@@ -148,6 +169,9 @@ public:
 #endif
 };
 
+/**
+ * An `std::filebuf` implementation that accepts UTF-8 strings as filename
+ */
 template<typename CharT, typename Traits = std::char_traits<CharT> >
 class basic_filebuf : public std::basic_filebuf<CharT, Traits> {
 public:

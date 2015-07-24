@@ -46,9 +46,33 @@ public:
     process_spawn_error() : std::runtime_error("Unable to create a new process") {}
 };
 
+/**
+ * Start a process with the given executable filename and given arguments
+ *
+ * argv[0] should be the executable name of the new process
+ *
+ * Result:
+ *   The Process ID of the new process
+ *
+ * Throws:
+ *   WTF8::process_spawn_error
+ */
 WTF8_pid_t spawnvp(const u8string &file, const std::vector<u8string> &argv);
 
+/**
+ * Wait for a process to terminate and optionally fetch its exit code
+ *
+ * Result:
+ *   true on success, false on failure
+ */
 bool waitpid(WTF8_pid_t pid, int *exit_code = nullptr);
+
+/**
+ * Kill a process
+ *
+ * Result:
+ *   true on success, false on failure
+ */
 bool kill(WTF8_pid_t pid, bool force = false);
 
 }
@@ -57,9 +81,38 @@ bool kill(WTF8_pid_t pid, bool force = false);
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+static const WTF8_pid_t WTF8_PROCESS_SPAWN_ERROR = ~(WTF8_pid_t) 0 /* -1 */;
+
+/**
+ * Start a process with the given executable filename and given arguments
+ *
+ * argv[0] should be the executable name of the new process
+ *
+ * Result:
+ *   The Process ID of the new process
+ *
+ * Errors:
+ *   Return WTF8_PROCESS_SPAWN_ERROR on failure
+ */
 WTF8_pid_t WTF8_spawnvp(const char *file, char *const *argv);
-int WTF8_waitpid(WTF8_pid_t pid);
+
+/**
+ * Wait for a process to terminate and optionally fetch its exit code
+ *
+ * Result:
+ *   non-zero on success, zero on failure
+ */
+int WTF8_waitpid(WTF8_pid_t pid, int *exit_code);
+
+/**
+ * Kill a process
+ *
+ * Result:
+ *   non-zero on success, zero on failure
+ */
 int WTF8_kill(WTF8_pid_t pid, int force);
+
 #ifdef __cplusplus
 }
 #endif

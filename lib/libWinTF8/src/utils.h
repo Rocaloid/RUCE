@@ -30,11 +30,23 @@
 
 namespace WTF8 {
 
+/**
+ * Mark unused arguments to avoid compiler warnings
+ *
+ * Usage:
+ *   int func(int a) {
+ *       unused_arg(a);
+ *       return 42;
+ *   }
+ */
 template <typename T>
 static inline void unused_arg(const T &arg) {
     static_cast<void>(arg);
 }
 
+/**
+ * Clamp value in range [a, b]
+ */
 template <typename T>
 static inline T clamp(T value, T a, T b) {
     return a < b ?
@@ -42,16 +54,28 @@ static inline T clamp(T value, T a, T b) {
         value < b ? b : a < value ? a : value;
 }
 
-/* something similar to strdup */
+/**
+ * Copy the content of a C++ string to a new C string
+ *
+ * Cleaning:
+ *   The memory must be freed with `WTF8::delete_c_str`
+ */
 template <typename charT>
-static charT *new_c_str(const std::basic_string<charT> &s) {
+static inline charT *new_c_str(const std::basic_string<charT> &s) {
     charT *result = new charT[s.size()+1];
     std::memcpy(result, s.c_str(), s.size()+1);
     return result;
 }
 
+/**
+ * Copy the content of a C string to a new C string
+ * The behavior is similar to `std::strdup`
+ *
+ * Cleaning:
+ *   The memory must be freed with `WTF8::delete_c_str`
+ */
 template <typename charT>
-static charT *new_c_str(const charT *s) {
+static inline charT *new_c_str(const charT *s) {
     if(s) {
         size_t length = std::strlen(s);
         charT *result = new charT[length+1];
@@ -61,6 +85,12 @@ static charT *new_c_str(const charT *s) {
         return nullptr;
 }
 
+/**
+ * Free the memory that was allocated with `WTF8::new_c_str`
+ *
+ * Result:
+ *   nullptr
+ */
 template <typename charT>
 static inline charT *delete_c_str(charT *s) {
     if(s)

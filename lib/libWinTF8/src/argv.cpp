@@ -122,6 +122,8 @@ char **WTF8_freeargv(char **argv) {
             argv[i] = WTF8::delete_c_str(argv[i]);
         delete[] argv;
     }
+#else
+    unused_arg(argv);
 #endif
     return nullptr;
 }

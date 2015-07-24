@@ -60,7 +60,7 @@ std::string utf8_to_dos_filename(const std::string &utf8_filename) {
     dos_size = WideCharToMultiByte(CP_ACP, WC_ERR_INVALID_CHARS | WC_NO_BEST_FIT_CHARS, wide_dos_buffer.data(), wide_dos_size, dos_buffer.data(), int(dos_buffer.size()), nullptr, nullptr);
     return std::string(dos_buffer.data(), dos_size);
 #else
-    return utf8_filename;
+    return utf8_to_local(utf8_filename, true);
 #endif
 }
 
@@ -74,7 +74,7 @@ size_t WTF8_utf8_to_dos_filename(char *dos_filename, const char *utf8_filename, 
         std::string dosstrpp = WTF8::utf8_to_dos_filename(std::string(utf8_filename));
         if(dos_filename && bufsize != 0) {
             std::memcpy(dos_filename, dosstrpp.data(), (std::min)(dosstrpp.length(), bufsize-1)*sizeof (char));
-            dos_filename[(std::min)(dosstrpp.length(), bufsize)] = '\0';
+            dos_filename[(std::min)(dosstrpp.length(), bufsize-1)] = '\0';
         }
         return dosstrpp.length();
     } catch(WTF8::unicode_conversion_error) {

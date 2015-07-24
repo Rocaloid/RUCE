@@ -23,9 +23,22 @@
 #ifdef __cplusplus
 namespace WTF8 {
 
-/* Set the Windows console font to Lucida Console, which is the only console font supporting Unicode characters. */
+/**
+ * Set the Windows console font to Lucida Console,
+ * which is the only console font supporting Unicode characters
+ *
+ * Result:
+ *   If any font changes are made, return true,
+ *   Otherwise, return false
+ */
 bool set_console_font();
 
+/**
+ * A wrapper class of `WTF8::set_console_font`
+ *
+ * By setting a static variable typed `WTF8::SetConsoleFont`,
+ * `WTF8::set_conosle_font` can be invoked upon program initialization
+ */
 class SetConsoleFont {
 public:
 #ifdef _WIN32
@@ -41,7 +54,17 @@ public:
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * Set the Windows console font to Lucida Console,
+ * which is the only console font supporting Unicode characters
+ *
+ * Result:
+ *   If any font changes are made, return non-zero,
+ *   Otherwise, return zero
+ */
 int WTF8_set_console_font(void);
+
 #ifdef __cplusplus
 }
 #endif
