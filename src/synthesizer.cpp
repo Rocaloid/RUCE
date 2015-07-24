@@ -48,8 +48,8 @@ Synthesizer::~Synthesizer() {
 void Synthesizer::check_params() {
     // STUB
 
-    if(option_manager.get_required_length_msec() < 0) {
-        option_manager.set_required_length_msec(1000);
+    if(option_manager.get_required_length() < 0) {
+        option_manager.set_required_length(1);
     }
 }
 
@@ -59,10 +59,7 @@ void Synthesizer::prepare() {
     //p->input_file.open(option_manager.get_input_file_name(), std::ios_base::in, 0, 0, 0);
     p->output_file.open(option_manager.get_output_file_name(), std::ios_base::out, SF_FORMAT_WAV | SF_FORMAT_PCM_16, 1, p->output_sample_rate);
 
-    size_t milli_sample_count = size_t(option_manager.get_required_length_msec()) * p->output_sample_rate;
-    size_t sample_count = milli_sample_count / 1000;
-    if(sample_count*1000 + 500 <= milli_sample_count) // Round
-        sample_count++;
+    size_t sample_count = size_t(std::ceil(option_manager.get_required_length() * p->output_sample_rate));
     p->buffer = std::vector<float>(sample_count);
 
     p->output_pitch_freq = p->tuner.midi_id_to_freq(uint8_t(option_manager.get_output_pitch()));

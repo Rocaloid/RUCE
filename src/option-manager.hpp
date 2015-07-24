@@ -39,8 +39,7 @@ public:
     double get_note_velocity() const { return note_velocity; }
     const WTF8::u8string &get_synth_flags() const { return synth_flags; }
     double get_left_blank() const { return left_blank; }
-    int32_t get_required_length_msec() const { return required_length_msec; }
-    double get_required_length() const { return double(required_length_msec)/1000; }
+    double get_required_length() const { return required_length; }
     double get_vowel_length() const { return vowel_length; }
     double get_right_blank() const { return right_blank; }
     double get_note_volume() const { return note_volume; }
@@ -58,8 +57,8 @@ public:
         return pitch_bend.data()[index];
     }
 
-    OptionManager &set_required_length_msec(int32_t value) {
-        required_length_msec = value;
+    OptionManager &set_required_length(double value) {
+        required_length = value;
         return *this;
     }
     OptionManager &set_vowel_length(double value) {
@@ -76,8 +75,8 @@ protected:
     double note_velocity;
     WTF8::u8string synth_flags;
     double left_blank;
-    int32_t required_length_msec; // May be adjusted later
-    double vowel_length;          // May be adjusted later
+    double required_length; // May be adjusted later
+    double vowel_length;    // May be adjusted later
     double right_blank;
     double note_volume;
     double note_modulation;
