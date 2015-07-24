@@ -71,7 +71,7 @@ void CmdlineParser::log_argv(const std::vector<WTF8::u8string> &argv) {
         } else {
             WTF8::clog << ' ';
         }
-        if(argi.size() != 0 && argi.find_first_of(' ') == argi.npos) {
+        if(argi.size() != 0 && argi.find(' ') == argi.npos) {
             WTF8::clog << argi;
         } else {
             WTF8::clog << '"' << argi << '"';
@@ -115,7 +115,7 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const 
             if(argv12.compare(0, 1, "!") == 0) {
                 option_manager.tempo = strtonum(std::strtod, &argv12.c_str()[1]);
             } else {
-                auto pos_Q = argv12.find_first_of('Q');
+                auto pos_Q = argv12.find('Q');
                 if(pos_Q != argv12.npos) {
                     use_large_scale_pitch_bend = true;
                     option_manager.tempo = strtonum(std::strtod, &argv12.c_str()[pos_Q+1]);
