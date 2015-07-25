@@ -20,10 +20,10 @@
 #ifndef RUCE_PCM_FILE_HPP
 #define RUCE_PCM_FILE_HPP
 
-#include "proxy-ptr.hpp"
 #include <ios>
 #include <stdexcept>
 #include <libwintf8/u8str.h>
+#include "proxy-ptr.hpp"
 
 typedef struct SNDFILE_tag SNDFILE;
 typedef class SndfileHandle SndFileHandle;
@@ -37,6 +37,7 @@ public:
     PCMFile &open(const WTF8::u8string &filename, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out, int format = 0, int channels = 0, int sample_rate = 0);
     ~PCMFile();
     PCMFile &close();
+    bool is_open() const;
 
     int64_t frames() const;
     int format() const;

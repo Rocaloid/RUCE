@@ -32,6 +32,7 @@ namespace RUCE {
 
 struct PCMFile::Private {
     SndfileHandle sndfile;
+    bool is_open = false;
 };
 
 PCMFile::PCMFile() {
@@ -60,12 +61,18 @@ PCMFile &PCMFile::open(const WTF8::u8string &filename, std::ios_base::openmode m
 #endif
     if(!p->sndfile)
         throw FileError(p->sndfile.strError());
+    p->is_open = true;
     return *this;
 }
 
 PCMFile &PCMFile::close() {
     p->sndfile = SndFileHandle();
+    p->is_open = false;
     return *this;
+}
+
+bool PCMFile::is_open() const {
+    return p->is_open;
 }
 
 int64_t PCMFile::frames() const {
