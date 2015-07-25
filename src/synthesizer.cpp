@@ -57,7 +57,7 @@ void Synthesizer::prepare() {
     // STUB
 
     //p->input_file.open(option_manager.get_input_file_name(), std::ios_base::in, 0, 0, 0);
-    p->output_file.open(option_manager.get_output_file_name(), std::ios_base::out, SF_FORMAT_WAV | SF_FORMAT_PCM_16, 1, p->output_sample_rate);
+    p->output_file.open(option_manager.get_output_file_name(), std::ios_base::out, SF_FORMAT_WAV | SF_FORMAT_DOUBLE, 1, p->output_sample_rate);
 
     size_t sample_count = size_t(std::ceil(option_manager.get_required_length() * p->output_sample_rate));
     p->buffer = std::vector<float>(sample_count);
