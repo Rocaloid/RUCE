@@ -109,28 +109,28 @@ size_t PCMFile::read(double *output_buf, size_t frames) {
 
 size_t PCMFile::write(const short *input_buf, size_t frames) {
     auto write_count = p->sndfile.writef(input_buf, frames);
-    if(write_count == 0)
+    if(write_count == 0 && frames != 0)
         throw FileError(p->sndfile.strError());
     return write_count;
 }
 
 size_t PCMFile::write(const int *input_buf, size_t frames) {
     auto write_count = p->sndfile.writef(input_buf, frames);
-    if(write_count == 0)
+    if(write_count == 0 && frames != 0)
         throw FileError(p->sndfile.strError());
     return write_count;
 }
 
 size_t PCMFile::write(const float *input_buf, size_t frames) {
     auto write_count = p->sndfile.writef(input_buf, frames);
-    if(write_count == 0)
+    if(write_count == 0 && frames != 0)
         throw FileError(p->sndfile.strError());
     return write_count;
 }
 
 size_t PCMFile::write(const double *input_buf, size_t frames) {
     auto write_count = p->sndfile.writef(input_buf, frames);
-    if(write_count == 0)
+    if(write_count == 0 && frames != 0)
         throw FileError(p->sndfile.strError());
     return write_count;
 }
