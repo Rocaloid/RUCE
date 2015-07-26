@@ -29,9 +29,9 @@ class Synthesizer {
 public:
     Synthesizer(OptionManager &option_manager);
     ~Synthesizer();
-    void check_params();
-    void prepare();
-    void synth_unit();
+    Synthesizer &check_params();
+    Synthesizer &prepare();
+    Synthesizer &synth_unit();
 protected:
     OptionManager &option_manager;
 private:

@@ -41,9 +41,9 @@ int main() {
 
     {
         Synthesizer synth(*option_manager.get());
-        synth.check_params();
-        synth.prepare();
-        synth.synth_unit();
+        synth.check_params()
+             .prepare()
+             .synth_unit();
     }
 
     return 0;

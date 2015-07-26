@@ -51,15 +51,17 @@ Synthesizer::Synthesizer(OptionManager &option_manager) :
 Synthesizer::~Synthesizer() {
 }
 
-void Synthesizer::check_params() {
+Synthesizer &Synthesizer::check_params() {
     // STUB
 
     if(option_manager.get_required_length() < 0) {
         option_manager.set_required_length(1);
     }
+
+    return *this;
 }
 
-void Synthesizer::prepare() {
+Synthesizer &Synthesizer::prepare() {
     // STUB
 
     //p->input_file.open(option_manager.get_input_file_name(), std::ios_base::in, 0, 0, 0);
@@ -69,9 +71,11 @@ void Synthesizer::prepare() {
     p->buffer = std::vector<float>(sample_count);
 
     p->output_pitch_freq = p->tuner.midi_id_to_freq(uint8_t(option_manager.get_output_pitch()));
+
+    return *this;
 }
 
-void Synthesizer::synth_unit() {
+Synthesizer &Synthesizer::synth_unit() {
     // STUB
 
     double pitch = option_manager.get_output_pitch();
@@ -100,6 +104,8 @@ void Synthesizer::synth_unit() {
         i++;
     }
     p->output_file.write(p->buffer.data(), p->buffer.size());
+
+    return *this;
 }
 
 }
