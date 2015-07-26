@@ -18,13 +18,18 @@ set_target_properties(Rocaloid PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-target_link_libraries(Rocaloid PUBLIC m)  # libm math library
+if(NOT USE_VC)
+    target_link_libraries(Rocaloid PUBLIC m)  # libm math library
+    if(NOT USE_SYSTEM_SNDFILE)
+        add_subdirectory(lib/libsndfile-1.0.25)
+    endif()
+    target_link_libraries(Rocaloid PUBLIC sndfile)
+else()
+target_link_libraries(Rocaloid PUBLIC libsndfile-1)
+endif()
+
 add_subdirectory(lib/libWinTF8)
 target_link_libraries(Rocaloid PUBLIC wintf8)
-if(NOT USE_SYSTEM_SNDFILE)
-    add_subdirectory(lib/libsndfile-1.0.25)
-endif()
-target_link_libraries(Rocaloid PUBLIC sndfile)
 add_subdirectory(lib/ooura-fft)
 target_link_libraries(Rocaloid PUBLIC ooura-fft)
 add_subdirectory(lib/SPTK-3.8-extracted)
