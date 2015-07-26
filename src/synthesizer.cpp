@@ -17,6 +17,10 @@
     see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef _MSC_VER
+#define _USE_MATH_DEFINES
+#endif
+
 #include "synthesizer.hpp"
 #include <cmath>
 #include <ios>

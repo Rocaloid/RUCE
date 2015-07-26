@@ -23,6 +23,8 @@
 #include <vector>
 #include <libwintf8/u8str.h>
 
+#include <cstdint>
+
 namespace RUCE {
 
 /**

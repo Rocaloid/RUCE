@@ -3,7 +3,8 @@
 #include "../../nrand/_nrand.pub.h"
 #include "../../../lib/getmem.pub.h"
 
-static inline void usage(int status) {
+
+static void usage(int status) {
     abort();
 }
 

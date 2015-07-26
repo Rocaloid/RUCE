@@ -29,6 +29,13 @@ SOFTWARE.
 #ifndef PROXY_PTR_HPP
 #define PROXY_PTR_HPP
 
+#ifdef _MSC_VER
+// Prepare to apply Visual C++ hacks
+#if _MSC_VER <= 1800 //Visual C++ 2013 or older
+#define noexcept
+#endif
+#endif
+
 #include <memory>
 
 template<typename _Tp, typename Allocator = std::allocator<_Tp>>
