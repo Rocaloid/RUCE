@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "sigproc.priv.h"
 #include "../../nrand/_nrand.pub.h"
 #include "../../../lib/getmem.pub.h"
 

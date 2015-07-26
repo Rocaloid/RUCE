@@ -1522,9 +1522,11 @@ get_similarity(order, size, pdata, cdata,
 {
   float rho3[BIGSORD+1], err3, rms3, rmsd3, b0, t, a2[BIGSORD+1], 
       rho1[BIGSORD+1], a1[BIGSORD+1], b[BIGSORD+1], err1, rms1, rmsd1;
+/*
   float xitakura(), wind_energy();
   void xa_to_aca ();
   int xlpc();
+*/
 
 /* (In the lpc() calls below, size-1 is used, since the windowing and
    preemphasis function assumes an extra point is available in the

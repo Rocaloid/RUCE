@@ -102,7 +102,7 @@ int   n_cands,		/* max. # of F0 cands. to consider at each frame */
 #define F0_PC_DIFF	0x010		/* 1st-order difference */
 
 extern F0_params *new_f0_params();
-extern int atoi(), eround(), lpc(), window(), get_window();
+extern int atoi(), eround(), lpc(), get_window();
 extern void get_fast_cands(), a_to_aca(), cross(), crossf(), crossfi(),
            autoc(), durbin();
 
