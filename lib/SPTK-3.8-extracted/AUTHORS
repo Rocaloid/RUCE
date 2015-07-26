@@ -1,0 +1,19 @@
+The Speech Signal Processing Toolkit (SPTK) is a software for speech signal
+processing tools for UNIX environments. This software is released under the
+Modified BSD license. See the COPYING file in the same directory as this file
+for the license.
+
+The SPTK has been developed by several members of SPTK Working Group and some
+guraduate students in Nagoya Institute of Technology:
+
+ Keiichi Tokuda      http://www.sp.nitech.ac.jp/~tokuda/
+ (Produce and Design)
+ Keiichiro Oura      http://www.sp.nitech.ac.jp/~uratec/
+ (Main Maintainer)
+ Akira Tamamori      http://www.sp.nitech.ac.jp/~mataki/
+ Shinji Sako         http://www.mmsp.nitech.ac.jp/~sako/
+ Heiga Zen
+ Takashi Nose
+ Toru Takahashi      http://winnie.kuis.kyoto-u.ac.jp/~tall/
+ Junichi Yamagishi   http://homepages.inf.ed.ac.uk/jyamagis/
+ Yoshihiko Nankaku   http://www.sp.nitech.ac.jp/~nankaku/
