@@ -2,4 +2,6 @@ This directory contains files extracted from Speech Signal Processing Toolkit (S
 
 For the original SPTK, see http://sp-tk.sourceforge.net/
 
-
+The library has been carefully modified to minify namespace leakage,
+However there are the following functions that are still leaked:
+crossf crossfi fgetmem nrandom wind_energy xitakura xlpc xz_to_aca
