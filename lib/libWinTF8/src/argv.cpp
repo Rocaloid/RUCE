@@ -123,7 +123,7 @@ char **WTF8_freeargv(char **argv) {
         delete[] argv;
     }
 #else
-    unused_arg(argv);
+    WTF8::unused_arg(argv);
 #endif
     return nullptr;
 }
