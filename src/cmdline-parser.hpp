@@ -25,6 +25,8 @@
 #include "option-manager.hpp"
 #include "tuner.hpp"
 
+#include <cstdint>
+
 namespace RUCE {
 
 /**

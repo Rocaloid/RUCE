@@ -26,6 +26,8 @@
 #include "pcm-file.hpp"
 #include "tuner.hpp"
 
+#include <cstdint>
+
 namespace RUCE {
 
 struct Synthesizer::Private {

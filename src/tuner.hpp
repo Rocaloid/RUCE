@@ -23,6 +23,8 @@
 #include <libwintf8/u8str.h>
 #include <stdexcept>
 
+#include <cstdint>
+
 namespace RUCE {
 
 /**

@@ -20,6 +20,8 @@
 #ifndef RUCE_FAST_RANDOM_HPP
 #define RUCE_FAST_RANDOM_HPP
 
+#include <cstdint>
+
 namespace RUCE {
 
 /**
