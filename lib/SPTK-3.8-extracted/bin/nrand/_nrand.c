@@ -79,6 +79,7 @@ static double rnd(unsigned long *next)
    return (r / RAND_MAX);
 }
 
+/*
 int nrand(double *p, const int leng, const int seed)
 {
    int i;
@@ -91,6 +92,7 @@ int nrand(double *p, const int leng, const int seed)
 
    return (0);
 }
+*/
 
 double nrandom(unsigned long *next)
 {
@@ -113,7 +115,9 @@ double nrandom(unsigned long *next)
    }
 }
 
+/*
 unsigned long srnd(const unsigned int seed)
 {
    return (seed);
 }
+*/
