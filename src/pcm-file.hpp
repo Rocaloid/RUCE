@@ -20,12 +20,12 @@
 #ifndef RUCE_PCM_FILE_HPP
 #define RUCE_PCM_FILE_HPP
 
+#include <cstdint>
 #include <ios>
 #include <stdexcept>
 #include <libwintf8/u8str.h>
 #include "proxy-ptr.hpp"
 
-#include <cstdint>
 
 typedef struct SNDFILE_tag SNDFILE;
 typedef class SndfileHandle SndFileHandle;

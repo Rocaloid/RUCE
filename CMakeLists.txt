@@ -18,7 +18,7 @@ set_target_properties(Rocaloid PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-if(NOT USE_VC)
+if(NOT MSVC)
     target_link_libraries(Rocaloid PUBLIC m)  # libm math library
     if(NOT USE_SYSTEM_SNDFILE)
         add_subdirectory(lib/libsndfile-1.0.25)

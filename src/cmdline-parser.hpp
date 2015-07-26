@@ -21,11 +21,12 @@
 #define RUCE_CMDLINE_PARSER_HPP
 
 #include <vector>
+#include <cstdint>
 #include <libwintf8/u8str.h>
 #include "option-manager.hpp"
 #include "tuner.hpp"
 
-#include <cstdint>
+
 
 namespace RUCE {
 

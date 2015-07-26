@@ -23,6 +23,7 @@
 
 #include "synthesizer.hpp"
 #include <cmath>
+#include <cstdint>
 #include <ios>
 #include <sndfile.h>
 #include "fast-random.hpp"
@@ -30,7 +31,6 @@
 #include "pcm-file.hpp"
 #include "tuner.hpp"
 
-#include <cstdint>
 
 namespace RUCE {
 

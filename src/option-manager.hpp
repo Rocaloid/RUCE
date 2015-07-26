@@ -21,9 +21,9 @@
 #define RUCE_OPTION_MANAGER_HPP
 
 #include <vector>
+#include <cstdint>
 #include <libwintf8/u8str.h>
 
-#include <cstdint>
 
 namespace RUCE {
 
