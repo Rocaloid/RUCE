@@ -17,7 +17,8 @@
     see <http://www.gnu.org/licenses/>.
 */
 
-#ifdef _MSC_VER
+// Define M_PI etc
+#ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
 #endif
 
@@ -30,7 +31,6 @@
 #include "option-manager.hpp"
 #include "pcm-file.hpp"
 #include "tuner.hpp"
-
 
 namespace RUCE {
 
@@ -103,4 +103,3 @@ void Synthesizer::synth_unit() {
 }
 
 }
-

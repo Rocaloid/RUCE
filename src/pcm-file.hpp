@@ -26,7 +26,6 @@
 #include <libwintf8/u8str.h>
 #include "proxy-ptr.hpp"
 
-
 typedef struct SNDFILE_tag SNDFILE;
 typedef class SndfileHandle SndFileHandle;
 

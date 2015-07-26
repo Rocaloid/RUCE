@@ -25,4 +25,3 @@ OptionManager::OptionManager() {
 }
 
 }
-

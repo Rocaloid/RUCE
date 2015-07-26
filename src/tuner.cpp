@@ -22,7 +22,6 @@
 #include <cstdlib>
 #include "utils.hpp"
 
-
 namespace RUCE {
 
 uint8_t Tuner::note_name_to_midi_id(const WTF8::u8string &note_name) {
@@ -71,4 +70,3 @@ double Tuner::midi_id_to_freq(double midi_id) {
 }
 
 }
-

@@ -302,4 +302,3 @@ int16_t CmdlineParser::decode_pitch_bend_item(const char pitch_bend_str[2]) {
 }
 
 }
-

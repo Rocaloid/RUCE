@@ -25,4 +25,3 @@ TemplateClass::TemplateClass() {
 }
 
 }
-

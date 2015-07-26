@@ -29,11 +29,9 @@ SOFTWARE.
 #ifndef PROXY_PTR_HPP
 #define PROXY_PTR_HPP
 
-#ifdef _MSC_VER
-// Prepare to apply Visual C++ hacks
-#if _MSC_VER <= 1800 //Visual C++ 2013 or older
+// Visual C++ 2013 or older does not support "noexcept"
+#if defined(_MSC_VER) && _MSC_VER <= 1800
 #define noexcept
-#endif
 #endif
 
 #include <memory>
