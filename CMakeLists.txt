@@ -25,6 +25,8 @@ if(NOT USE_SYSTEM_SNDFILE)
     add_subdirectory(lib/libsndfile-1.0.25)
 endif()
 target_link_libraries(Rocaloid PUBLIC sndfile)
+add_subdirectory(lib/SPTK-3.8-extracted)
+target_link_libraries(Rocaloid PUBLIC SPTK)
 
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")  # Test subproject
     install(TARGETS Rocaloid
