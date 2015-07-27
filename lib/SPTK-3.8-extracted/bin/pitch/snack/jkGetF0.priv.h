@@ -32,4 +32,4 @@ static float get_similarity(int order, int size, float *pdata, float *cdata, flo
 static Stat *get_stationarity(float *fdata, double freq, int buff_size, int nframes, int frame_step, int first_time);
 static int eround(double flnum);
 static void free_dp_f0(void);
-void rapt(float_list *input, int length, double sample_freq, int frame_shift, double minF0, double maxF0, double voice_bias, int otype);
+void rapt(float_list *input, int length, double sample_freq, int frame_shift, double minF0, double maxF0, double voice_bias, int otype, void (*callback)(void *callback_param, float result), void *callback_param);

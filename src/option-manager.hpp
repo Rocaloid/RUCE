@@ -24,7 +24,6 @@
 #include <cstdint>
 #include <libwintf8/u8str.h>
 
-
 namespace RUCE {
 
 /**

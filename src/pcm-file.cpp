@@ -59,7 +59,7 @@ PCMFile &PCMFile::open(const WTF8::u8string &filename, std::ios_base::openmode m
 #else
     p->sndfile = SndFileHandle(filename, sfmode, format, channels, sample_rate);
 #endif
-    if(!p->sndfile)
+    if(p->sndfile.error() != 0)
         throw FileError(p->sndfile.strError());
     p->is_open = true;
     return *this;
@@ -92,58 +92,73 @@ int PCMFile::sample_rate() const {
 }
 
 size_t PCMFile::read(short *output_buf, size_t frames) {
-    return p->sndfile.readf(output_buf, frames);
+    auto read_count = p->sndfile.readf(output_buf, frames);
+    if(p->sndfile.error() != 0)
+        throw FileError(p->sndfile.strError());
+    return read_count;
 }
 
 size_t PCMFile::read(int *output_buf, size_t frames) {
-    return p->sndfile.readf(output_buf, frames);
+    auto read_count = p->sndfile.readf(output_buf, frames);
+    if(p->sndfile.error() != 0)
+        throw FileError(p->sndfile.strError());
+    return read_count;
 }
 
 size_t PCMFile::read(float *output_buf, size_t frames) {
-    return p->sndfile.readf(output_buf, frames);
+    auto read_count = p->sndfile.readf(output_buf, frames);
+    if(p->sndfile.error() != 0)
+        throw FileError(p->sndfile.strError());
+    return read_count;
 }
 
 size_t PCMFile::read(double *output_buf, size_t frames) {
-    return p->sndfile.readf(output_buf, frames);
+    auto read_count = p->sndfile.readf(output_buf, frames);
+    if(p->sndfile.error() != 0)
+        throw FileError(p->sndfile.strError());
+    return read_count;
 }
 
 size_t PCMFile::write(const short *input_buf, size_t frames) {
     auto write_count = p->sndfile.writef(input_buf, frames);
-    if(write_count == 0 && frames != 0)
+    if(p->sndfile.error() != 0)
         throw FileError(p->sndfile.strError());
     return write_count;
 }
 
 size_t PCMFile::write(const int *input_buf, size_t frames) {
     auto write_count = p->sndfile.writef(input_buf, frames);
-    if(write_count == 0 && frames != 0)
+    if(p->sndfile.error() != 0)
         throw FileError(p->sndfile.strError());
     return write_count;
 }
 
 size_t PCMFile::write(const float *input_buf, size_t frames) {
     auto write_count = p->sndfile.writef(input_buf, frames);
-    if(write_count == 0 && frames != 0)
+    if(p->sndfile.error() != 0)
         throw FileError(p->sndfile.strError());
     return write_count;
 }
 
 size_t PCMFile::write(const double *input_buf, size_t frames) {
     auto write_count = p->sndfile.writef(input_buf, frames);
-    if(write_count == 0 && frames != 0)
+    if(p->sndfile.error() != 0)
         throw FileError(p->sndfile.strError());
     return write_count;
 }
 
 int64_t PCMFile::seek(int64_t frames, int whence) {
     auto new_offset = p->sndfile.seek(frames, whence);
-    if(new_offset < 0)
+    if(p->sndfile.error() != 0)
         throw FileError(p->sndfile.strError());
     return new_offset;
 }
 
 int PCMFile::command(int cmd, void *data, size_t data_size) {
-    return p->sndfile.command(cmd, data, data_size);
+    auto result = p->sndfile.command(cmd, data, data_size);
+    if(p->sndfile.error() != 0)
+        throw FileError(p->sndfile.strError());
+    return result;
 }
 
 SndfileHandle &PCMFile::sndfile_cxx() const {

@@ -23,6 +23,10 @@
 #include <cstring>
 #include <stdexcept>
 
+#ifdef _MSC_VER
+typedef ptrdiff_t ssize_t;
+#endif
+
 namespace RUCE {
 
 /**

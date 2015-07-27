@@ -32,6 +32,7 @@
 #include "fast-random.hpp"
 #include "option-manager.hpp"
 #include "pcm-file.hpp"
+#include "signal-segment.hpp"
 #include "tuner.hpp"
 
 namespace RUCE {
@@ -90,7 +91,7 @@ Synthesizer &Synthesizer::synth_unit() {
     // STUB
 
     double pitch = option_manager.get_output_pitch();
-    static const size_t pillars = 13;
+    static const size_t pillars = 32;
     double phrases[2][pillars] = { 0 };
     size_t i = 0;
     for(auto &s : p->sink_buffer) {

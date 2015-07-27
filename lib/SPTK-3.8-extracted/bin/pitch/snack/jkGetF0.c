@@ -1861,7 +1861,9 @@ int
 cGet_f0(Sound *sound, Tcl_Interp *interp, float **outlist, int *length)
 {
 #else
-void rapt(float_list *input, int length, double sample_freq, int frame_shift, double minF0, double maxF0, double voice_bias, int otype)
+void rapt(float_list *input, int length, double sample_freq, int frame_shift, double minF0, double maxF0, double voice_bias, int otype,
+void (*callback)(void *callback_param, float result), void *callback_param // Added to fit the need for Rocaloid
+)
 {
   int fnum = 0;
 #endif
@@ -2130,7 +2132,10 @@ void rapt(float_list *input, int length, double sample_freq, int frame_shift, do
   for (i = 0; i < fnum; i++) {
       switch (otype) {
       case 1:                   /* f0 */
+/*
           fwrite(tmp + i, sizeof(float), 1, stdout);
+*/
+          callback(callback_param, tmp[i]);
           break;
       case 2:                   /* log(f0) */
           if (tmp[i] != 0.0) {
@@ -2138,13 +2143,19 @@ void rapt(float_list *input, int length, double sample_freq, int frame_shift, do
           } else {
               tmp[i] = -1.0E10;
           }
+/*
           fwrite(tmp + i, sizeof(float), 1, stdout);
+*/
+          callback(callback_param, tmp[i]);
           break;
       default:                  /* pitch */
           if (tmp[i] != 0.0) {
               tmp[i] = sample_freq / tmp[i];
           }
+/*
           fwrite(tmp + i, sizeof(float), 1, stdout);
+*/
+          callback(callback_param, tmp[i]);
           break;
       }
   }
