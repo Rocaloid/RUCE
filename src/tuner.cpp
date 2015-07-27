@@ -60,12 +60,12 @@ uint8_t Tuner::note_name_to_midi_id(const WTF8::u8string &note_name) {
 
 double Tuner::midi_id_to_freq(uint8_t midi_id) {
     // https://en.wikipedia.org/wiki/MIDI_Tuning_Standard
-    static const double M_2_POW_INV_12 = 1.05946309435929530984; // 2^(1/12)
+    static const double M_2_POW_INV_12 = 1.05946309435929526456; // 2^(1/12)
     return pow(M_2_POW_INV_12, int(midi_id)-69) * 440;
 }
 
 double Tuner::midi_id_to_freq(double midi_id) {
-    static const double M_2_POW_INV_12 = 1.05946309435929530984; // 2^(1/12)
+    static const double M_2_POW_INV_12 = 1.05946309435929526456; // 2^(1/12)
     return pow(M_2_POW_INV_12, midi_id-69) * 440;
 }
 

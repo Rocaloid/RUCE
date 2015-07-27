@@ -42,7 +42,7 @@ public:
     const WTF8::u8string &get_synth_flags() const { return synth_flags; }
     double get_left_blank() const { return left_blank; }
     double get_required_length() const { return required_length; }
-    double get_vowel_length() const { return vowel_length; }
+    double get_consonant_length() const { return consonant_length; }
     double get_right_blank() const { return right_blank; }
     double get_note_volume() const { return note_volume; }
     double get_note_modulation() const { return note_modulation; }
@@ -63,10 +63,6 @@ public:
         required_length = value;
         return *this;
     }
-    OptionManager &set_vowel_length(double value) {
-        vowel_length = value;
-        return *this;
-    }
 protected:
     // These are parameters passed from UTAU
     // Milliseconds are converted to seconds
@@ -77,8 +73,8 @@ protected:
     double note_velocity;
     WTF8::u8string synth_flags;
     double left_blank;
-    double required_length; // May be adjusted later
-    double vowel_length;    // May be adjusted later
+    double required_length;  // May be adjusted later
+    double consonant_length;
     double right_blank;
     double note_volume;
     double note_modulation;

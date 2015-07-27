@@ -102,7 +102,7 @@ void CmdlineParser::analyze_argv(const std::vector<WTF8::u8string> &argv) const 
         ++argi;
         option_manager.required_length = argc > 7 ? strtonum(std::strtod, argv[7].c_str())/1000 : -1;
         ++argi;
-        option_manager.vowel_length = argc > 8 ? strtonum(std::strtod, argv[8].c_str())/1000 : 0;
+        option_manager.consonant_length = argc > 8 ? strtonum(std::strtod, argv[8].c_str())/1000 : 0;
         ++argi;
         option_manager.right_blank = argc > 9 ? strtonum(std::strtod, argv[9].c_str())/1000 : 0;
         ++argi;
