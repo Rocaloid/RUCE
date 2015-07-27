@@ -19,8 +19,7 @@ set_target_properties(Rocaloid PROPERTIES
 )
 
 if(NOT MSVC)
-    find_library(RUCE_LIBM m)  # Math library
-    target_link_libraries(Rocaloid PUBLIC "${RUCE_LIBM}")
+    target_link_libraries(Rocaloid PUBLIC m)  # Math library
 endif()
 
 if(NOT USE_SYSTEM_SNDFILE)

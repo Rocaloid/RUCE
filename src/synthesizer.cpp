@@ -26,6 +26,8 @@
 #include <cmath>
 #include <cstdint>
 #include <ios>
+#include <iostream>
+#include <libwintf8/termio.h>
 #include <sndfile.h>
 #include "fast-random.hpp"
 #include "option-manager.hpp"
@@ -39,9 +41,11 @@ struct Synthesizer::Private {
     FastRandom fastrand;
     PCMFile input_file;
     PCMFile output_file;
-    static const int32_t output_sample_rate = 44100;
+    int64_t input_file_frames;
+    int32_t input_sample_rate;
+    int32_t output_sample_rate;
     double output_pitch_freq;
-    std::vector<float> buffer;
+    std::vector<double> sink_buffer;
 };
 
 Synthesizer::Synthesizer(OptionManager &option_manager) :
@@ -64,11 +68,18 @@ Synthesizer &Synthesizer::check_params() {
 Synthesizer &Synthesizer::prepare() {
     // STUB
 
-    //p->input_file.open(option_manager.get_input_file_name(), std::ios_base::in, 0, 0, 0);
+    p->input_file.open(option_manager.get_input_file_name(), std::ios_base::in, 0, 1, 0);
+    p->input_file_frames = p->input_file.frames();
+    p->input_sample_rate = p->input_file.sample_rate();
+    if(p->input_file.channels() != 1) {
+        WTF8::cerr << "Error: Input file must have only one channel." << std::endl;
+        std::exit(1);
+    }
+
     p->output_file.open(option_manager.get_output_file_name(), std::ios_base::out, SF_FORMAT_WAV | SF_FORMAT_DOUBLE, 1, p->output_sample_rate);
 
     size_t sample_count = size_t(std::ceil(option_manager.get_required_length() * p->output_sample_rate));
-    p->buffer = std::vector<float>(sample_count);
+    p->sink_buffer = std::vector<double>(sample_count);
 
     p->output_pitch_freq = p->tuner.midi_id_to_freq(uint8_t(option_manager.get_output_pitch()));
 
@@ -82,7 +93,7 @@ Synthesizer &Synthesizer::synth_unit() {
     static const size_t pillars = 13;
     double phrases[2][pillars] = { 0 };
     size_t i = 0;
-    for(auto &s : p->buffer) {
+    for(auto &s : p->sink_buffer) {
         s = p->fastrand() / 16;
         double instant_pitch = pitch + option_manager.get_pitch_bend(double(i) / p->output_sample_rate);
         for(size_t j = 1; j < pillars; j++) {
@@ -103,7 +114,7 @@ Synthesizer &Synthesizer::synth_unit() {
         s *= option_manager.get_note_volume()/8;
         i++;
     }
-    p->output_file.write(p->buffer.data(), p->buffer.size());
+    p->output_file.write(p->sink_buffer.data(), p->sink_buffer.size());
 
     return *this;
 }
