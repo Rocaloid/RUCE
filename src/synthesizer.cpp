@@ -91,7 +91,7 @@ Synthesizer &Synthesizer::synth_unit() {
     // STUB
 
     double pitch = option_manager.get_output_pitch();
-    static const size_t pillars = 32;
+    static const size_t pillars = 13;
     double phrases[2][pillars] = { 0 };
     size_t i = 0;
     for(auto &s : p->sink_buffer) {
