@@ -27,6 +27,7 @@ namespace RUCE {
 struct F0Tracker::Private{
     std::vector<float> output;
     ssize_t frame_hop = 0;
+    ssize_t left_bound = 0;
     static void callback(void *callback_param, float result);
 };
 
@@ -39,6 +40,7 @@ F0Tracker::~F0Tracker() {
 F0Tracker &F0Tracker::track(const SignalSegment &segment, int32_t sample_rate, ssize_t frame_hop, double min_freq, double max_freq, double threshold) {
     assert(frame_hop > 0);
     p->frame_hop = 0;
+    p->left_bound = segment.left();
     auto length = segment.size();
     const auto &segment_buffer = segment.buffer();
     std::vector<float_list> input_vector(length);
@@ -60,6 +62,7 @@ const std::vector<float> &F0Tracker::get_result() const {
 
 float F0Tracker::get_result(ssize_t sample_idx) const {
     assert(p->frame_hop > 0);
+    sample_idx -= p->left_bound;
     ssize_t frame_idx = sample_idx / p->frame_hop;
     if(frame_idx >= 0 && frame_idx < ssize_t(p->output.size()))
         return p->output[frame_idx];
