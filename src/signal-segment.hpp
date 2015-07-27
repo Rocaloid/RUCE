@@ -148,11 +148,11 @@ public:
     /**
      * Get the left bound of this SignalSegment
      */
-    ssize_t left_bound() const { return m_left; }
+    ssize_t left() const { return m_left; }
     /**
      * Get the right bound of this SignalSegment
      */
-    ssize_t right_bound() const { return m_right; }
+    ssize_t right() const { return m_right; }
     /**
      * Get the raw data, for operations without bounding check
      */
@@ -161,6 +161,14 @@ public:
      * Get the raw data, for operations without bounding check
      */
     sample_fmt *data() { return m_data; }
+    /**
+     * Get the raw buffer, that is, data + left_bound
+     */
+    const sample_fmt *buffer() const { return m_data + m_left; }
+    /**
+     * Get the raw buffer, that is, data + left_bound
+     */
+    sample_fmt *buffer() { return m_data + m_left; }
 
     /**
      * Fill with a specific value

@@ -46,7 +46,7 @@ struct Synthesizer::Private {
     int32_t input_sample_rate;
     int32_t output_sample_rate;
     double output_pitch_freq;
-    std::vector<double> sink_buffer;
+    SignalSegment sink_buffer;
 };
 
 Synthesizer::Synthesizer(OptionManager &option_manager) :
@@ -77,10 +77,11 @@ Synthesizer &Synthesizer::prepare() {
         std::exit(1);
     }
 
+    p->output_sample_rate = p->input_sample_rate;
     p->output_file.open(option_manager.get_output_file_name(), std::ios_base::out, SF_FORMAT_WAV | SF_FORMAT_DOUBLE, 1, p->output_sample_rate);
 
     size_t sample_count = size_t(std::ceil(option_manager.get_required_length() * p->output_sample_rate));
-    p->sink_buffer = std::vector<double>(sample_count);
+    p->sink_buffer = SignalSegment(sample_count);
 
     p->output_pitch_freq = p->tuner.midi_id_to_freq(uint8_t(option_manager.get_output_pitch()));
 
@@ -93,8 +94,8 @@ Synthesizer &Synthesizer::synth_unit() {
     double pitch = option_manager.get_output_pitch();
     static const size_t pillars = 13;
     double phrases[2][pillars] = { 0 };
-    size_t i = 0;
-    for(auto &s : p->sink_buffer) {
+    for(auto i = p->sink_buffer.left(); i < p->sink_buffer.right(); i++) {
+        auto &s = p->sink_buffer[i];
         s = p->fastrand() / 16;
         double instant_pitch = pitch + option_manager.get_pitch_bend(double(i) / p->output_sample_rate);
         for(size_t j = 1; j < pillars; j++) {
@@ -113,9 +114,8 @@ Synthesizer &Synthesizer::synth_unit() {
             s += std::cos(M_PI * phrases[1][j] / p->output_sample_rate) * intensity[1][j];
         }
         s *= option_manager.get_note_volume()/8;
-        i++;
     }
-    p->output_file.write(p->sink_buffer.data(), p->sink_buffer.size());
+    p->output_file.write(p->sink_buffer.buffer(), p->sink_buffer.size());
 
     return *this;
 }
