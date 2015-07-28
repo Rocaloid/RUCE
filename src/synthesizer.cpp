@@ -92,11 +92,21 @@ Synthesizer &Synthesizer::prepare() {
 }
 
 Synthesizer &Synthesizer::read_source() {
+    // Some voicebanks provide negative right_blank value
+    if(option_manager.get_right_blank() < 0) {
+        option_manager.set_right_blank(double(p->input_file_frames)/double(p->input_sample_rate) + option_manager.get_right_blank() - option_manager.get_left_blank());
+    }
+
     int64_t left_bound = int64_t(option_manager.get_left_blank() * p->input_sample_rate);
     int64_t right_bound = p->input_file_frames - int64_t(option_manager.get_right_blank() * p->input_sample_rate);
     p->source_buffer = SignalSegment(left_bound, right_bound);
-    p->input_file.seek(left_bound, SEEK_SET);
-    p->input_file.read(p->source_buffer.buffer(), p->source_buffer.size());
+    if(left_bound >= 0) {
+        p->input_file.seek(left_bound, SEEK_SET);
+        p->input_file.read(p->source_buffer.buffer(), p->source_buffer.size());
+    } else {
+        p->input_file.seek(0, SEEK_SET);
+        p->input_file.read(&p->source_buffer.buffer()[left_bound], p->source_buffer.size() - left_bound);
+    }
 
     return *this;
 }

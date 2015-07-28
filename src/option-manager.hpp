@@ -63,6 +63,10 @@ public:
         required_length = value;
         return *this;
     }
+    OptionManager &set_right_blank(double value) {
+        right_blank = value;
+        return *this;
+    }
 protected:
     // These are parameters passed from UTAU
     // Milliseconds are converted to seconds
@@ -75,7 +79,7 @@ protected:
     double left_blank;
     double required_length;  // May be adjusted later
     double consonant_length;
-    double right_blank;
+    double right_blank;      // May be adjusted later
     double note_volume;
     double note_modulation;
     double tempo;
