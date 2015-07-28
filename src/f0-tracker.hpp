@@ -21,6 +21,7 @@
 #define RUCE_F0_TRACKER_HPP
 
 #include <cstdint>
+#include <vector>
 #include "signal-segment.hpp"
 #include "proxy-ptr.hpp"
 #include "utils.hpp"

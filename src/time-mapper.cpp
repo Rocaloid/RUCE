@@ -19,6 +19,7 @@
 
 #include "time-mapper.hpp"
 #include <cmath>
+#include <algorithm>
 #include "option-manager.hpp"
 
 namespace RUCE {
