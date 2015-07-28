@@ -43,6 +43,8 @@ int main() {
         Synthesizer synth(*option_manager.get());
         synth.check_params()
              .prepare()
+             .read_source()
+             .track_f0()
              .synth_unit();
     }
 

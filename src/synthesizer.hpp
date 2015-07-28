@@ -31,6 +31,8 @@ public:
     ~Synthesizer();
     Synthesizer &check_params();
     Synthesizer &prepare();
+    Synthesizer &read_source();
+    Synthesizer &track_f0();
     Synthesizer &synth_unit();
 protected:
     OptionManager &option_manager;

@@ -31,7 +31,7 @@ class F0Tracker {
 public:
     F0Tracker();
     ~F0Tracker();
-    F0Tracker &track(const SignalSegment &segment, int32_t sample_rate, ssize_t frame_hop, double min_freq = 60, double max_freq = 1000, double threshold = 0);
+    F0Tracker &track(const SignalSegment &segment, int32_t sample_rate, ssize_t frame_hop = 80, double min_freq = 60, double max_freq = 1000, double threshold = 0);
     const std::vector<float> &get_result() const;
     float get_result(ssize_t sample_idx) const;
 private:

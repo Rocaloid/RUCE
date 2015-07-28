@@ -21,6 +21,7 @@
 #define RUCE_OPTION_MANAGER_HPP
 
 #include <vector>
+#include <cmath>
 #include <cstdint>
 #include <libwintf8/u8str.h>
 
@@ -52,7 +53,7 @@ public:
     double get_pitch_bend(double seconds) const {
         if(seconds < 0)
             return 0;
-        size_t index = seconds/get_pitch_bend_interval();
+        size_t index = size_t(std::floor(seconds/get_pitch_bend_interval()));
         if(index >= pitch_bend.size())
             return 0;
         return pitch_bend.data()[index];

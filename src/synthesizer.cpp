@@ -25,11 +25,13 @@
 #include "synthesizer.hpp"
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <ios>
 #include <iostream>
 #include <libwintf8/termio.h>
 #include <sndfile.h>
 #include "fast-random.hpp"
+#include "f0-tracker.hpp"
 #include "option-manager.hpp"
 #include "pcm-file.hpp"
 #include "signal-segment.hpp"
@@ -38,15 +40,17 @@
 namespace RUCE {
 
 struct Synthesizer::Private {
-    Tuner tuner;
-    FastRandom fastrand;
     PCMFile input_file;
     PCMFile output_file;
-    int64_t input_file_frames;
     int32_t input_sample_rate;
     int32_t output_sample_rate;
-    double output_pitch_freq;
+    int64_t input_file_frames;
+    int64_t output_file_frames;;
+    SignalSegment source_buffer;
     SignalSegment sink_buffer;
+    Tuner tuner;
+    F0Tracker f0_tracker;
+    FastRandom fastrand;
 };
 
 Synthesizer::Synthesizer(OptionManager &option_manager) :
@@ -70,20 +74,39 @@ Synthesizer &Synthesizer::prepare() {
     // STUB
 
     p->input_file.open(option_manager.get_input_file_name(), std::ios_base::in, 0, 1, 0);
-    p->input_file_frames = p->input_file.frames();
     p->input_sample_rate = p->input_file.sample_rate();
+    p->input_file_frames = p->input_file.frames();
     if(p->input_file.channels() != 1) {
         WTF8::cerr << "Error: Input file must have only one channel." << std::endl;
         std::exit(1);
     }
 
     p->output_sample_rate = p->input_sample_rate;
+    p->output_file_frames = size_t(std::ceil(option_manager.get_required_length() * p->output_sample_rate));
     p->output_file.open(option_manager.get_output_file_name(), std::ios_base::out, SF_FORMAT_WAV | SF_FORMAT_DOUBLE, 1, p->output_sample_rate);
 
-    size_t sample_count = size_t(std::ceil(option_manager.get_required_length() * p->output_sample_rate));
-    p->sink_buffer = SignalSegment(sample_count);
+    p->sink_buffer = SignalSegment(p->output_file_frames);
 
-    p->output_pitch_freq = p->tuner.midi_id_to_freq(uint8_t(option_manager.get_output_pitch()));
+    return *this;
+}
+
+Synthesizer &Synthesizer::read_source() {
+    int64_t left_bound = int64_t(option_manager.get_left_blank() * p->input_sample_rate);
+    int64_t right_bound = p->output_file_frames - int64_t(option_manager.get_right_blank() * p->input_sample_rate);
+    p->source_buffer = SignalSegment(left_bound, right_bound);
+    p->input_file.seek(left_bound, SEEK_SET);
+    p->input_file.read(p->source_buffer.buffer(), p->source_buffer.size());
+
+    return *this;
+}
+
+Synthesizer &Synthesizer::track_f0() {
+    p->f0_tracker.track(p->source_buffer, p->input_sample_rate);
+    WTF8::clog << "F0:";
+    for(const auto &i : p->f0_tracker.get_result()) {
+        WTF8::clog << ' ' << i;
+    }
+    WTF8::clog << std::endl;
 
     return *this;
 }
