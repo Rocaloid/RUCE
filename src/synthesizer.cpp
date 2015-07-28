@@ -23,6 +23,7 @@
 #endif
 
 #include "synthesizer.hpp"
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -92,16 +93,26 @@ Synthesizer &Synthesizer::prepare() {
 
 Synthesizer &Synthesizer::read_source() {
     int64_t left_bound = int64_t(option_manager.get_left_blank() * p->input_sample_rate);
-    int64_t right_bound = p->output_file_frames - int64_t(option_manager.get_right_blank() * p->input_sample_rate);
+    int64_t right_bound = p->input_file_frames - int64_t(option_manager.get_right_blank() * p->input_sample_rate);
     p->source_buffer = SignalSegment(left_bound, right_bound);
     p->input_file.seek(left_bound, SEEK_SET);
-    p->input_file.read(p->source_buffer.buffer(), p->source_buffer.size());
+    assert(p->input_file.read(p->source_buffer.buffer(), p->source_buffer.size()) == p->source_buffer.size());
 
     return *this;
 }
 
 Synthesizer &Synthesizer::track_f0() {
     p->f0_tracker.track(p->source_buffer, p->input_sample_rate);
+    size_t count = 0;
+    double avg_f0 = 0;
+    for(const auto &i : p->f0_tracker.get_result()) {
+        if(i != 0) {
+            avg_f0 += i;
+            ++count;
+        }
+    }
+    avg_f0 /= count;
+    WTF8::clog << "Average input frequency: " << avg_f0 << " Hz" << std::endl;
     WTF8::clog << "F0:";
     for(const auto &i : p->f0_tracker.get_result()) {
         WTF8::clog << ' ' << i;

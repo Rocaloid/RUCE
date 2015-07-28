@@ -39,7 +39,7 @@ F0Tracker::~F0Tracker() {
 
 F0Tracker &F0Tracker::track(const SignalSegment &segment, int32_t sample_rate, ssize_t frame_hop, double min_freq, double max_freq, double threshold) {
     assert(frame_hop > 0);
-    p->frame_hop = 0;
+    p->frame_hop = frame_hop;
     p->left_bound = segment.left();
     auto length = segment.size();
     const auto &segment_buffer = segment.buffer();
@@ -51,7 +51,7 @@ F0Tracker &F0Tracker::track(const SignalSegment &segment, int32_t sample_rate, s
     }
     input_list[length - 1].next = nullptr;
     p->output.clear();
-    rapt(input_list, length, sample_rate * 0.001, frame_hop, min_freq, max_freq, threshold, 1, p->callback, &p->output);
+    rapt(input_list, length, sample_rate, frame_hop, min_freq, max_freq, threshold, 1, p->callback, &p->output);
     return *this;
 }
 
