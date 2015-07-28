@@ -105,14 +105,15 @@ Synthesizer &Synthesizer::track_f0() {
     p->f0_tracker.track(p->source_buffer, p->input_sample_rate);
     size_t count = 0;
     double avg_f0 = 0;
-    for(const auto &i : p->f0_tracker.get_result()) {
+    for(const auto &i : p->f0_tracker.get_result())
         if(i != 0) {
             avg_f0 += i;
             ++count;
         }
-    }
-    avg_f0 /= count;
-    WTF8::clog << "Average input frequency: " << avg_f0 << " Hz" << std::endl;
+    if(count != 0)
+        WTF8::clog << "Average voice source frequency: " << (avg_f0 / count) << " Hz" << std::endl;
+    else
+        WTF8::clog << "Warning: Can not determine voice source frequency" << std::endl;
     WTF8::clog << "F0:";
     for(const auto &i : p->f0_tracker.get_result()) {
         WTF8::clog << ' ' << i;
