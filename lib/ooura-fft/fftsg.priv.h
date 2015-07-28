@@ -1,5 +1,5 @@
        void cdft(int n, int isgn, double *a, int *ip, double *w);
-static void rdft(int n, int isgn, double *a, int *ip, double *w);
+       void rdft(int n, int isgn, double *a, int *ip, double *w);
 static void ddct(int n, int isgn, double *a, int *ip, double *w);
 static void ddst(int n, int isgn, double *a, int *ip, double *w);
 static void dfct(int n, double *a, double *t, int *ip, double *w);

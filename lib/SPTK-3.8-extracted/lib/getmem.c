@@ -96,12 +96,12 @@ long *lgetmem(const int leng)
 {
    return ((long *) getmem((size_t) leng, sizeof(long)));
 }
+*/
 
 double *dgetmem(const int leng)
 {
    return ((double *) getmem((size_t) leng, sizeof(double)));
 }
-*/
 
 float *fgetmem(const int leng)
 {

@@ -51,7 +51,8 @@ F0Tracker &F0Tracker::track(const SignalSegment &segment, int32_t sample_rate, s
     }
     input_list[length - 1].next = nullptr;
     p->output.clear();
-    rapt(input_list, length, sample_rate, frame_hop, min_freq, max_freq, threshold, 1, p->callback, &p->output);
+    //rapt(input_list, length, sample_rate, frame_hop, min_freq, max_freq, threshold, 1, p->callback, &p->output);
+    swipe(input_list, length, sample_rate, frame_hop, min_freq, max_freq, threshold, 1, p->callback, &p->output);
     return *this;
 }
 
