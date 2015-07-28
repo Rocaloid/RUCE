@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <ios>
 #include <stdexcept>
+#include <string>
 #include <libwintf8/u8str.h>
 #include "proxy-ptr.hpp"
 
@@ -70,8 +71,14 @@ private:
 
 class PCMFile::FileError : public std::runtime_error {
 public:
-    FileError() : std::runtime_error("File operation failed") {}
-    FileError(const char *what) : std::runtime_error(what) {}
+    FileError() :
+        std::runtime_error("File operation failed"),
+        m_what("File operation failed") {
+    }
+    FileError(const char *what);
+    const char *what() const noexcept { return m_what.c_str(); }
+private:
+    std::string m_what;
 };
 
 }
