@@ -96,7 +96,7 @@ Synthesizer &Synthesizer::read_source() {
     int64_t right_bound = p->input_file_frames - int64_t(option_manager.get_right_blank() * p->input_sample_rate);
     p->source_buffer = SignalSegment(left_bound, right_bound);
     p->input_file.seek(left_bound, SEEK_SET);
-    assert(p->input_file.read(p->source_buffer.buffer(), p->source_buffer.size()) == p->source_buffer.size());
+    p->input_file.read(p->source_buffer.buffer(), p->source_buffer.size());
 
     return *this;
 }
