@@ -73,7 +73,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
+#ifndef _MSC_VER
+#include <unistd.h> // at least on MSVC it's unneeded
+#endif
 #include <limits.h>
 #include <stdbool.h>
 
