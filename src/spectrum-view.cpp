@@ -46,7 +46,7 @@ SpectrumView &SpectrumView::init(size_t fftsize) {
     return *this;
 }
 
-SpectrumView &SpectrumView::fft_analysize(const SignalSegment &signal) {
+SpectrumView &SpectrumView::fft_analyze(const SignalSegment &signal) {
     ssize_t padding = signal.size() - ssize_t(fftsize);
     if(padding < 0)
         throw std::range_error("Input signal is larger than FFT size");
@@ -85,7 +85,7 @@ SpectrumView &SpectrumView::fft_analysize(const SignalSegment &signal) {
     return *this;
 }
 
-SignalSegment SpectrumView::ifft_analysize() {
+SignalSegment SpectrumView::ifft_analyze() {
     assert(p->spectrum.size() == fftsize);
     assert(p->fftdata.size() == fftsize*2);
 

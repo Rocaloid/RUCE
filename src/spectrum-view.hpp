@@ -41,14 +41,14 @@ public:
      * the result is stored in this object.
      * Use `get_spectrum` to retrieve the result.
      */
-    SpectrumView &fft_analysize(const SignalSegment &signal);
+    SpectrumView &fft_analyze(const SignalSegment &signal);
     /**
      * Do an IFFT with the spectrum stored in this object,
      * and return a new `SignalSegment`
      *
      * Normalization gain is `n`.
      */
-    SignalSegment ifft_analysize();
+    SignalSegment ifft_analyze();
 
     std::vector<std::complex<double>> &get_spectrum();
     const std::vector<std::complex<double>> &get_spectrum() const;
