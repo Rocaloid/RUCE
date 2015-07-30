@@ -28,72 +28,77 @@
 
 namespace RUCE {
 
+/**
+ * Given a discrete series of values, figure out the `index`-th value, where `index` is a real number
+ *
+ * Different interpolating algorithms can be used. See `LinearVectorInterpolator` and `QuadraticVectorInterpolator`.
+ */
 template<typename T>
 class VectorInterpolator {
 public:
-    VectorInterpolator();
-    T operator() (T vector[], size_t length, double index) {
-        if(index < 0 || index > length)
-            throw std::out_of_range("index of interpolator out of range");
-        return do_interpolate(vector,length,index);
-    }
-    virtual T do_interpolate (T vector[], size_t length, double index) = 0;
+    virtual T operator() (const T vector[], size_t length, double index) const = 0;
 };
 
 template<typename T>
-class LinearVectorInterpolator : VectorInterpolator<T>{
+class LinearVectorInterpolator : public VectorInterpolator<T> {
 public:
-    LinearVectorInterpolator();
-    T do_interpolate (T vector[], size_t length, double index) {
-        if(index == 0 || index == length) 
+    T operator() (const T vector[], size_t length, double index) const {
+        if(index < 0)
+            throw std::out_of_range();
+        else if(index == length-1) 
             return vector[size_t(index)];
-        size_t left = (size_t)floor(index);
-        size_t right = (size_t)ceil(index);
-        double decimal_part = index - left;
-        return vector[left] + (vector[right]-vector[left]) * decimal_part;
-    }
-};
-
-template<typename T>
-class QuadraticVectorInterpolator : VectorInterpolator<T>{
-public:
-    QuadraticVectorInterpolator(T d) : diff(d);
-    T abs(T a) {
-       return (a<0) ? -a : a;
-    }
-    T maxdistance(T a, T b, T c)
-    {
-        return std::max(abs(a-b),std::max(abs(a-c),abs(b-c)));
-    }
-    T do_interpolate (T vector[], size_t length, double index) {
-        if(index == 0 || index == length) 
-            return vector[size_t(index)];
-        size_t p1, p2, p3;
-        if(index > 1 && index < length - 1) {
-            size_t p2 = (size_t)round(index);
-            size_t p1 = p2 - 1;
-            size_t p3 = p2 + 1;
+        else {
+            double int_part;
+            double frac_part = std::modf(index, &int_part);
+            if(int_part >= length-1)
+                throw std::out_of_range();
+            size_t index_int = int_part;
+            return interp_2(vector[index_int], vector[index_int+1], frac_part);
         }
-        else if(index < 1) {
-            p1 = 0;
-            p2 = 1;
-            p3 = 2;
-        }
-        else if(index > length - 1) {
-            p1 = length - 3;
-            p2 = length - 2;
-            p3 = length - 1;
-        }
-        if(maxdistance(vector[p1],vector[p2],vector[p3]) < diff)
-            throw std::range_error("Vector too flat!");
-        double a,b,c;
-        a = ((vector[p3]-vector[p1])/(p3-p1) - (vector[p2]-vector[p1])/(p2-p1))/(p3-p2);
-        b = (vector[p2]-vector[p1])/(p2-p1) - (p3+p1)*a;
-        c = vector[p1] - p1*p1*a - p1*b;
-        return index*index*a + index*b + c;
     }
 private:
-    T diff;
+    static T interp_2(T y0, T y1, double residual) {
+        return residual != 0 ?
+            (y1 - y0) * residual + y0 :
+            y0;
+    }
+};
+
+template<typename T>
+class QuadraticVectorInterpolator : public VectorInterpolator<T> {
+public:
+    T operator() (const T vector[], size_t length, double index) const {
+        if(index < 0)
+            throw std::out_of_range();
+        else if(index == length-1)
+            return vector[size_t(index)];
+        else {
+            double int_part;
+            double frac_part = std::modf(index, &int_part);
+            if(int_part >= length-1)
+                throw std::out_of_range();
+            else if(frac_part == 0)
+                return vector[size_t(int_part)];
+            else if(index < 1.5)
+                return interp_3(vector[0], vector[1], vector[2], index);
+            else if(index >= length-2.5)
+                return interp_3(vector[length-3], vector[length-2], vector[length-1], index-(length-3));
+            else {
+                size_t i = size_t(int_part);
+                return frac_part >= 0.5 ?
+                    interp_3(vector[i], vector[i+1], vector[i+2], frac_part) :
+                    interp_3(vector[i-1], vector[i], vector[i+1], frac_part+1);
+            }
+        }
+    }
+private:
+    static T interp_3(T y0, T y1, T y2, double residual) {
+        // y = a*x^2 + b*x + c
+        T a = (  y0   - y1*2 + y2) / 2;
+        T b = (- y0*3 + y1*4 - y2) / 2;
+        const T &c = y0;
+        return (a*residual + b) * residual + c;
+    }
 };
 
 }
