@@ -22,6 +22,7 @@
 #include <cmath>
 #include <complex>
 #include <cstdint>
+#include <cstring>
 #include <stdexcept>
 #include <vector>
 #include <ooura-fft.h>
@@ -132,6 +133,70 @@ std::vector<double> SpectrumView::get_phase() const {
     }
 
     return phase;
+}
+
+SpectrumView &SpectrumView::fftshift() {
+    assert(p->spectrum.size() == fftsize);
+    size_t half_floor = fftsize/2;
+    size_t half_ceil = (fftsize+1)/2;
+    assert(half_floor + half_ceil == fftsize);
+    decltype (p->spectrum) tmp(half_floor);
+
+    auto spectrum = p->spectrum.data();
+    auto tmp_data = tmp.data();
+    std::memcpy(tmp_data, &spectrum[half_ceil], half_floor * sizeof spectrum[0]);
+    std::memmove(&spectrum[half_floor], spectrum, half_ceil * sizeof spectrum[0]);
+    std::memcpy(spectrum, tmp_data, half_floor * sizeof spectrum[0]);
+
+    return *this;
+}
+
+SpectrumView &SpectrumView::ifftshift() {
+    assert(p->spectrum.size() == fftsize);
+    size_t half_floor = fftsize/2;
+    size_t half_ceil = (fftsize+1)/2;
+    assert(half_floor + half_ceil == fftsize);
+    decltype (p->spectrum) tmp(half_floor);
+
+    auto spectrum = p->spectrum.data();
+    auto tmp_data = tmp.data();
+    std::memcpy(tmp_data, spectrum, half_floor * sizeof spectrum[0]);
+    std::memmove(spectrum, &spectrum[half_floor], half_ceil * sizeof spectrum[0]);
+    std::memcpy(&spectrum[half_ceil], tmp_data, half_floor * sizeof spectrum[0]);
+
+    return *this;
+}
+
+SignalSegment SpectrumView::fftshift(const SignalSegment &signal) {
+    ssize_t signal_size = signal.size();
+    ssize_t half_floor = signal_size/2;
+    ssize_t half_ceil = (signal_size+1)/2;
+    assert(half_floor + half_ceil == signal_size);
+
+    SignalSegment result(signal_size);
+    const auto signal_buffer = signal.buffer();
+    auto result_buffer = result.buffer();
+
+    std::memcpy(result_buffer, &signal_buffer[half_ceil], half_floor * sizeof result_buffer[0]);
+    std::memcpy(&result_buffer[half_floor], signal_buffer, half_ceil * sizeof result_buffer[0]);
+
+    return result;
+}
+
+SignalSegment SpectrumView::ifftshift(const SignalSegment &signal) {
+    ssize_t signal_size = signal.size();
+    ssize_t half_floor = signal_size/2;
+    ssize_t half_ceil = (signal_size+1)/2;
+    assert(half_floor + half_ceil == signal_size);
+
+    SignalSegment result(signal_size);
+    const auto signal_buffer = signal.buffer();
+    auto result_buffer = result.buffer();
+
+    std::memcpy(result_buffer, &signal_buffer[half_floor], half_ceil * sizeof result_buffer[0]);
+    std::memcpy(&result_buffer[half_ceil], signal_buffer, half_floor * sizeof result_buffer[0]);
+
+    return result;
 }
 
 }

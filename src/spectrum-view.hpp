@@ -75,10 +75,30 @@ public:
             n |= n >> i;
         return n+1;
     }
+    /**
+     * FFTShift in frequency domain
+     *
+     * The process is in place
+     */
     SpectrumView &fftshift();
+    /**
+     * IFFTShift in frequency domain
+     *
+     * The process is in place
+     */
     SpectrumView &ifftshift();
-    static SignalSegment fftshift(const SignalSegment &);
-    static SignalSegment ifftshift(const SignalSegment &);
+    /**
+     * FFTShift in time domain
+     *
+     * The process is out of place
+     */
+    static SignalSegment fftshift(const SignalSegment &signal);
+    /**
+     * IFFTShift in time domain
+     *
+     * The process is out of place
+     */
+    static SignalSegment ifftshift(const SignalSegment &signal);
 private:
     struct Private;
     proxy_ptr<Private> p;
