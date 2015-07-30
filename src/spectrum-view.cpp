@@ -50,16 +50,27 @@ SpectrumView &SpectrumView::fft_analysize(const SignalSegment &signal) {
     ssize_t padding = signal.size() - ssize_t(fftsize);
     if(padding < 0)
         throw std::range_error("Input signal is larger than FFT size");
-    SignalSegment padded_signal = SignalSegment(signal, signal.left() - padding/2, signal.right() + (padding+1)/2);
+    else if(padding == 0) {
+        assert(p->fftdata.size() == fftsize*2);
 
-    assert(padded_signal.size() == ssize_t(fftsize));
-    assert(p->fftdata.size() == fftsize*2);
+        auto fftdata = p->fftdata.data();
+        const auto signal_buffer = signal.buffer();
+        for(size_t i = 0; i < fftsize; i++) {
+            fftdata[i*2] = signal_buffer[i];
+            fftdata[i*2+1] = 0;
+        }
+    } else {
+        SignalSegment padded_signal = SignalSegment(signal, signal.left() - padding/2, signal.right() + (padding+1)/2);
 
-    auto fftdata = p->fftdata.data();
-    const auto padded_signal_buffer = padded_signal.buffer();
-    for(size_t i = 0; i < fftsize; i++) {
-        fftdata[i*2] = padded_signal_buffer[i];
-        fftdata[i*2+1] = 0;
+        assert(padded_signal.size() == ssize_t(fftsize));
+        assert(p->fftdata.size() == fftsize*2);
+
+        auto fftdata = p->fftdata.data();
+        const auto padded_signal_buffer = padded_signal.buffer();
+        for(size_t i = 0; i < fftsize; i++) {
+            fftdata[i*2] = padded_signal_buffer[i];
+            fftdata[i*2+1] = 0;
+        }
     }
 
     cdft(fftsize*2, 1, fftdata, p->ip.data(), p->w.data());
