@@ -17,7 +17,7 @@
     see <http://www.gnu.org/licenses/>.
 */
 
-#include "spectrum-view.hpp"
+#include "spectrum.hpp"
 #include <cassert>
 #include <cmath>
 #include <complex>
@@ -30,14 +30,14 @@
 
 namespace RUCE {
 
-struct SpectrumView::Private {
+struct Spectrum::Private {
     std::vector<std::complex<double>> spectrum;
     std::vector<double> fftdata;
     std::vector<int> ip;
     std::vector<double> w;
 };
 
-SpectrumView &SpectrumView::init(size_t fftsize) {
+Spectrum &Spectrum::init(size_t fftsize) {
     fftsize = fftsize;
     p->spectrum = std::vector<std::complex<double>>(fftsize);
     p->fftdata = std::vector<double>(fftsize*2);
@@ -46,14 +46,14 @@ SpectrumView &SpectrumView::init(size_t fftsize) {
     return *this;
 }
 
-SpectrumView &SpectrumView::fft_analyze(const SignalSegment &signal) {
+Spectrum &Spectrum::fft_analyze(const SignalSegment &signal) {
+    assert(p->fftdata.size() == fftsize*2);
+    auto fftdata = p->fftdata.data();
+
     ssize_t padding = signal.size() - ssize_t(fftsize);
     if(padding < 0)
         throw std::range_error("Input signal is larger than FFT size");
     else if(padding == 0) {
-        assert(p->fftdata.size() == fftsize*2);
-
-        auto fftdata = p->fftdata.data();
         const auto signal_buffer = signal.buffer();
         for(size_t i = 0; i < fftsize; i++) {
             fftdata[i*2] = signal_buffer[i];
@@ -61,11 +61,8 @@ SpectrumView &SpectrumView::fft_analyze(const SignalSegment &signal) {
         }
     } else {
         SignalSegment padded_signal = SignalSegment(signal, signal.left() - padding/2, signal.right() + (padding+1)/2);
-
         assert(padded_signal.size() == ssize_t(fftsize));
-        assert(p->fftdata.size() == fftsize*2);
 
-        auto fftdata = p->fftdata.data();
         const auto padded_signal_buffer = padded_signal.buffer();
         for(size_t i = 0; i < fftsize; i++) {
             fftdata[i*2] = padded_signal_buffer[i];
@@ -85,7 +82,7 @@ SpectrumView &SpectrumView::fft_analyze(const SignalSegment &signal) {
     return *this;
 }
 
-SignalSegment SpectrumView::ifft_analyze() {
+SignalSegment Spectrum::ifft_analyze() {
     assert(p->spectrum.size() == fftsize);
     assert(p->fftdata.size() == fftsize*2);
 
@@ -108,30 +105,30 @@ SignalSegment SpectrumView::ifft_analyze() {
     return result_signal;
 }
 
-std::vector<std::complex<double>> &SpectrumView::get_spectrum() {
+std::vector<std::complex<double>> &Spectrum::get_spectrum() {
     return p->spectrum;
 }
 
-const std::vector<std::complex<double>> &SpectrumView::get_spectrum() const {
+const std::vector<std::complex<double>> &Spectrum::get_spectrum() const {
     return p->spectrum;
 }
 
-std::vector<double> SpectrumView::get_intensity() const {
+std::vector<double> Spectrum::get_magnitude() const {
     assert(p->spectrum.size() == fftsize);
 
-    std::vector<double> intensity(fftsize);
+    std::vector<double> magnitude(fftsize);
 
     auto iters = p->spectrum.cbegin();
-    auto iteri = intensity.begin();
-    while(iteri != intensity.end()) {
-        *iteri = std::abs(*iters);
-        ++iters; ++iteri;
+    auto iterm = magnitude.begin();
+    while(iterm != magnitude.end()) {
+        *iterm = std::abs(*iters);
+        ++iters; ++iterm;
     }
 
-    return intensity;
+    return magnitude;
 }
 
-std::vector<double> SpectrumView::get_phase() const {
+std::vector<double> Spectrum::get_phase() const {
     assert(p->spectrum.size() == fftsize);
 
     std::vector<double> phase(fftsize);
@@ -146,7 +143,7 @@ std::vector<double> SpectrumView::get_phase() const {
     return phase;
 }
 
-SpectrumView &SpectrumView::fftshift() {
+Spectrum &Spectrum::fftshift() {
     assert(p->spectrum.size() == fftsize);
     size_t half_floor = fftsize/2;
     size_t half_ceil = (fftsize+1)/2;
@@ -162,7 +159,7 @@ SpectrumView &SpectrumView::fftshift() {
     return *this;
 }
 
-SpectrumView &SpectrumView::ifftshift() {
+Spectrum &Spectrum::ifftshift() {
     assert(p->spectrum.size() == fftsize);
     size_t half_floor = fftsize/2;
     size_t half_ceil = (fftsize+1)/2;
@@ -178,7 +175,7 @@ SpectrumView &SpectrumView::ifftshift() {
     return *this;
 }
 
-SignalSegment SpectrumView::fftshift(const SignalSegment &signal) {
+SignalSegment Spectrum::fftshift(const SignalSegment &signal) {
     ssize_t signal_size = signal.size();
     ssize_t half_floor = signal_size/2;
     ssize_t half_ceil = (signal_size+1)/2;
@@ -194,7 +191,7 @@ SignalSegment SpectrumView::fftshift(const SignalSegment &signal) {
     return result;
 }
 
-SignalSegment SpectrumView::ifftshift(const SignalSegment &signal) {
+SignalSegment Spectrum::ifftshift(const SignalSegment &signal) {
     ssize_t signal_size = signal.size();
     ssize_t half_floor = signal_size/2;
     ssize_t half_ceil = (signal_size+1)/2;

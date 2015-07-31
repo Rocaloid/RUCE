@@ -17,8 +17,8 @@
     see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RUCE_SPECTRUM_VIEW_HPP
-#define RUCE_SPECTRUM_VIEW_HPP
+#ifndef RUCE_SPECTRUM_HPP
+#define RUCE_SPECTRUM_HPP
 
 #include <complex>
 #include <cstdint>
@@ -29,19 +29,19 @@ namespace RUCE {
 
 class SignalSegment;
 
-class SpectrumView {
+class Spectrum {
 public:
-    SpectrumView(size_t fftsize) {
+    Spectrum(size_t fftsize) {
         init(fftsize);
     }
-    SpectrumView &init(size_t fftsize);
+    Spectrum &init(size_t fftsize);
 
     /**
      * Do an FFT with the given `SignalSegment`,
      * the result is stored in this object.
      * Use `get_spectrum` to retrieve the result.
      */
-    SpectrumView &fft_analyze(const SignalSegment &signal);
+    Spectrum &fft_analyze(const SignalSegment &signal);
     /**
      * Do an IFFT with the spectrum stored in this object,
      * and return a new `SignalSegment`
@@ -52,7 +52,7 @@ public:
 
     std::vector<std::complex<double>> &get_spectrum();
     const std::vector<std::complex<double>> &get_spectrum() const;
-    std::vector<double> get_intensity() const;
+    std::vector<double> get_magnitude() const;
     std::vector<double> get_phase() const;
 
     /* Ultility functions related to FFT */
@@ -80,13 +80,13 @@ public:
      *
      * The process is in place
      */
-    SpectrumView &fftshift();
+    Spectrum &fftshift();
     /**
      * IFFTShift in frequency domain
      *
      * The process is in place
      */
-    SpectrumView &ifftshift();
+    Spectrum &ifftshift();
     /**
      * FFTShift in time domain
      *
