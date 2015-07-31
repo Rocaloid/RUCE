@@ -242,6 +242,17 @@ public:
             m_data[i] = 0;
         for(ssize_t i = common_left; i < common_right; i++)
             m_data[i] *= rhs.m_data[i];
+/*
+  FIXME:
+  A crash happened here!
+Args:
+  "C:\Program Files\UTAU\Rocaloid.exe" "C:\users\brilliant\Application Data\UTAU\voice\Yong Qi_CVVChinese_Koi\part3\mu_mu.wav" "C:\users\brilliant\My Documents\VOCALOID\UTAU\yuhizaka_zhongwen.cache\202_mu_f4_E4_utCr59.wav" E4 100 "" 3647.212 450 220.258 -467.467 100 0 !174 DVDUDSDQDPDNDLDKDIDHDGDFDDDCDAC9C5C0CuCoChCaCRCJCAB3BtBjBZBPBFA7AyAqAiAaAUAOAJAFACAA#13#ABABACADAEAEAFAGAHAHAI#4#AHAHAGAEADABAA/+/8/5/3/1/z/x/w/u/t/s/s/t/u/w/x/z/1/3/5/7/9//ABACAEAFAGAHAHAI#1#
+  wine: Unhandled page fault on write access to 0x00000000 at address 0x402271 (thread 000b), starting debugger...
+Backtrace:
+=>0 0x00402271 in rocaloid (+0x2271) (0x010afc98)
+  1 0x00403487 in rocaloid (+0x3486) (0x010afd18)
+  2 0x004013e2 in rocaloid (+0x13e1) (0x010afdf0)
+*/
         for(ssize_t i = common_right; i < m_right; i++)
             m_data[i] = 0;
         return *this;
