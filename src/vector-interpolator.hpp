@@ -44,14 +44,14 @@ class LinearVectorInterpolator : public VectorInterpolator<T> {
 public:
     T operator() (const T vector[], size_t length, double index) const {
         if(index < 0)
-            throw std::out_of_range();
+            throw std::out_of_range("Index out of range");
         else if(index == length-1) 
             return vector[size_t(index)];
         else {
             double int_part;
             double frac_part = std::modf(index, &int_part);
             if(int_part >= length-1)
-                throw std::out_of_range();
+                throw std::out_of_range("Index out of range");
             size_t i = size_t(int_part);
             return interp_2(vector[i], vector[i+1], frac_part);
         }
@@ -69,14 +69,14 @@ class QuadraticVectorInterpolator : public VectorInterpolator<T> {
 public:
     T operator() (const T vector[], size_t length, double index) const {
         if(index < 0)
-            throw std::out_of_range();
+            throw std::out_of_range("Index out of range");
         else if(index == length-1)
             return vector[size_t(index)];
         else {
             double int_part;
             double frac_part = std::modf(index, &int_part);
             if(int_part >= length-1)
-                throw std::out_of_range();
+                throw std::out_of_range("Index out of range");
             else if(frac_part == 0)
                 return vector[size_t(int_part)];
             else if(index < 1.5)

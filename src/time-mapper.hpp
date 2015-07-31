@@ -29,7 +29,7 @@ public:
     TimeMapper(OptionManager &option_manager);
     double map_consonant_length();
     double map_forward(double time_in_source, double input_file_length);
-    double map_backword(double time_in_sink, double input_file_length);
+    double map_backward(double time_in_sink, double input_file_length);
 protected:
     OptionManager &option_manager;
 private:

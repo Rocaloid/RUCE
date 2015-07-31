@@ -37,6 +37,13 @@ struct Spectrum::Private {
     std::vector<double> w;
 };
 
+Spectrum::Spectrum(size_t fftsize) {
+    init(fftsize);
+}
+
+Spectrum::~Spectrum() {
+}
+
 Spectrum &Spectrum::init(size_t fftsize) {
     fftsize = fftsize;
     p->spectrum = std::vector<std::complex<double>>(fftsize);

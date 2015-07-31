@@ -31,9 +31,8 @@ class SignalSegment;
 
 class Spectrum {
 public:
-    Spectrum(size_t fftsize) {
-        init(fftsize);
-    }
+    Spectrum(size_t fftsize);
+    ~Spectrum();
     Spectrum &init(size_t fftsize);
 
     /**

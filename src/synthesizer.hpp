@@ -33,7 +33,8 @@ public:
     Synthesizer &prepare();
     Synthesizer &read_source();
     Synthesizer &track_f0();
-    Synthesizer &synth_unit();
+    Synthesizer &synthesize();
+    Synthesizer &write_sink();
 protected:
     OptionManager &option_manager;
 private:

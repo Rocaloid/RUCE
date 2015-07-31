@@ -45,7 +45,8 @@ int main() {
              .prepare()
              .read_source()
              .track_f0()
-             .synth_unit();
+             .synthesize()
+             .write_sink();
     }
 
     return 0;

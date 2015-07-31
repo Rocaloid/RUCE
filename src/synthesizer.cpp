@@ -27,8 +27,10 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <array>
 #include <ios>
 #include <iostream>
+#include <stdexcept>
 #include <libwintf8/termio.h>
 #include <sndfile.h>
 #include "fast-random.hpp"
@@ -36,7 +38,11 @@
 #include "option-manager.hpp"
 #include "pcm-file.hpp"
 #include "signal-segment.hpp"
+#include "spectrum.hpp"
+#include "time-mapper.hpp"
 #include "tuner.hpp"
+#include "vector-interpolator.hpp"
+#include "window.hpp"
 
 namespace RUCE {
 
@@ -62,8 +68,6 @@ Synthesizer::~Synthesizer() {
 }
 
 Synthesizer &Synthesizer::check_params() {
-    // STUB
-
     if(option_manager.get_required_length() < 0) {
         option_manager.set_required_length(1);
     }
@@ -72,8 +76,6 @@ Synthesizer &Synthesizer::check_params() {
 }
 
 Synthesizer &Synthesizer::prepare() {
-    // STUB
-
     p->input_file.open(option_manager.get_input_file_name(), std::ios_base::in, 0, 1, 0);
     p->input_sample_rate = p->input_file.sample_rate();
     p->input_file_frames = p->input_file.frames();
@@ -133,33 +135,95 @@ Synthesizer &Synthesizer::track_f0() {
     return *this;
 }
 
-Synthesizer &Synthesizer::synth_unit() {
-    // STUB
+Synthesizer &Synthesizer::synthesize() {
+    static const ssize_t source_window_size = 1024;
+    static const ssize_t sink_window_size = 1024;
+    static const size_t pillars = 4;
+    assert((source_window_size & 1) == 0);
+    assert((sink_window_size & 1) == 0);
 
-    double pitch = option_manager.get_output_pitch();
-    static const size_t pillars = 13;
-    double phrases[2][pillars] = { 0 };
-    for(auto i = p->sink_buffer.left(); i < p->sink_buffer.right(); i++) {
-        auto &s = p->sink_buffer[i];
-        s = p->fastrand() / 16;
-        double instant_pitch = pitch + option_manager.get_pitch_bend(double(i) / p->output_sample_rate);
-        for(size_t j = 1; j < pillars; j++) {
-            static const double am_freq[pillars] = {
-                0, 1.9, 7.6, 3.8, 13.3, 15.4, 14.2, 14.1, 7.9, 7.6, 50.4, 10.7, 19.8
-            };
-            phrases[0][j] += 2.0 * j * p->tuner.midi_id_to_freq(instant_pitch + p->fastrand()*2 - 1) - am_freq[j];
-            phrases[1][j] += 2.0 * j * p->tuner.midi_id_to_freq(instant_pitch + p->fastrand()*2 - 1) + am_freq[j];
+    SignalSegment source_segment;
+    SignalSegment sink_segment;
+    SignalSegment source_window = HannWindow(source_window_size);
+    SignalSegment sink_window = HannWindow(sink_window_size);
+    Spectrum source_spectrum(Spectrum::next_pow2(source_window_size));
+    TimeMapper time_mapper(option_manager);
+
+    double base_pitch = option_manager.get_output_pitch();
+    double last_sink_phase = 0;
+    double last_sink_f0;
+
+    for(auto sink_window_mid = p->sink_buffer.left(); sink_window_mid < p->sink_buffer.right()+sink_window_size/2; sink_window_mid += sink_window_size/2) {
+        double sink_timestamp = double(sink_window_mid) / p->output_sample_rate;
+        double source_timestamp = time_mapper.map_backward(sink_timestamp, double(p->input_file_frames) / p->input_sample_rate);
+        ssize_t sink_timestamp_frames = sink_window_mid;
+        ssize_t source_timestamp_frames = ssize_t(std::round(source_timestamp * p->input_sample_rate));
+        double sink_f0 = p->tuner.midi_id_to_freq(base_pitch + option_manager.get_pitch_bend(sink_timestamp));
+        double source_f0 = p->f0_tracker.get_result(source_timestamp_frames);
+
+        // Copy the source and window it
+        source_segment = SignalSegment(p->source_buffer, source_timestamp_frames-source_window_size/2, source_timestamp_frames+source_window_size/2);
+        source_segment <<= source_segment.left();
+        source_segment *= source_window;
+
+        // Do FFT analysis
+        source_segment = source_spectrum.fftshift(source_segment);
+        source_spectrum.fft_analyze(source_segment);
+        auto source_magnitude = source_spectrum.get_magnitude();
+        auto source_phase = source_spectrum.get_phase();
+
+        // Convert magnitude to log scale
+        for(double &mag : source_magnitude)
+            mag = mag > 0 ? std::log10(mag) : -HUGE_VAL;
+
+        // Extract sinusold parameters
+        std::array<double, pillars> pillar_magnitude;
+        std::array<double, pillars> pillar_phase;
+        for(size_t octave = 0; octave < pillars; octave++) {
+            double octave_freq = source_f0 * (1 << octave);
+            static QuadraticVectorInterpolator<double> quadratic_vector_interpolator;
+            try {
+                pillar_magnitude[octave] = std::pow(10, quadratic_vector_interpolator(source_magnitude.data(), source_magnitude.size(), octave_freq));
+            } catch(std::out_of_range) {
+                pillar_magnitude[octave] = 0;
+            }
+            static LinearVectorInterpolator<double> linear_vector_interpolator;
+            try {
+                pillar_phase[octave] = std::pow(10, linear_vector_interpolator(source_phase.data(), source_phase.size(), octave_freq));
+            } catch(std::out_of_range) {
+                pillar_phase[octave] = 0;
+            }
         }
-        static const double intensity[2][pillars] = {
-            { 0, 1.1/2, 1.2/2, 1.5/4, 1.3/16, 1.3/128, 1.3/128, 1.3/128, 1.2/16, 1.1/16, 1.2/16, 1.1/16, 1.2/128 },
-            { 0, 0.9/2, 0.8/2, 0.5/4, 0.3/16, 0.3/128, 0.3/128, 0.3/128, 0.8/16, 0.9/16, 0.8/16, 0.9/16, 0.8/128 }
-        };
-        for(size_t j = 1; j < pillars; j++) {
-            s += std::sin(M_PI * phrases[0][j] / p->output_sample_rate) * intensity[0][j];
-            s += std::cos(M_PI * phrases[1][j] / p->output_sample_rate) * intensity[1][j];
+        for(size_t octave = 1; octave < pillars; octave++) {
+            pillar_phase[octave] -= pillar_phase[0];
+            while(pillar_phase[octave] > M_PI)
+                pillar_phase[octave] -= M_PI*2;
+            while(pillar_phase[octave] <= M_PI)
+                pillar_phase[octave] += M_PI*2;
         }
-        s *= option_manager.get_note_volume()/8;
+        pillar_phase[0] = 0;
+
+        // Construct harmonics
+        sink_segment = SignalSegment(-sink_window_size/2, sink_window_size/2);
+        for(auto sink_segment_idx = sink_segment.left(); sink_segment_idx < sink_segment.right(); sink_segment_idx++) {
+            last_sink_phase += (sink_f0 + last_sink_f0) * M_PI / p->output_sample_rate;
+            for(size_t octave = 1; octave < pillars; octave++) {
+                sink_segment[sink_segment_idx] += std::sin((sink_segment_idx+last_sink_phase) * (1<<octave));
+            }
+        }
+
+        // Window the segment and mix to the sink
+        sink_segment <<= sink_segment.left();
+        sink_segment *= sink_window;
+        sink_segment >>= sink_window_mid - sink_window_size/2;
+        p->sink_buffer += sink_segment;
+
+        last_sink_f0 = sink_f0;
     }
+    return *this;
+}
+
+Synthesizer &Synthesizer::write_sink() {
     p->output_file.write(p->sink_buffer.buffer(), p->sink_buffer.size());
 
     return *this;

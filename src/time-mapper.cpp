@@ -50,7 +50,7 @@ double TimeMapper::map_consonant_length() {
  * mapped_consonant_length => left_blank + consonant_length
  *         required_length => input_file_length - right_blank
  */
-double TimeMapper::map_backword(double time_in_sink, double input_file_length) {
+double TimeMapper::map_backward(double time_in_sink, double input_file_length) {
     double mapped_consonant_length = map_consonant_length();
     if(time_in_sink <= mapped_consonant_length) {
         return option_manager.get_consonant_length()*time_in_sink/mapped_consonant_length + option_manager.get_left_blank();
