@@ -208,7 +208,7 @@ Synthesizer &Synthesizer::synthesize() {
         last_sink_phase += (sink_f0 + last_sink_f0) * sink_window_hop * M_PI / p->output_sample_rate;
         for(auto sink_segment_idx = sink_segment.left(); sink_segment_idx < sink_segment.right(); sink_segment_idx++) {
             for(size_t octave = 0; octave < pillars; octave++) {
-                if(sink_f0*octave*2 >= p->output_sample_rate)
+                if(sink_f0*octave*2 >= std::min(p->output_sample_rate, 16000))
                     break;
                 double omega = 2 * M_PI * sink_f0 / p->output_sample_rate;
                 sink_segment[sink_segment_idx] += std::sin((omega*sink_segment_idx + last_sink_phase) * octave + pillar_phase[octave]) * pillar_magnitude[octave];
