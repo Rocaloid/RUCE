@@ -126,19 +126,22 @@ Synthesizer &Synthesizer::track_f0() {
         WTF8::clog << "Average voice source frequency: " << (avg_f0 / count) << " Hz" << std::endl;
     else
         WTF8::clog << "Warning: Can not determine voice source frequency" << std::endl;
+    WTF8::clog << "Average output sink frequency:  " << p->tuner.midi_id_to_freq(option_manager.get_output_pitch()) << " Hz" << std::endl;
+/*
     WTF8::clog << "F0:";
     for(const auto &i : p->f0_tracker.get_result()) {
         WTF8::clog << ' ' << i;
     }
     WTF8::clog << std::endl;
+*/
 
     return *this;
 }
 
 Synthesizer &Synthesizer::synthesize() {
     static const ssize_t source_window_size = 1024;
-    static const ssize_t sink_window_size = 1024;
-    static const size_t pillars = 4;
+    static const ssize_t sink_window_size = 4096;
+    static const size_t pillars = 72;
     assert((source_window_size & 1) == 0);
     assert((sink_window_size & 1) == 0);
 
@@ -151,9 +154,10 @@ Synthesizer &Synthesizer::synthesize() {
 
     double base_pitch = option_manager.get_output_pitch();
     double last_sink_phase = 0;
-    double last_sink_f0;
+    double last_sink_f0 = 0;
+    ssize_t sink_window_hop = sink_window_size/2;
 
-    for(auto sink_window_mid = p->sink_buffer.left(); sink_window_mid < p->sink_buffer.right()+sink_window_size/2; sink_window_mid += sink_window_size/2) {
+    for(auto sink_window_mid = p->sink_buffer.left(); sink_window_mid < p->sink_buffer.right()+sink_window_size/2; sink_window_mid += sink_window_hop) {
         double sink_timestamp = double(sink_window_mid) / p->output_sample_rate;
         double source_timestamp = time_mapper.map_backward(sink_timestamp, double(p->input_file_frames) / p->input_sample_rate);
         ssize_t sink_timestamp_frames = sink_window_mid;
@@ -174,52 +178,53 @@ Synthesizer &Synthesizer::synthesize() {
 
         // Convert magnitude to log scale
         for(double &mag : source_magnitude)
-            mag = mag > 0 ? std::log10(mag) : -HUGE_VAL;
+            mag = mag > 0 ? std::log10(mag / std::sqrt(source_window_size) * source_window_size / sink_window_size) : -HUGE_VAL;
 
         // Extract sinusold parameters
-        std::array<double, pillars> pillar_magnitude;
-        std::array<double, pillars> pillar_phase;
+        std::array<double, pillars> pillar_magnitude { 0 };
+        std::array<double, pillars> pillar_phase { 0 };
         for(size_t octave = 0; octave < pillars; octave++) {
-            double octave_freq = source_f0 * (1 << octave);
+            double harmonic_freq = source_f0 * octave;
+            if(harmonic_freq*2 >= p->input_sample_rate)
+                break;
             static QuadraticVectorInterpolator<double> quadratic_vector_interpolator;
             try {
-                pillar_magnitude[octave] = std::pow(10, quadratic_vector_interpolator(source_magnitude.data(), source_magnitude.size(), octave_freq));
+                pillar_magnitude[octave] = std::pow(10, quadratic_vector_interpolator(source_magnitude.data(), source_magnitude.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate)));
             } catch(std::out_of_range) {
-                pillar_magnitude[octave] = 0;
             }
             static LinearVectorInterpolator<double> linear_vector_interpolator;
             try {
-                pillar_phase[octave] = std::pow(10, linear_vector_interpolator(source_phase.data(), source_phase.size(), octave_freq));
+                pillar_phase[octave] = linear_vector_interpolator(source_phase.data(), source_phase.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate));
             } catch(std::out_of_range) {
-                pillar_phase[octave] = 0;
             }
         }
         for(size_t octave = 1; octave < pillars; octave++) {
             pillar_phase[octave] -= pillar_phase[0];
-            while(pillar_phase[octave] > M_PI)
-                pillar_phase[octave] -= M_PI*2;
-            while(pillar_phase[octave] <= M_PI)
-                pillar_phase[octave] += M_PI*2;
         }
         pillar_phase[0] = 0;
 
         // Construct harmonics
         sink_segment = SignalSegment(-sink_window_size/2, sink_window_size/2);
+        last_sink_phase += (sink_f0 + last_sink_f0) * sink_window_hop * M_PI / p->output_sample_rate;
         for(auto sink_segment_idx = sink_segment.left(); sink_segment_idx < sink_segment.right(); sink_segment_idx++) {
-            last_sink_phase += (sink_f0 + last_sink_f0) * M_PI / p->output_sample_rate;
-            for(size_t octave = 1; octave < pillars; octave++) {
-                sink_segment[sink_segment_idx] += std::sin((sink_segment_idx+last_sink_phase) * (1<<octave));
+            for(size_t octave = 0; octave < pillars; octave++) {
+                if(sink_f0*octave*2 >= p->output_sample_rate)
+                    break;
+                double omega = 2 * M_PI * sink_f0 / p->output_sample_rate;
+                sink_segment[sink_segment_idx] += std::sin((omega*sink_segment_idx + last_sink_phase) * octave + pillar_phase[octave]) * pillar_magnitude[octave];
             }
         }
 
         // Window the segment and mix to the sink
         sink_segment <<= sink_segment.left();
         sink_segment *= sink_window;
-        sink_segment >>= sink_window_mid - sink_window_size/2;
+        sink_segment >>= sink_timestamp_frames - sink_window_size/2;
         p->sink_buffer += sink_segment;
 
         last_sink_f0 = sink_f0;
     }
+
+    p->sink_buffer *= option_manager.get_note_volume();
     return *this;
 }
 

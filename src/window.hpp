@@ -39,6 +39,11 @@ public:
     BlackmanHarrisWindow(size_t size);
 };
 
+class SquareWindow : public Window {
+public:
+    SquareWindow(size_t size);
+};
+
 }
 
 #endif

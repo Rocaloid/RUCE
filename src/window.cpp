@@ -52,4 +52,12 @@ BlackmanHarrisWindow::BlackmanHarrisWindow(size_t size) :
     }
 }
 
+SquareWindow::SquareWindow(size_t size) :
+    Window(size) {
+    auto window_buffer = buffer();
+    for(size_t i = 0; i < size; i++) {
+        window_buffer[i] = 0.5;
+    }
+}
+
 }

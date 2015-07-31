@@ -45,7 +45,7 @@ Spectrum::~Spectrum() {
 }
 
 Spectrum &Spectrum::init(size_t fftsize) {
-    fftsize = fftsize;
+    this->fftsize = fftsize;
     p->spectrum = std::vector<std::complex<double>>(fftsize);
     p->fftdata = std::vector<double>(fftsize*2);
     p->ip = std::vector<int>(size_t(std::ceil(std::sqrt(fftsize)))+2);

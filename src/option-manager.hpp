@@ -37,7 +37,7 @@ public:
 
     const WTF8::u8string &get_input_file_name() const { return input_file_name; }
     const WTF8::u8string &get_output_file_name() const { return output_file_name; }
-    int get_output_pitch() const { return output_pitch; }
+    uint8_t get_output_pitch() const { return output_pitch; }
     double get_note_velocity() const { return note_velocity; }
     const WTF8::u8string &get_synth_flags() const { return synth_flags; }
     double get_left_blank() const { return left_blank; }
