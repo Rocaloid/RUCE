@@ -141,7 +141,7 @@ Synthesizer &Synthesizer::track_f0() {
 Synthesizer &Synthesizer::synthesize() {
     static const ssize_t source_window_size = 1024;
     static const ssize_t sink_window_size = 4096;
-    static const size_t pillars = 72;
+    static const size_t max_pillars = 128;
     assert((source_window_size & 1) == 0);
     assert((sink_window_size & 1) == 0);
 
@@ -181,12 +181,10 @@ Synthesizer &Synthesizer::synthesize() {
             mag = mag > 0 ? std::log10(mag / std::sqrt(source_window_size) * source_window_size / sink_window_size) : -HUGE_VAL;
 
         // Extract sinusold parameters
-        std::array<double, pillars> pillar_magnitude { 0 };
-        std::array<double, pillars> pillar_phase { 0 };
-        for(size_t octave = 0; octave < pillars; octave++) {
+        std::array<double, max_pillars> pillar_magnitude { 0 };
+        std::array<double, max_pillars> pillar_phase { 0 };
+        for(size_t octave = 0; octave < std::min(size_t(p->input_sample_rate/(source_f0*2)), max_pillars); octave++) {
             double harmonic_freq = source_f0 * octave;
-            if(harmonic_freq*2 >= p->input_sample_rate)
-                break;
             static QuadraticVectorInterpolator<double> quadratic_vector_interpolator;
             try {
                 pillar_magnitude[octave] = std::pow(10, quadratic_vector_interpolator(source_magnitude.data(), source_magnitude.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate)));
@@ -198,7 +196,7 @@ Synthesizer &Synthesizer::synthesize() {
             } catch(std::out_of_range) {
             }
         }
-        for(size_t octave = 1; octave < pillars; octave++) {
+        for(size_t octave = 1; octave < max_pillars; octave++) {
             pillar_phase[octave] -= pillar_phase[0];
         }
         pillar_phase[0] = 0;
@@ -207,8 +205,8 @@ Synthesizer &Synthesizer::synthesize() {
         sink_segment = SignalSegment(-sink_window_size/2, sink_window_size/2);
         last_sink_phase += (sink_f0 + last_sink_f0) * sink_window_hop * M_PI / p->output_sample_rate;
         for(auto sink_segment_idx = sink_segment.left(); sink_segment_idx < sink_segment.right(); sink_segment_idx++) {
-            for(size_t octave = 0; octave < pillars; octave++) {
-                if(sink_f0*octave*2 >= std::min(p->output_sample_rate, 16000))
+            for(size_t octave = 0; octave < std::min(size_t(p->output_sample_rate/(sink_f0*2)), max_pillars); octave++) {
+                if(sink_f0*octave*2 >= p->output_sample_rate)
                     break;
                 double omega = 2 * M_PI * sink_f0 / p->output_sample_rate;
                 sink_segment[sink_segment_idx] += std::sin((omega*sink_segment_idx + last_sink_phase) * octave + pillar_phase[octave]) * pillar_magnitude[octave];
