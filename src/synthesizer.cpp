@@ -183,21 +183,21 @@ Synthesizer &Synthesizer::synthesize() {
         // Extract sinusold parameters
         std::array<double, max_pillars> pillar_magnitude { 0 };
         std::array<double, max_pillars> pillar_phase { 0 };
-        for(size_t octave = 0; octave < std::min(size_t(p->input_sample_rate/(source_f0*2)), max_pillars); octave++) {
-            double harmonic_freq = source_f0 * octave;
+        for(size_t pillar_idx = 0; pillar_idx < std::min(size_t(p->input_sample_rate/(source_f0*2)), max_pillars); pillar_idx++) {
+            double harmonic_freq = source_f0 * pillar_idx;
             static QuadraticVectorInterpolator<double> quadratic_vector_interpolator;
             try {
-                pillar_magnitude[octave] = std::pow(10, quadratic_vector_interpolator(source_magnitude.data(), source_magnitude.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate)));
+                pillar_magnitude[pillar_idx] = std::pow(10, quadratic_vector_interpolator(source_magnitude.data(), source_magnitude.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate)));
             } catch(std::out_of_range) {
             }
             static LinearVectorInterpolator<double> linear_vector_interpolator;
             try {
-                pillar_phase[octave] = linear_vector_interpolator(source_phase.data(), source_phase.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate));
+                pillar_phase[pillar_idx] = linear_vector_interpolator(source_phase.data(), source_phase.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate));
             } catch(std::out_of_range) {
             }
         }
-        for(size_t octave = 1; octave < max_pillars; octave++) {
-            pillar_phase[octave] -= pillar_phase[0];
+        for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
+            pillar_phase[pillar_idx] -= pillar_phase[0];
         }
         pillar_phase[0] = 0;
 
@@ -205,11 +205,11 @@ Synthesizer &Synthesizer::synthesize() {
         sink_segment = SignalSegment(-sink_window_size/2, sink_window_size/2);
         last_sink_phase += (sink_f0 + last_sink_f0) * sink_window_hop * M_PI / p->output_sample_rate;
         for(auto sink_segment_idx = sink_segment.left(); sink_segment_idx < sink_segment.right(); sink_segment_idx++) {
-            for(size_t octave = 0; octave < std::min(size_t(p->output_sample_rate/(sink_f0*2)), max_pillars); octave++) {
-                if(sink_f0*octave*2 >= p->output_sample_rate)
+            for(size_t pillar_idx = 0; pillar_idx < std::min(size_t(p->output_sample_rate/(sink_f0*2)), max_pillars); pillar_idx++) {
+                if(sink_f0*pillar_idx*2 >= p->output_sample_rate)
                     break;
                 double omega = 2 * M_PI * sink_f0 / p->output_sample_rate;
-                sink_segment[sink_segment_idx] += std::sin((omega*sink_segment_idx + last_sink_phase) * octave + pillar_phase[octave]) * pillar_magnitude[octave];
+                sink_segment[sink_segment_idx] += std::sin((omega*sink_segment_idx + last_sink_phase) * pillar_idx + pillar_phase[pillar_idx]) * pillar_magnitude[pillar_idx];
             }
         }
 
