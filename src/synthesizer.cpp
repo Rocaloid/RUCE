@@ -140,7 +140,7 @@ Synthesizer &Synthesizer::track_f0() {
 
 Synthesizer &Synthesizer::synthesize() {
     static const ssize_t source_window_size = 1024;
-    static const ssize_t sink_window_size = 4096;
+    static const ssize_t sink_window_size = 1024;
     static const size_t max_pillars = 128;
     assert((source_window_size & 1) == 0);
     assert((sink_window_size & 1) == 0);
@@ -178,7 +178,7 @@ Synthesizer &Synthesizer::synthesize() {
 
         // Convert magnitude to log scale
         for(double &mag : source_magnitude)
-            mag = mag > 0 ? std::log10(mag / std::sqrt(source_window_size) * source_window_size / sink_window_size) : -HUGE_VAL;
+            mag = mag > 0 ? std::log10(mag * std::sqrt(source_window_size) / sink_window_size) : -HUGE_VAL;
 
         // Extract sinusold parameters
         std::array<double, max_pillars> pillar_magnitude { 0 };
@@ -200,6 +200,7 @@ Synthesizer &Synthesizer::synthesize() {
             pillar_phase[pillar_idx] -= pillar_phase[0];
         }
         pillar_phase[0] = 0;
+        pillar_phase.fill(0); // Debug
 
         // Construct harmonics
         sink_segment = SignalSegment(-sink_window_size/2, sink_window_size/2);
