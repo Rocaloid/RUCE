@@ -21,7 +21,6 @@
 #define RUCE_SIGNAL_SEGMENT_HPP
 
 #include <algorithm>
-#include <utility>
 #include "utils.hpp"
 
 namespace RUCE {
@@ -113,9 +112,15 @@ public:
      * Moving the data and bounding information from another SignalSegment
      */
     SignalSegment &operator= (SignalSegment &&other) {
-        std::swap(m_data, other.m_data);
-        std::swap(m_left, other.m_left);
-        std::swap(m_right, other.m_right);
+        if(this == &other)
+            return *this;
+        this->~SignalSegment();
+        m_data = other.m_data;
+        m_left = other.m_left;
+        m_right = other.m_right;
+        other.m_data = nullptr;
+        other.m_left = 0;
+        other.m_right = 0;
         return *this;
     }
     /**
