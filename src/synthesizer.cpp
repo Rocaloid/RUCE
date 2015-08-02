@@ -178,7 +178,7 @@ Synthesizer &Synthesizer::synthesize() {
 
         // Convert magnitude to log scale
         for(double &mag : source_magnitude)
-            mag = mag > 0 ? std::log10(mag * std::sqrt(source_window_size) / sink_window_size) : -HUGE_VAL;
+            mag = mag > 0 ? std::log10(mag / sink_window_size) : -HUGE_VAL;
 
         // Extract sinusold parameters
         std::array<double, max_pillars> pillar_magnitude {{ 0 }};
