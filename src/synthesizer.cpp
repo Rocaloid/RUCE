@@ -181,8 +181,8 @@ Synthesizer &Synthesizer::synthesize() {
             mag = mag > 0 ? std::log10(mag * std::sqrt(source_window_size) / sink_window_size) : -HUGE_VAL;
 
         // Extract sinusold parameters
-        std::array<double, max_pillars> pillar_magnitude { 0 };
-        std::array<double, max_pillars> pillar_phase { 0 };
+        std::array<double, max_pillars> pillar_magnitude {{ 0 }};
+        std::array<double, max_pillars> pillar_phase {{ 0 }};
         for(size_t pillar_idx = 0; pillar_idx < std::min(size_t(p->input_sample_rate/(source_f0*2)), max_pillars); pillar_idx++) {
             double harmonic_freq = source_f0 * pillar_idx;
             static QuadraticVectorInterpolator<double> quadratic_vector_interpolator;
