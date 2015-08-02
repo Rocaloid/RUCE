@@ -92,8 +92,8 @@ public:
         m_data = m_buffer - m_left;
 
         assert(&other.m_buffer[0] == &other.m_data[other.m_left]);
-        ssize_t common_left = std::max(m_left, other.m_left);
-        ssize_t common_right = std::min(m_right, other.m_right);
+        ssize_t common_left = std::min(std::max(other.m_left, m_left), m_right);
+        ssize_t common_right = std::max(std::min(other.m_right, m_right), m_left);
         for(ssize_t i = m_left; i < common_left; i++)
             m_data[i] = 0;
         for(ssize_t i = common_left; i < common_right; i++)
@@ -150,7 +150,7 @@ public:
      * For out-of-bound index, return 0
      */
     sample_fmt operator[](ssize_t index) const {
-        assert(&m_buffer[0] == &m_data[m_left]);
+        //assert(&m_buffer[0] == &m_data[m_left]);
         if(index >= m_left && index < m_right) {
             return m_data[index];
         } else {
@@ -163,7 +163,7 @@ public:
      * For out-of-bound index, return 0
      */
     sample_fmt &operator[](ssize_t index) {
-        assert(&m_buffer[0] == &m_data[m_left]);
+        //assert(&m_buffer[0] == &m_data[m_left]);
         if(index >= m_left && index < m_right) {
             return m_data[index];
         } else {
@@ -263,8 +263,8 @@ public:
     SignalSegment &operator+= (const SignalSegment &rhs) {
         assert(&m_buffer[0] == &m_data[m_left]);
         assert(&rhs.m_buffer[0] == &rhs.m_data[rhs.m_left]);
-        ssize_t common_left = std::max(m_left, rhs.m_left);
-        ssize_t common_right = std::min(m_right, rhs.m_right);
+        ssize_t common_left = std::min(std::max(rhs.m_left, m_left), m_right);
+        ssize_t common_right = std::max(std::min(rhs.m_right, m_right), m_left);
         for(ssize_t i = common_left; i < common_right; i++)
             m_data[i] += rhs.m_data[i];
         return *this;
@@ -275,8 +275,8 @@ public:
     SignalSegment &operator-= (const SignalSegment &rhs) {
         assert(&m_buffer[0] == &m_data[m_left]);
         assert(&rhs.m_buffer[0] == &rhs.m_data[rhs.m_left]);
-        ssize_t common_left = std::max(m_left, rhs.m_left);
-        ssize_t common_right = std::min(m_right, rhs.m_right);
+        ssize_t common_left = std::min(std::max(rhs.m_left, m_left), m_right);
+        ssize_t common_right = std::max(std::min(rhs.m_right, m_right), m_left);
         for(ssize_t i = common_left; i < common_right; i++)
             m_data[i] -= rhs.m_data[i];
         return *this;
@@ -289,8 +289,8 @@ public:
     SignalSegment &operator*= (const SignalSegment &rhs) {
         assert(&m_buffer[0] == &m_data[m_left]);
         assert(&rhs.m_buffer[0] == &rhs.m_data[rhs.m_left]);
-        ssize_t common_left = std::max(m_left, rhs.m_left);
-        ssize_t common_right = std::min(m_right, rhs.m_right);
+        ssize_t common_left = std::min(std::max(rhs.m_left, m_left), m_right);
+        ssize_t common_right = std::max(std::min(rhs.m_right, m_right), m_left);
         for(ssize_t i = m_left; i < common_left; i++)
             m_data[i] = 0;
         for(ssize_t i = common_left; i < common_right; i++)
@@ -318,8 +318,8 @@ Backtrace:
     SignalSegment &operator/= (const SignalSegment &rhs) {
         assert(&m_buffer[0] == &m_data[m_left]);
         assert(&rhs.m_buffer[0] == &rhs.m_data[rhs.m_left]);
-        ssize_t common_left = std::max(m_left, rhs.m_left);
-        ssize_t common_right = std::min(m_right, rhs.m_right);
+        ssize_t common_left = std::min(std::max(rhs.m_left, m_left), m_right);
+        ssize_t common_right = std::max(std::min(rhs.m_right, m_right), m_left);
         for(ssize_t i = common_left; i < common_right; i++)
             m_data[i] /= rhs.m_data[i];
         return *this;
