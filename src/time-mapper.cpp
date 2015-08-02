@@ -52,15 +52,23 @@ double TimeMapper::map_consonant_length() {
  */
 double TimeMapper::map_backward(double time_in_sink, double input_file_length) {
     double mapped_consonant_length = map_consonant_length();
+    double x1, x2, y1, y2;
     if(time_in_sink <= mapped_consonant_length) {
-        return option_manager.get_consonant_length()*time_in_sink/mapped_consonant_length + option_manager.get_left_blank();
+        x1 = 0;
+        x2 = mapped_consonant_length;
+        y1 = option_manager.get_left_blank();
+        y2 = option_manager.get_left_blank() + option_manager.get_consonant_length();
     } else {
-        double x1 = mapped_consonant_length;
-        double x2 = option_manager.get_required_length();
-        double y1 = option_manager.get_left_blank() + option_manager.get_consonant_length();
-        double y2 = input_file_length - option_manager.get_right_blank();
+        x1 = mapped_consonant_length;
+        x2 = option_manager.get_required_length();
+        y1 = option_manager.get_left_blank() + option_manager.get_consonant_length();
+        y2 = input_file_length - option_manager.get_right_blank();
+    }
+    if(x1 != x2) {
         double k = (y2-y1) / (x2-x1);
         return (time_in_sink-x1)*k + y1;
+    } else {
+        return (y1+y2) / 2;
     }
 }
 
@@ -86,8 +94,12 @@ double TimeMapper::map_forward(double time_in_source, double input_file_length) 
         y1 = map_consonant_length();
         y2 = option_manager.get_required_length();
     }
-    double k = (y2-y1) / (x2-x1);
-    return (time_in_source-x1)*k + y1;
+    if(x1 != x2) {
+        double k = (y2-y1) / (x2-x1);
+        return (time_in_source-x1)*k + y1;
+    } else {
+        return (y1+y2) / 2;
+    }
 }
 
 }
