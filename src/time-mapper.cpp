@@ -31,14 +31,13 @@ TimeMapper::TimeMapper(OptionManager &option_manager) :
 /**
  * Map UTAU note velocity to consonant length
  *
- *   0 => 2.0
- * 100 => 1.0
- * 200 => 0.5
+ * 0 => 2.0
+ * 1 => 1.0
+ * 2 => 0.5
  */
 double TimeMapper::map_consonant_length() {
     if(cached_consonant_length < 0) {
-        static const double M_INV_2_POW_INV_100 = 0.9930924954370359015; // 1 / 2^(1/100)
-        cached_consonant_length = std::max(std::pow(M_INV_2_POW_INV_100, option_manager.get_note_velocity()) * option_manager.get_consonant_length() * 2, 0.0);
+        cached_consonant_length = std::max(option_manager.get_consonant_length() * 2 / std::pow(2, option_manager.get_note_velocity()), 0.0);
     }
     return cached_consonant_length;
 }
