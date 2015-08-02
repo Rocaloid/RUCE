@@ -85,10 +85,12 @@ public:
      * Make a new SignalSegment by copying out a subsegment
      */
     SignalSegment(const SignalSegment &other, ssize_t left_bound, ssize_t right_bound) :
-        m_buffer(new sample_fmt[std::max(right_bound - left_bound, ssize_t(0))]),
-        m_data(m_buffer - left_bound),
         m_left(left_bound),
-        m_right(std::max(right_bound, left_bound)) {
+        m_right(right_bound) {
+        assert(m_right > m_left);
+        m_buffer = new sample_fmt[m_right - m_left];
+        m_data = m_buffer - m_left;
+
         assert(&other.m_buffer[0] == &other.m_data[other.m_left]);
         ssize_t common_left = std::max(m_left, other.m_left);
         ssize_t common_right = std::min(m_right, other.m_right);
@@ -148,7 +150,7 @@ public:
      * For out-of-bound index, return 0
      */
     sample_fmt operator[](ssize_t index) const {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
         if(index >= m_left && index < m_right) {
             return m_data[index];
         } else {
@@ -161,7 +163,7 @@ public:
      * For out-of-bound index, return 0
      */
     sample_fmt &operator[](ssize_t index) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
         if(index >= m_left && index < m_right) {
             return m_data[index];
         } else {
@@ -214,7 +216,7 @@ public:
      * Fill with a specific value
      */
     SignalSegment &fill(sample_fmt value) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
         for(ssize_t i = m_left; i < m_right; i++)
             m_data[i] = value;
         return *this;
@@ -223,7 +225,7 @@ public:
      * Add a specific value
      */
     SignalSegment &operator+= (sample_fmt rhs) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
         for(ssize_t i = m_left; i < m_right; i++)
             m_data[i] += rhs;
         return *this;
@@ -232,7 +234,7 @@ public:
      * Subtract a specific value
      */
     SignalSegment &operator-= (sample_fmt rhs) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
         for(ssize_t i = m_left; i < m_right; i++)
             m_data[i] -= rhs;
         return *this;
@@ -241,7 +243,7 @@ public:
      * Multiply by a specific value
      */
     SignalSegment &operator*= (sample_fmt rhs) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
         for(ssize_t i = m_left; i < m_right; i++)
             m_data[i] *= rhs;
         return *this;
@@ -250,7 +252,7 @@ public:
      * Divide by a specific value
      */
     SignalSegment &operator/= (sample_fmt rhs) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
         for(ssize_t i = m_left; i < m_right; i++)
             m_data[i] /= rhs;
         return *this;
@@ -259,8 +261,8 @@ public:
      * Add another SignalSegment
      */
     SignalSegment &operator+= (const SignalSegment &rhs) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
-        assert(&rhs.m_buffer[0] == &rhs.m_buffer[rhs.m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
+        assert(&rhs.m_buffer[0] == &rhs.m_data[rhs.m_left]);
         ssize_t common_left = std::max(m_left, rhs.m_left);
         ssize_t common_right = std::min(m_right, rhs.m_right);
         for(ssize_t i = common_left; i < common_right; i++)
@@ -271,8 +273,8 @@ public:
      * Subtract another SignalSegment
      */
     SignalSegment &operator-= (const SignalSegment &rhs) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
-        assert(&rhs.m_buffer[0] == &rhs.m_buffer[rhs.m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
+        assert(&rhs.m_buffer[0] == &rhs.m_data[rhs.m_left]);
         ssize_t common_left = std::max(m_left, rhs.m_left);
         ssize_t common_right = std::min(m_right, rhs.m_right);
         for(ssize_t i = common_left; i < common_right; i++)
@@ -285,8 +287,8 @@ public:
      * Note that the uncommon samples are filled with 0
      */
     SignalSegment &operator*= (const SignalSegment &rhs) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
-        assert(&rhs.m_buffer[0] == &rhs.m_buffer[rhs.m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
+        assert(&rhs.m_buffer[0] == &rhs.m_data[rhs.m_left]);
         ssize_t common_left = std::max(m_left, rhs.m_left);
         ssize_t common_right = std::min(m_right, rhs.m_right);
         for(ssize_t i = m_left; i < common_left; i++)
@@ -314,8 +316,8 @@ Backtrace:
      * Note that the uncommon samples are not touched
      */
     SignalSegment &operator/= (const SignalSegment &rhs) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
-        assert(&rhs.m_buffer[0] == &rhs.m_buffer[rhs.m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
+        assert(&rhs.m_buffer[0] == &rhs.m_data[rhs.m_left]);
         ssize_t common_left = std::max(m_left, rhs.m_left);
         ssize_t common_right = std::min(m_right, rhs.m_right);
         for(ssize_t i = common_left; i < common_right; i++)
@@ -326,22 +328,22 @@ Backtrace:
      * Shift left the samples
      */
     SignalSegment &operator<<= (ssize_t shift_amount) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
         m_data += shift_amount;
         m_left -= shift_amount;
         m_right -= shift_amount;
-        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
         return *this;
     }
     /**
      * Shift right the samples
      */
     SignalSegment &operator>>= (ssize_t shift_amount) {
-        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
         m_data -= shift_amount;
         m_left += shift_amount;
         m_right += shift_amount;
-        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&m_buffer[0] == &m_data[m_left]);
         return *this;
     }
 protected:
