@@ -21,6 +21,7 @@
 #define RUCE_SIGNAL_SEGMENT_HPP
 
 #include <algorithm>
+#include <cassert>
 #include "utils.hpp"
 
 namespace RUCE {
@@ -38,46 +39,57 @@ public:
      * Make a new SignalSegment with left_bond = 0
      */
     SignalSegment(ssize_t length = 0) :
-        m_data((new sample_fmt[length])),
+        m_buffer((new sample_fmt[length])),
+        m_data(m_buffer),
         m_left(0),
         m_right(length) {
-        *this = sample_fmt(0);
+        fill(0);
     }
     /**
      * Make a new SignalSegment
      */
     SignalSegment(ssize_t left_bound, ssize_t right_bound) :
-        m_data((new sample_fmt[std::max(right_bound - left_bound, ssize_t(0))]) - left_bound),
+        m_buffer(new sample_fmt[std::max(right_bound - left_bound, ssize_t(0))]),
+        m_data(m_buffer - left_bound),
         m_left(left_bound),
         m_right(std::max(right_bound, left_bound)) {
-        *this = sample_fmt(0);
+        fill(0);
     }
     /**
      * Make a new SignalSegment by copying an existing one
      */
     SignalSegment(const SignalSegment &other) :
-        m_data((new sample_fmt[other.m_right - other.m_left]) - other.m_left),
+        m_buffer(new sample_fmt[other.m_right - other.m_left]),
+        m_data(m_buffer - other.m_left),
         m_left(other.m_left),
         m_right(other.m_right) {
+        assert(&other.m_buffer[0] == &other.m_data[other.m_left]);
+        for(ssize_t i = m_left; i < m_right; i++)
+            m_data[i] = other.m_data[i];
     }
     /**
      * Make a new SignalSegment by moving an existing one
      */
     SignalSegment(SignalSegment &&other) :
+        m_buffer(other.m_buffer),
         m_data(other.m_data),
         m_left(other.m_left),
         m_right(other.m_right) {
+        other.m_buffer = nullptr;
         other.m_data = nullptr;
         other.m_left = 0;
         other.m_right = 0;
+        assert(&m_buffer[0] == &m_data[m_left]);
     }
     /**
      * Make a new SignalSegment by copying out a subsegment
      */
     SignalSegment(const SignalSegment &other, ssize_t left_bound, ssize_t right_bound) :
-        m_data((new sample_fmt[std::max(right_bound - left_bound, ssize_t(0))]) - left_bound),
+        m_buffer(new sample_fmt[std::max(right_bound - left_bound, ssize_t(0))]),
+        m_data(m_buffer - left_bound),
         m_left(left_bound),
         m_right(std::max(right_bound, left_bound)) {
+        assert(&other.m_buffer[0] == &other.m_data[other.m_left]);
         ssize_t common_left = std::max(m_left, other.m_left);
         ssize_t common_right = std::min(m_right, other.m_right);
         for(ssize_t i = m_left; i < common_left; i++)
@@ -88,8 +100,10 @@ public:
             m_data[i] = 0;
     }
     ~SignalSegment() {
-        if(m_data + m_left != nullptr)
-            delete[] (m_data + m_left);
+        assert(&m_buffer[0] == &m_data[m_left]);
+        if(m_buffer != nullptr)
+            delete[] m_buffer;
+        m_buffer = nullptr;
         m_data = nullptr;
         m_left = 0;
         m_right = 0;
@@ -98,10 +112,12 @@ public:
      * Copy the data and bounding information from another SignalSegment
      */
     SignalSegment &operator= (const SignalSegment &other) {
+        assert(&other.m_buffer[0] == &other.m_data[other.m_left]);
         if(this == &other)
             return *this;
         this->~SignalSegment();
-        m_data = (new sample_fmt[other.m_right - other.m_left]) - other.m_left;
+        m_buffer = (new sample_fmt[other.m_right - other.m_left]);
+        m_data = m_buffer - other.m_left;
         m_left = other.m_left;
         m_right = other.m_right;
         for(ssize_t i = m_left; i < m_right; i++)
@@ -112,12 +128,15 @@ public:
      * Moving the data and bounding information from another SignalSegment
      */
     SignalSegment &operator= (SignalSegment &&other) {
+        assert(&other.m_buffer[0] == &other.m_data[other.m_left]);
         if(this == &other)
             return *this;
         this->~SignalSegment();
+        m_buffer = other.m_buffer;
         m_data = other.m_data;
         m_left = other.m_left;
         m_right = other.m_right;
+        other.m_buffer = nullptr;
         other.m_data = nullptr;
         other.m_left = 0;
         other.m_right = 0;
@@ -129,6 +148,7 @@ public:
      * For out-of-bound index, return 0
      */
     sample_fmt operator[](ssize_t index) const {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
         if(index >= m_left && index < m_right) {
             return m_data[index];
         } else {
@@ -141,6 +161,7 @@ public:
      * For out-of-bound index, return 0
      */
     sample_fmt &operator[](ssize_t index) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
         if(index >= m_left && index < m_right) {
             return m_data[index];
         } else {
@@ -162,25 +183,38 @@ public:
     ssize_t right() const { return m_right; }
     /**
      * Get the raw data, for operations without bounding check
+     *
+     * data[left] is the first sample,
+     * data[right-1] is the last
      */
     const sample_fmt *data() const { return m_data; }
     /**
      * Get the raw data, for operations without bounding check
+     *
+     * data[left] is the first sample,
+     * data[right-1] is the last
      */
     sample_fmt *data() { return m_data; }
     /**
      * Get the raw buffer, that is, data + left_bound
+     *
+     * buffer[0] is the first sample,
+     * buffer[right-left-1] is the last
      */
-    const sample_fmt *buffer() const { return m_data + m_left; }
+    const sample_fmt *buffer() const { return m_buffer; }
     /**
      * Get the raw buffer, that is, data + left_bound
+     *
+     * buffer[0] is the first sample,
+     * buffer[right-left-1] is the last
      */
-    sample_fmt *buffer() { return m_data + m_left; }
+    sample_fmt *buffer() { return m_buffer; }
 
     /**
      * Fill with a specific value
      */
-    SignalSegment &operator= (sample_fmt value) {
+    SignalSegment &fill(sample_fmt value) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
         for(ssize_t i = m_left; i < m_right; i++)
             m_data[i] = value;
         return *this;
@@ -189,6 +223,7 @@ public:
      * Add a specific value
      */
     SignalSegment &operator+= (sample_fmt rhs) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
         for(ssize_t i = m_left; i < m_right; i++)
             m_data[i] += rhs;
         return *this;
@@ -197,6 +232,7 @@ public:
      * Subtract a specific value
      */
     SignalSegment &operator-= (sample_fmt rhs) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
         for(ssize_t i = m_left; i < m_right; i++)
             m_data[i] -= rhs;
         return *this;
@@ -205,6 +241,7 @@ public:
      * Multiply by a specific value
      */
     SignalSegment &operator*= (sample_fmt rhs) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
         for(ssize_t i = m_left; i < m_right; i++)
             m_data[i] *= rhs;
         return *this;
@@ -213,6 +250,7 @@ public:
      * Divide by a specific value
      */
     SignalSegment &operator/= (sample_fmt rhs) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
         for(ssize_t i = m_left; i < m_right; i++)
             m_data[i] /= rhs;
         return *this;
@@ -221,6 +259,8 @@ public:
      * Add another SignalSegment
      */
     SignalSegment &operator+= (const SignalSegment &rhs) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&rhs.m_buffer[0] == &rhs.m_buffer[rhs.m_left]);
         ssize_t common_left = std::max(m_left, rhs.m_left);
         ssize_t common_right = std::min(m_right, rhs.m_right);
         for(ssize_t i = common_left; i < common_right; i++)
@@ -231,6 +271,8 @@ public:
      * Subtract another SignalSegment
      */
     SignalSegment &operator-= (const SignalSegment &rhs) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&rhs.m_buffer[0] == &rhs.m_buffer[rhs.m_left]);
         ssize_t common_left = std::max(m_left, rhs.m_left);
         ssize_t common_right = std::min(m_right, rhs.m_right);
         for(ssize_t i = common_left; i < common_right; i++)
@@ -243,6 +285,8 @@ public:
      * Note that the uncommon samples are filled with 0
      */
     SignalSegment &operator*= (const SignalSegment &rhs) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&rhs.m_buffer[0] == &rhs.m_buffer[rhs.m_left]);
         ssize_t common_left = std::max(m_left, rhs.m_left);
         ssize_t common_right = std::min(m_right, rhs.m_right);
         for(ssize_t i = m_left; i < common_left; i++)
@@ -270,6 +314,8 @@ Backtrace:
      * Note that the uncommon samples are not touched
      */
     SignalSegment &operator/= (const SignalSegment &rhs) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
+        assert(&rhs.m_buffer[0] == &rhs.m_buffer[rhs.m_left]);
         ssize_t common_left = std::max(m_left, rhs.m_left);
         ssize_t common_right = std::min(m_right, rhs.m_right);
         for(ssize_t i = common_left; i < common_right; i++)
@@ -280,21 +326,26 @@ Backtrace:
      * Shift left the samples
      */
     SignalSegment &operator<<= (ssize_t shift_amount) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
         m_data += shift_amount;
         m_left -= shift_amount;
         m_right -= shift_amount;
+        assert(&m_buffer[0] == &m_buffer[m_left]);
         return *this;
     }
     /**
      * Shift right the samples
      */
     SignalSegment &operator>>= (ssize_t shift_amount) {
+        assert(&m_buffer[0] == &m_buffer[m_left]);
         m_data -= shift_amount;
         m_left += shift_amount;
         m_right += shift_amount;
+        assert(&m_buffer[0] == &m_buffer[m_left]);
         return *this;
     }
 protected:
+    sample_fmt *m_buffer = nullptr;
     sample_fmt *m_data = nullptr;
     ssize_t m_left = 0;
     ssize_t m_right = 0;
