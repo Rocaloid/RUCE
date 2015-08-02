@@ -105,6 +105,8 @@ public:
         m_data = (new sample_fmt[other.m_right - other.m_left]) - other.m_left;
         m_left = other.m_left;
         m_right = other.m_right;
+        for(ssize_t i = m_left; i < m_right; i++)
+            m_data[i] = other.m_data[i];
         return *this;
     }
     /**
