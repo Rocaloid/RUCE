@@ -33,6 +33,8 @@ public:
     Synthesizer &prepare();
     Synthesizer &read_source();
     Synthesizer &track_f0();
+    Synthesizer &analyze();
+    Synthesizer &adjust_synth_params();
     Synthesizer &synthesize();
     Synthesizer &write_sink();
 protected:

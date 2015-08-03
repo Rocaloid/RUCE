@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <vector>
 #include "proxy-ptr.hpp"
+#include "wrapped-angle.hpp"
 
 namespace RUCE {
 
@@ -33,6 +34,13 @@ class Spectrum {
 public:
     Spectrum(size_t fftsize);
     ~Spectrum();
+
+    /**
+     * Init with given FFT size
+     *
+     * `fftsize` must be a power of 2,
+     * use `next_pow2` to get a valid number
+     */
     Spectrum &init(size_t fftsize);
 
     /**
@@ -52,7 +60,7 @@ public:
     std::vector<std::complex<double>> &get_spectrum();
     const std::vector<std::complex<double>> &get_spectrum() const;
     std::vector<double> get_magnitude() const;
-    std::vector<double> get_phase() const;
+    std::vector<WrappedAngle> get_phase() const;
 
     /* Ultility functions related to FFT */
     double hertz_to_bin(double heartz, int32_t sample_rate) const {

@@ -135,10 +135,10 @@ std::vector<double> Spectrum::get_magnitude() const {
     return magnitude;
 }
 
-std::vector<double> Spectrum::get_phase() const {
+std::vector<WrappedAngle> Spectrum::get_phase() const {
     assert(p->spectrum.size() == fftsize);
 
-    std::vector<double> phase(fftsize);
+    std::vector<WrappedAngle> phase(fftsize);
 
     auto iters = p->spectrum.cbegin();
     auto iterp = phase.begin();

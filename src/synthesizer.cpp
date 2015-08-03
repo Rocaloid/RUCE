@@ -35,6 +35,7 @@
 #include <sndfile.h>
 #include "fast-random.hpp"
 #include "f0-tracker.hpp"
+#include "hnm-parameters.hpp"
 #include "option-manager.hpp"
 #include "pcm-file.hpp"
 #include "signal-segment.hpp"
@@ -43,6 +44,7 @@
 #include "tuner.hpp"
 #include "vector-interpolator.hpp"
 #include "window.hpp"
+#include "wrapped-angle.hpp"
 
 namespace RUCE {
 
@@ -52,9 +54,10 @@ struct Synthesizer::Private {
     int32_t input_sample_rate;
     int32_t output_sample_rate;
     int64_t input_file_frames;
-    int64_t output_file_frames;;
+    int64_t output_file_frames;
     SignalSegment source_buffer;
     SignalSegment sink_buffer;
+    HNMParameters hnm_parameters;
     Tuner tuner;
     F0Tracker f0_tracker;
     FastRandom fastrand;
@@ -138,6 +141,46 @@ Synthesizer &Synthesizer::track_f0() {
     return *this;
 }
 
+Synthesizer &Synthesizer::analyze() {
+    static const ssize_t source_window_size = 1024;
+    static const ssize_t source_window_hop = source_window_size/2;
+    static const size_t max_pillars = 128;
+
+    p->hnm_parameters.analysis_window_size = source_window_size;
+    p->hnm_parameters.analysis_window_hop = source_window_hop;
+    p->hnm_parameters.max_pillars = max_pillars;
+    p->hnm_parameters.first_window_mid = p->source_buffer.left();
+
+    SignalSegment source_window = HannWindow(source_window_size);
+    Spectrum source_spectrum(Spectrum::next_pow2(source_window_size));
+
+    for(auto source_window_mid = p->source_buffer.left(); source_window_mid < p->source_buffer.right()+source_window_size/2; source_window_mid += source_window_hop) {
+        double source_f0 = p->f0_tracker.get_result(source_window_mid);
+
+        // Copy the source and window it
+        SignalSegment source_segment(p->source_buffer, source_window_mid-source_window_size/2, source_window_mid+source_window_size/2);
+        source_segment <<= source_segment.left();
+        source_segment *= source_window;
+
+        // Do FFT analysis
+        source_segment = source_spectrum.fftshift(source_segment);
+        source_spectrum.fft_analyze(source_segment);
+
+        // Omit peak finding
+        for(size_t pillar_idx = 0; pillar_idx < max_pillars; pillar_idx++) {
+
+        }
+    }
+
+    return *this;
+}
+
+Synthesizer &Synthesizer::adjust_synth_params() {
+    // STUB
+
+    return *this;
+}
+
 Synthesizer &Synthesizer::synthesize() {
     static const ssize_t source_window_size = 1024;
     static const ssize_t sink_window_size = 1024;
@@ -190,7 +233,7 @@ Synthesizer &Synthesizer::synthesize() {
                 pillar_magnitude[pillar_idx] = std::pow(10, quadratic_vector_interpolator(source_magnitude.data(), source_magnitude.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate)));
             } catch(std::out_of_range) {
             }
-            static LinearVectorInterpolator<double> linear_vector_interpolator;
+            static LinearVectorInterpolator<WrappedAngle> linear_vector_interpolator;
             try {
                 pillar_phase[pillar_idx] = linear_vector_interpolator(source_phase.data(), source_phase.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate));
             } catch(std::out_of_range) {

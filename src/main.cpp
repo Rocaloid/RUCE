@@ -34,20 +34,17 @@ int main() {
                << "自由的歌声合成软件，技术体验版。 http://www.rocaloid.org" << std::endl
                << std::endl;
 
-    {
-        CmdlineParser cmdline_parser(*option_manager.get());
-        cmdline_parser.parse_argv(WTF8::getargv());
-    }
+    CmdlineParser(*option_manager.get())
+        .parse_argv(WTF8::getargv());
 
-    {
-        Synthesizer synth(*option_manager.get());
-        synth.check_params()
-             .prepare()
-             .read_source()
-             .track_f0()
-             .synthesize()
-             .write_sink();
-    }
+    Synthesizer(*option_manager.get())
+        .check_params()
+        .prepare()
+        .read_source()
+        .track_f0()
+        .analyze()
+        .synthesize()
+        .write_sink();
 
     return 0;
 }
