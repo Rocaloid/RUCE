@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <cmath>
+#include <functional>
 #include <stdexcept>
 #include <algorithm>
 
@@ -32,28 +33,37 @@ namespace RUCE {
  * Given a discrete series of values, figure out the `index`-th value, where `index` is a real number
  *
  * Different interpolating algorithms can be used. See `LinearVectorInterpolator` and `QuadraticVectorInterpolator`.
+ *
+ * The argument `getter` is a function that can fetch a given element based on an integral index
+ *
+ * Demo:
+ *   LinearVectorInterpolator interpolator;
+ *   std::array<double, 4> my_array {{ 0, 1, 2, 3 }}
+ *   double value_at_1_5 = interpolator([&](size_t index) {
+ *       return my_array[index];
+ *   }, my_array.size(), 1.5);
  */
 template<typename T>
 class VectorInterpolator {
 public:
-    virtual T operator() (const T vector[], size_t length, double index) const = 0;
+    virtual T operator() (std::function<T (size_t index)> getter, size_t length, double index) const = 0;
 };
 
 template<typename T>
 class LinearVectorInterpolator : public VectorInterpolator<T> {
 public:
-    T operator() (const T vector[], size_t length, double index) const {
+    T operator() (std::function<T (size_t index)> getter, size_t length, double index) const {
         if(index < 0)
             throw std::out_of_range("Index out of range");
         else if(index == length-1) 
-            return vector[size_t(index)];
+            return getter(size_t(index));
         else {
             double int_part;
             double frac_part = std::modf(index, &int_part);
             if(int_part >= length-1)
                 throw std::out_of_range("Index out of range");
             size_t i = size_t(int_part);
-            return interp_2(vector[i], vector[i+1], frac_part);
+            return interp_2(getter(i), getter(i+1), frac_part);
         }
     }
 private:
@@ -67,27 +77,27 @@ private:
 template<typename T>
 class QuadraticVectorInterpolator : public VectorInterpolator<T> {
 public:
-    T operator() (const T vector[], size_t length, double index) const {
+    T operator() (std::function<T (size_t index)> getter, size_t length, double index) const {
         if(index < 0)
             throw std::out_of_range("Index out of range");
         else if(index == length-1)
-            return vector[size_t(index)];
+            return getter(size_t(index));
         else {
             double int_part;
             double frac_part = std::modf(index, &int_part);
             if(int_part >= length-1)
                 throw std::out_of_range("Index out of range");
             else if(frac_part == 0)
-                return vector[size_t(int_part)];
+                return getter(size_t(int_part));
             else if(index < 1.5)
-                return interp_3(vector[0], vector[1], vector[2], index-1);
+                return interp_3(getter(0), getter(1), getter(2), index-1);
             else if(index >= length-2.5)
-                return interp_3(vector[length-3], vector[length-2], vector[length-1], index-(length-2));
+                return interp_3(getter(length-3), getter(length-2), getter(length-1), index-(length-2));
             else {
                 size_t i = size_t(int_part);
                 return frac_part >= 0.5 ?
-                    interp_3(vector[i], vector[i+1], vector[i+2], frac_part-1) :
-                    interp_3(vector[i-1], vector[i], vector[i+1], frac_part);
+                    interp_3(getter(i), getter(i+1), getter(i+2), frac_part-1) :
+                    interp_3(getter(i-1), getter(i), getter(i+1), frac_part);
             }
         }
     }

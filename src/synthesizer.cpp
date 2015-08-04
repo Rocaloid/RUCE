@@ -168,7 +168,6 @@ Synthesizer &Synthesizer::analyze() {
 
         // Omit peak finding
         for(size_t pillar_idx = 0; pillar_idx < max_pillars; pillar_idx++) {
-
         }
     }
 
@@ -230,12 +229,16 @@ Synthesizer &Synthesizer::synthesize() {
             double harmonic_freq = source_f0 * pillar_idx;
             static QuadraticVectorInterpolator<double> quadratic_vector_interpolator;
             try {
-                pillar_magnitude[pillar_idx] = std::pow(10, quadratic_vector_interpolator(source_magnitude.data(), source_magnitude.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate)));
+                pillar_magnitude[pillar_idx] = std::pow(10, quadratic_vector_interpolator([&](size_t index) {
+                    return source_magnitude[index];
+                }, source_magnitude.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate)));
             } catch(std::out_of_range) {
             }
             static LinearVectorInterpolator<WrappedAngle> linear_vector_interpolator;
             try {
-                pillar_phase[pillar_idx] = linear_vector_interpolator(source_phase.data(), source_phase.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate));
+                pillar_phase[pillar_idx] = linear_vector_interpolator([&](size_t index) {
+                    return source_phase[index];
+                }, source_phase.size(), source_spectrum.hertz_to_bin(harmonic_freq, p->input_sample_rate));
             } catch(std::out_of_range) {
             }
         }
