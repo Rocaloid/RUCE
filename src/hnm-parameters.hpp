@@ -31,7 +31,7 @@ class HNMParameters {
 public:
     ssize_t analysis_window_size;
     ssize_t analysis_window_hop;
-    size_t max_pillars;
+    static const size_t max_pillars = 128;
     /**
      * The middle point of the first analysis window
      */
@@ -40,11 +40,14 @@ public:
      * The first index is window index,
      * the second index is harmony index.
      */
-    std::vector<std::vector<double>> harmony_frequencies;
-    std::vector<std::vector<double>> harmony_magnitude;
-    std::vector<std::vector<WrappedAngle>> harmony_phase;
+    std::vector<std::array<double, max_pillars>> harmony_frequencies;
+    std::vector<std::array<double, max_pillars>> harmony_magnitude;
+    std::vector<std::array<WrappedAngle, max_pillars>> harmony_phase;
     double frame_to_window_idx(ssize_t frame_idx) const {
         return double(frame_idx-first_window_mid) / double(analysis_window_hop);
+    }
+    double frame_to_window_idx(double frame_idx) const {
+        return (frame_idx-first_window_mid) / double(analysis_window_hop);
     }
     ssize_t window_to_frame_idx(double window_idx) const {
         return ssize_t(std::round(window_idx*analysis_window_hop)) + first_window_mid;
