@@ -56,9 +56,16 @@ struct Synthesizer::Private {
     int32_t output_sample_rate;
     int64_t input_file_frames;
     int64_t output_file_frames;
+    /**
+     * The buffer related to voice source (input)
+     */
     SignalSegment source_buffer;
+    /**
+     * The buffer related to voice sink (output)
+     */
     SignalSegment sink_buffer;
-    HNMParameters hnm_parameters;
+    HNMParameters source_hnm_parameters;
+    HNMParameters sink_hnm_parameters;
     Tuner tuner;
     F0Tracker f0_tracker;
     FastRandom fastrand;
@@ -140,9 +147,9 @@ Synthesizer &Synthesizer::analyze() {
     static const auto max_pillars = HNMParameters::max_pillars;
     assert((source_window_size & 1) == 0);
 
-    p->hnm_parameters.analysis_window_size = source_window_size;
-    p->hnm_parameters.analysis_window_hop = source_window_hop;
-    p->hnm_parameters.first_window_mid = p->source_buffer.left();
+    p->source_hnm_parameters.window_size = source_window_size;
+    p->source_hnm_parameters.window_hop = source_window_hop;
+    p->source_hnm_parameters.first_window_mid = p->source_buffer.left();
 
     SignalSegment source_window = HannWindow(source_window_size);
     Spectrum source_spectrum(Spectrum::next_pow2(source_window_size));
@@ -160,14 +167,14 @@ Synthesizer &Synthesizer::analyze() {
         source_spectrum.fft_analyze(source_segment);
 
         // Omit peak finding
-        std::array<double, max_pillars> harmony_frequencies {{ 0 }};
-        harmony_frequencies[0] = source_f0;
+        std::array<double, max_pillars> source_harmony_frequencies {{ 0 }};
+        source_harmony_frequencies[0] = source_f0;
         for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
             double harmony_frequency = source_f0 * pillar_idx;
             if(harmony_frequency*2 >= std::min(source_max_harmony*2, double(p->input_sample_rate)))
                 break;
             // STUB
-            harmony_frequencies[pillar_idx] = harmony_frequency;
+            source_harmony_frequencies[pillar_idx] = harmony_frequency;
         }
 
         // Convert magnitude to log scale
@@ -177,45 +184,130 @@ Synthesizer &Synthesizer::analyze() {
 
         // Extract sinusold parameters
         auto source_phase = source_spectrum.get_phase();
-        std::array<double, max_pillars> harmony_magnitude_factor {{ 0 }};
-        std::array<WrappedAngle, max_pillars> harmony_phase_difference {{ 0 }};
+        std::array<double, max_pillars> source_harmony_magnitude {{ 0 }};
+        std::array<WrappedAngle, max_pillars> source_harmony_phase_difference {{ 0 }};
         for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
-            double harmony_frequency = harmony_frequencies[pillar_idx];
+            double harmony_frequency = source_harmony_frequencies[pillar_idx];
             if(harmony_frequency == 0)
                 continue;
+
+            // Magnitude
             QuadraticVectorInterpolator<double> quadratic_vector_interpolator;
             try {
-                harmony_magnitude_factor[pillar_idx] = std::pow(10, quadratic_vector_interpolator([&](size_t index) {
+                source_harmony_magnitude[pillar_idx] = std::pow(10, quadratic_vector_interpolator([&](size_t index) {
                     return source_magnitude[index];
-                }, source_magnitude.size(), source_spectrum.hertz_to_bin(harmony_frequency, p->input_sample_rate)))
-                *((harmony_frequency/harmony_frequencies[0])*(harmony_frequency/harmony_frequencies[0]));
+                }, source_magnitude.size(), source_spectrum.hertz_to_bin(harmony_frequency, p->input_sample_rate)));
             } catch(std::out_of_range) {
             }
+
+            // Phase
             LinearVectorInterpolator<WrappedAngle> linear_vector_interpolator;
             try {
-                harmony_phase_difference[pillar_idx] = linear_vector_interpolator([&](size_t index) {
+                source_harmony_phase_difference[pillar_idx] = linear_vector_interpolator([&](size_t index) {
                     return source_phase[index];
                 }, source_phase.size(), source_spectrum.hertz_to_bin(harmony_frequency, p->input_sample_rate));
             } catch(std::out_of_range) {
             }
+
         }
-        harmony_magnitude_factor[0] = harmony_magnitude_factor[1];
         for(size_t pillar_idx = 2; pillar_idx < max_pillars; pillar_idx++) {
-            harmony_phase_difference[pillar_idx] -= harmony_phase_difference[1];
+            // STUB
+            source_harmony_phase_difference[pillar_idx] -= source_harmony_phase_difference[1];
         }
-        harmony_phase_difference[1] = 0;
+        source_harmony_phase_difference[1] = 0;
 
         // Push the result of this window
-        p->hnm_parameters.harmony_frequencies.push_back(std::move(harmony_frequencies));
-        p->hnm_parameters.harmony_magnitude_factor.push_back(std::move(harmony_magnitude_factor));
-        p->hnm_parameters.harmony_phase_difference.push_back(std::move(harmony_phase_difference));
+        p->source_hnm_parameters.harmony_frequencies.push_back(std::move(source_harmony_frequencies));
+        p->source_hnm_parameters.harmony_magnitude.push_back(std::move(source_harmony_magnitude));
+        p->source_hnm_parameters.harmony_phase_difference.push_back(std::move(source_harmony_phase_difference));
     }
 
     return *this;
 }
 
 Synthesizer &Synthesizer::adjust_synth_params() {
-    // STUB
+    static const ssize_t sink_window_size = 1024;
+    static const ssize_t sink_window_hop = sink_window_size/2;
+    static const double sink_max_harmony = 10000;
+    static const auto max_pillars = HNMParameters::max_pillars;
+    assert((sink_window_size & 1) == 0);
+
+    p->sink_hnm_parameters.window_size = sink_window_size;
+    p->sink_hnm_parameters.window_hop = sink_window_hop;
+    p->sink_hnm_parameters.first_window_mid = p->sink_buffer.left();
+
+    double base_pitch = option_manager.get_output_pitch();
+    WTF8::clog << "Average output sink frequency:  " << p->tuner.midi_id_to_freq(base_pitch) << " Hz" << std::endl;
+
+    SignalSegment sink_window = HannWindow(sink_window_size);
+    TimeMapper time_mapper(option_manager);
+
+    for(auto sink_window_mid = p->sink_buffer.left(); sink_window_mid < p->sink_buffer.right()+sink_window_size/2; sink_window_mid += sink_window_hop) {
+        // Map the timestamp in sink to source
+        double sink_timestamp = double(sink_window_mid) / p->output_sample_rate;
+        double source_timestamp = time_mapper.map_backward(sink_timestamp, double(p->input_file_frames) / p->input_sample_rate);
+        double source_timestamp_frames = source_timestamp * p->input_sample_rate;
+        double source_timestamp_windows = p->source_hnm_parameters.frame_to_window_idx(source_timestamp_frames);
+
+        // Fetch source harmonic parameters
+        LinearVectorInterpolator<std::array<double, max_pillars>> frequency_interpolator;
+        LinearVectorInterpolator<std::array<double, max_pillars>> magnitude_interpolator;
+        std::array<double, max_pillars> source_harmony_frequencies;
+        try {
+            source_harmony_frequencies = magnitude_interpolator([&](size_t index) {
+                return p->source_hnm_parameters.harmony_frequencies[index];
+            }, p->source_hnm_parameters.harmony_frequencies.size(), source_timestamp_windows);
+        } catch(std::out_of_range) {
+            continue;
+        }
+        std::array<double, max_pillars> source_harmony_magnitude = magnitude_interpolator([&](size_t index) {
+            return p->source_hnm_parameters.harmony_magnitude[index];
+        }, p->source_hnm_parameters.harmony_magnitude.size(), source_timestamp_windows);
+
+        // Calculate sink harmony frequencies
+        double sink_f0 = p->tuner.midi_id_to_freq(base_pitch + option_manager.get_pitch_bend(sink_timestamp));
+        std::array<double, max_pillars> sink_harmony_frequencies {{ 0 }};
+        sink_harmony_frequencies[0] = sink_f0;
+        for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
+            double harmony_frequency = sink_f0 * pillar_idx;
+            if(harmony_frequency*2 >= std::min(sink_max_harmony*2, double(p->output_sample_rate)))
+                break;
+            sink_harmony_frequencies[pillar_idx] = harmony_frequency;
+        }
+
+        // Apply a 12dB/octave filter to reduce the effect of glottal excitement
+        source_harmony_magnitude[0] = source_harmony_magnitude[1];
+        for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
+            source_harmony_magnitude[pillar_idx] *= (
+                (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[0]) *
+                (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[0]));
+        }
+
+        // Calculate sink harmony magnitude
+        std::array<double, max_pillars> sink_harmony_magnitude {{ 0 }};
+        for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
+            LinearVectorInterpolator<double> linear_vector_interpolator; // Better with a cubic one
+            try {
+                sink_harmony_magnitude[pillar_idx] = linear_vector_interpolator([&](size_t index) {
+                    return source_harmony_magnitude[index];
+                }, source_harmony_magnitude.size(), sink_harmony_frequencies[pillar_idx]/source_harmony_frequencies[0]);
+            } catch(std::out_of_range) {
+                continue;
+            }
+            sink_harmony_magnitude[pillar_idx] *= (
+                (sink_f0/sink_harmony_frequencies[pillar_idx])*
+                (sink_f0/sink_harmony_frequencies[pillar_idx]));
+        }
+
+        // Calculate sink harmony phase
+        std::array<WrappedAngle, max_pillars> sink_harmony_phase_difference {{ 0 }};
+        // STUB
+
+        // Push the result of this window
+        p->sink_hnm_parameters.harmony_frequencies.push_back(std::move(sink_harmony_frequencies));
+        p->sink_hnm_parameters.harmony_magnitude.push_back(std::move(sink_harmony_magnitude));
+        p->sink_hnm_parameters.harmony_phase_difference.push_back(std::move(sink_harmony_phase_difference));
+    }
 
     return *this;
 }
@@ -240,7 +332,7 @@ Synthesizer &Synthesizer::synthesize() {
         double sink_timestamp = double(sink_window_mid) / p->output_sample_rate;
         double source_timestamp = time_mapper.map_backward(sink_timestamp, double(p->input_file_frames) / p->input_sample_rate);
         double source_timestamp_frames = source_timestamp * p->input_sample_rate;
-        double source_timestamp_windows = p->hnm_parameters.frame_to_window_idx(source_timestamp_frames);
+        double source_timestamp_windows = p->source_hnm_parameters.frame_to_window_idx(source_timestamp_frames);
 
         // Fetch harmonic parameters
         LinearVectorInterpolator<std::array<double, max_pillars>> frequency_interpolator;
@@ -248,14 +340,14 @@ Synthesizer &Synthesizer::synthesize() {
         std::array<double, max_pillars> source_harmony_frequencies;
         try {
             source_harmony_frequencies = magnitude_interpolator([&](size_t index) {
-                return p->hnm_parameters.harmony_frequencies[index];
-            }, p->hnm_parameters.harmony_frequencies.size(), source_timestamp_windows);
+                return p->source_hnm_parameters.harmony_frequencies[index];
+            }, p->source_hnm_parameters.harmony_frequencies.size(), source_timestamp_windows);
         } catch(std::out_of_range) {
             continue;
         }
-        std::array<double, max_pillars> source_harmony_factor = magnitude_interpolator([&](size_t index) {
-            return p->hnm_parameters.harmony_magnitude_factor[index];
-        }, p->hnm_parameters.harmony_magnitude_factor.size(), source_timestamp_windows);
+        std::array<double, max_pillars> source_harmony_magnitude = magnitude_interpolator([&](size_t index) {
+            return p->source_hnm_parameters.harmony_magnitude[index];
+        }, p->source_hnm_parameters.harmony_magnitude.size(), source_timestamp_windows);
 
         // Synthesize harmonics
         double sink_f0 = p->tuner.midi_id_to_freq(base_pitch + option_manager.get_pitch_bend(sink_timestamp));
@@ -270,9 +362,8 @@ Synthesizer &Synthesizer::synthesize() {
             double harmony_magnitude;
             try {
                 harmony_magnitude = linear_vector_interpolator([&](size_t index) {
-                    return source_harmony_factor[index];
-                }, source_harmony_factor.size(), sink_harmony_frequency/source_harmony_frequencies[0])
-                *((sink_f0/sink_harmony_frequency)*(sink_f0/sink_harmony_frequency));
+                    return source_harmony_magnitude[index];
+                }, source_harmony_magnitude.size(), sink_harmony_frequency/source_harmony_frequencies[0]);
             } catch(std::out_of_range) {
                 continue;
             }
