@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <array>
 #include "utils.hpp"
 #include "wrapped-angle.hpp"
 
@@ -80,4 +81,5 @@ std::array<double, HNMParameters::max_pillars> &operator/= (std::array<double, H
     return lhs;
 }
 
+}
 #endif
