@@ -136,6 +136,7 @@ Synthesizer &Synthesizer::track_f0() {
 Synthesizer &Synthesizer::analyze() {
     static const ssize_t source_window_size = 1024;
     static const ssize_t source_window_hop = source_window_size/2;
+    static const double source_max_harmony = 10000;
     static const auto max_pillars = HNMParameters::max_pillars;
     assert((source_window_size & 1) == 0);
 
@@ -163,7 +164,7 @@ Synthesizer &Synthesizer::analyze() {
         harmony_frequencies[0] = source_f0;
         for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
             double harmony_frequency = source_f0 * pillar_idx;
-            if(harmony_frequency*2 >= p->input_sample_rate)
+            if(harmony_frequency*2 >= std::min(source_max_harmony*2, double(p->input_sample_rate)))
                 break;
             // STUB
             harmony_frequencies[pillar_idx] = harmony_frequency;
@@ -222,6 +223,7 @@ Synthesizer &Synthesizer::adjust_synth_params() {
 Synthesizer &Synthesizer::synthesize() {
     static const ssize_t sink_window_size = 1024;
     static const ssize_t sink_window_hop = sink_window_size/2;
+    static const double sink_max_harmony = 10000;
     static const auto max_pillars = HNMParameters::max_pillars;
     assert((sink_window_size & 1) == 0);
 
@@ -262,7 +264,7 @@ Synthesizer &Synthesizer::synthesize() {
         double omega = 2 * M_PI / p->output_sample_rate;
         for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
             double sink_harmony_frequency = sink_f0 * pillar_idx;
-            if(sink_harmony_frequency*2 >= p->output_sample_rate)
+            if(sink_harmony_frequency*2 >= std::min(sink_max_harmony*2, double(p->output_sample_rate)))
                 break;
             LinearVectorInterpolator<double> linear_vector_interpolator; // Better with a cubic one
             double harmony_magnitude;

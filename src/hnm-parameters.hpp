@@ -40,9 +40,21 @@ public:
     /**
      * The first index is window index,
      * the second index is harmony index.
+     *
+     * harmony_frequencies[w][0] is the estimated f0
+     * harmony_frequencies[w][i] is the frequency of each harmony peak
      */
     std::vector<std::array<double, max_pillars>> harmony_frequencies;
+    /**
+     * harmony_magnitude_factor[w][i] is the linear magnitude of each harmony
+     * multiplied by i^2
+     */
     std::vector<std::array<double, max_pillars>> harmony_magnitude_factor;
+    /**
+     * harmony_phase_difference[w][i] is the radian angle of the phase of each harmony
+     * minus by the phase of f0
+     * The phase are measured at the center of the window
+     */
     std::vector<std::array<WrappedAngle, max_pillars>> harmony_phase_difference;
     double frame_to_window_idx(ssize_t frame_idx) const {
         return double(frame_idx-first_window_mid) / double(analysis_window_hop);
