@@ -238,7 +238,6 @@ Synthesizer &Synthesizer::adjust_synth_params() {
     p->sink_hnm_parameters.first_window_mid = p->sink_buffer.left();
 
     double base_pitch = option_manager.get_output_pitch();
-    WTF8::clog << "Average output sink frequency:  " << p->tuner.midi_id_to_freq(base_pitch) << " Hz" << std::endl;
 
     SignalSegment sink_window = HannWindow(sink_window_size);
     TimeMapper time_mapper(option_manager);
@@ -319,6 +318,8 @@ Synthesizer &Synthesizer::synthesize() {
     static const ssize_t sink_window_hop = p->sink_hnm_parameters.window_hop;
     static const auto max_pillars = HNMParameters::max_pillars;
     assert((sink_window_size & 1) == 0);
+
+    WTF8::clog << "Average output sink frequency:  " << p->tuner.midi_id_to_freq(option_manager.get_output_pitch()) << " Hz" << std::endl;
 
     SignalSegment sink_window = HannWindow(sink_window_size);
 
