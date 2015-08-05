@@ -272,7 +272,7 @@ Synthesizer &Synthesizer::synthesize() {
                 }, source_harmony_factor.size(), sink_harmony_frequency/source_harmony_frequencies[0])
                 *((sink_f0/sink_harmony_frequency)*(sink_f0/sink_harmony_frequency));
             } catch(std::out_of_range) {
-                break;
+                continue;
             }
             for(auto sink_segment_idx = sink_segment.left(); sink_segment_idx < sink_segment.right(); sink_segment_idx++) {
                 sink_segment[sink_segment_idx] += std::sin(omega*sink_segment_idx*sink_harmony_frequency + last_sink_phase*pillar_idx) * harmony_magnitude;
