@@ -50,13 +50,13 @@ public:
      * harmony_magnitude_factor[w][i] is the linear magnitude of each harmony
      * multiplied by i^2
      */
-    std::vector<std::array<double, max_pillars>> harmony_magnitude;
+    std::vector<std::array<double, max_pillars>> harmony_magnitudes;
     /**
      * harmony_phase_difference[w][i] is the radian angle of the phase of each harmony
      * minus by the phase of f0
      * The phase are measured at the center of the window
      */
-    std::vector<std::array<WrappedAngle, max_pillars>> harmony_phase_difference;
+    std::vector<std::array<WrappedAngle, max_pillars>> harmony_phases_difference;
 
     // Timestamp conversion functions
     double frame_to_window_idx(ssize_t frame_idx) const {

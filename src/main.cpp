@@ -43,6 +43,7 @@ int main() {
         .read_source()
         .track_f0()
         .analyze()
+        .adjust_synth_params()
         .synthesize()
         .write_sink();
 
