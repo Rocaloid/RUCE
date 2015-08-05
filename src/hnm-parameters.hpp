@@ -20,9 +20,9 @@
 #ifndef RUCE_HNM_PARAMETERS_HPP
 #define RUCE_HNM_PARAMETERS_HPP
 
+#include <array>
 #include <cstdint>
 #include <vector>
-#include <array>
 #include "utils.hpp"
 #include "wrapped-angle.hpp"
 
