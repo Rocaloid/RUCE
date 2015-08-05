@@ -84,6 +84,24 @@ static inline auto strtonum(Fn fn, const char *str, Args &&...args) -> decltype(
     }
 }
 
+/**
+ * Return a default value when a certain exception occures
+ * Usage:
+ *   on_error<std::out_of_range>([&] {
+ *       return my_array.at(100);
+ *   }, [] {
+ *       return 0;
+ *   });
+ */
+template <typename Err, typename T, typename F, typename G>
+static inline auto on_error(F fn, G value_on_error) -> decltype(fn()) {
+    try {
+        return fn();
+    } catch(Err) {
+        return value_on_error();
+    }
+}
+
 }
 
 #endif

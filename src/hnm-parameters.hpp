@@ -41,8 +41,8 @@ public:
      * the second index is harmony index.
      */
     std::vector<std::array<double, max_pillars>> harmony_frequencies;
-    std::vector<std::array<double, max_pillars>> harmony_magnitude;
-    std::vector<std::array<WrappedAngle, max_pillars>> harmony_phase;
+    std::vector<std::array<double, max_pillars>> harmony_magnitude_factor;
+    std::vector<std::array<WrappedAngle, max_pillars>> harmony_phase_difference;
     double frame_to_window_idx(ssize_t frame_idx) const {
         return double(frame_idx-first_window_mid) / double(analysis_window_hop);
     }
@@ -54,6 +54,30 @@ public:
     }
 };
 
+// Some operators to make interpolation work
+std::array<double, HNMParameters::max_pillars> &operator+= (std::array<double, HNMParameters::max_pillars> &lhs, const std::array<double, HNMParameters::max_pillars> &rhs) {
+    for(size_t i = 0; i < HNMParameters::max_pillars; i++) {
+        lhs[i] += rhs[i];
+    }
+    return lhs;
+}
+std::array<double, HNMParameters::max_pillars> &operator-= (std::array<double, HNMParameters::max_pillars> &lhs, const std::array<double, HNMParameters::max_pillars> &rhs) {
+    for(size_t i = 0; i < HNMParameters::max_pillars; i++) {
+        lhs[i] -= rhs[i];
+    }
+    return lhs;
+}
+std::array<double, HNMParameters::max_pillars> &operator*= (std::array<double, HNMParameters::max_pillars> &lhs, double rhs) {
+    for(size_t i = 0; i < HNMParameters::max_pillars; i++) {
+        lhs[i] *= rhs;
+    }
+    return lhs;
+}
+std::array<double, HNMParameters::max_pillars> &operator/= (std::array<double, HNMParameters::max_pillars> &lhs, double rhs) {
+    for(size_t i = 0; i < HNMParameters::max_pillars; i++) {
+        lhs[i] /= rhs;
+    }
+    return lhs;
 }
 
 #endif

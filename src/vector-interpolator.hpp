@@ -68,9 +68,16 @@ public:
     }
 private:
     static T interp_2(T y0, T y1, double residual) {
-        return residual != 0 ?
-            (y1 - y0) * residual + y0 :
-            y0;
+        if(residual != 0) {
+            // Use in-place arithmatic to avoid copying
+            // Because T may be an array or something else
+            y1 -= y0;
+            y1 *= residual;
+            y1 += y0;
+            return y1; // (y1 - y0) * residual + y0
+        } else {
+            return y0;
+        }
     }
 };
 
