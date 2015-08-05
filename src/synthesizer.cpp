@@ -211,6 +211,9 @@ Synthesizer &Synthesizer::analyze() {
             }
 
         }
+
+        // Convert absolute phases to relative phases to f0
+        source_harmony_phases_difference[0] = 0;
         for(size_t pillar_idx = 2; pillar_idx < max_pillars; pillar_idx++) {
             // STUB
             source_harmony_phases_difference[pillar_idx] -= source_harmony_phases_difference[1];
