@@ -233,7 +233,7 @@ Synthesizer &Synthesizer::analyze() {
 }
 
 Synthesizer &Synthesizer::adjust_synth_params() {
-    static const ssize_t sink_window_size = 1024;
+    static const ssize_t sink_window_size = 128;
     static const ssize_t sink_window_hop = sink_window_size/2;
     static const double sink_max_harmony = 10000;
     static const auto max_pillars = HNMParameters::max_pillars;
