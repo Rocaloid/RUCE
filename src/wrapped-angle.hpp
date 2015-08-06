@@ -1,6 +1,6 @@
 /*
     Rocaloid
-    Copyright (C) <YEAR> <YOUR NAME>
+    Copyright (C) 2015 StarBrilliant <m13253@hotmail.com
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -24,6 +24,7 @@
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
 #endif
+
 #include <cmath>
 
 namespace RUCE {
@@ -33,20 +34,22 @@ public:
     WrappedAngle(double angle = 0) : angle(angle) {}
     operator double () const {
         double res = angle;
-        if(!std::isnormal(res)) {
+        if(!std::isfinite(res)) {
             res = NAN;
-        } if(angle > 16 || angle < -16) {
+        } else if(angle > 16 || angle < -16) {
             res = std::fmod(M_PI-res, 2*M_PI);
-            if(res < 0)
-                res += 2*M_PI;
+            if(res >= 0)
+                res = M_PI-res;
+            else
+                res = -M_PI-res;
         } else if(res > M_PI) {
             do {
                 res -= 2*M_PI;
             } while(res > M_PI);
-        } else if(res <= M_PI) {
+        } else if(res <= -M_PI) {
             do {
                 res += 2*M_PI;
-            } while(res <= M_PI);
+            } while(res <= -M_PI);
         }
         return res;
     }
@@ -71,7 +74,7 @@ public:
         return *this;
     }
     WrappedAngle &operator -= (const WrappedAngle rhs) {
-        angle += rhs.angle;
+        angle -= rhs.angle;
         return *this;
     }
     WrappedAngle &operator *= (double rhs) {
@@ -91,6 +94,10 @@ public:
 private:
     double angle;
 };
+
+static inline WrappedAngle operator * (double lhs, const WrappedAngle rhs) {
+        return WrappedAngle(lhs * double(rhs));
+}
 
 }
 

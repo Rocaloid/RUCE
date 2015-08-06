@@ -71,25 +71,29 @@ public:
 };
 
 // Some operators to make interpolation work
-std::array<double, HNMParameters::max_pillars> &operator+= (std::array<double, HNMParameters::max_pillars> &lhs, const std::array<double, HNMParameters::max_pillars> &rhs) {
+template <typename T>
+std::array<T, HNMParameters::max_pillars> &operator+= (std::array<T, HNMParameters::max_pillars> &lhs, const std::array<T, HNMParameters::max_pillars> &rhs) {
     for(size_t i = 0; i < HNMParameters::max_pillars; i++) {
         lhs[i] += rhs[i];
     }
     return lhs;
 }
-std::array<double, HNMParameters::max_pillars> &operator-= (std::array<double, HNMParameters::max_pillars> &lhs, const std::array<double, HNMParameters::max_pillars> &rhs) {
+template <typename T>
+std::array<T, HNMParameters::max_pillars> &operator-= (std::array<T, HNMParameters::max_pillars> &lhs, const std::array<T, HNMParameters::max_pillars> &rhs) {
     for(size_t i = 0; i < HNMParameters::max_pillars; i++) {
         lhs[i] -= rhs[i];
     }
     return lhs;
 }
-std::array<double, HNMParameters::max_pillars> &operator*= (std::array<double, HNMParameters::max_pillars> &lhs, double rhs) {
+template <typename T>
+std::array<T, HNMParameters::max_pillars> &operator*= (std::array<T, HNMParameters::max_pillars> &lhs, double rhs) {
     for(size_t i = 0; i < HNMParameters::max_pillars; i++) {
         lhs[i] *= rhs;
     }
     return lhs;
 }
-std::array<double, HNMParameters::max_pillars> &operator/= (std::array<double, HNMParameters::max_pillars> &lhs, double rhs) {
+template <typename T>
+std::array<T, HNMParameters::max_pillars> &operator/= (std::array<T, HNMParameters::max_pillars> &lhs, double rhs) {
     for(size_t i = 0; i < HNMParameters::max_pillars; i++) {
         lhs[i] /= rhs;
     }
