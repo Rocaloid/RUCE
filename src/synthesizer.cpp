@@ -212,6 +212,8 @@ Synthesizer &Synthesizer::analyze() {
 
         }
 
+        source_harmony_magnitudes[0] = source_harmony_magnitudes[1];
+
         // Convert absolute phases to relative phases to f0
         for(size_t pillar_idx = 2; pillar_idx < max_pillars; pillar_idx++) {
             double source_harmony_frequency = source_harmony_frequencies[pillar_idx];
@@ -267,7 +269,7 @@ Synthesizer &Synthesizer::adjust_synth_params() {
         } catch(std::out_of_range) {
             continue;
         }
-        std::array<double, max_pillars> source_harmony_magnitude = magnitude_interpolator([&](size_t index) {
+        std::array<double, max_pillars> source_harmony_magnitudes = magnitude_interpolator([&](size_t index) {
             return p->source_hnm_parameters.harmony_magnitudes[index];
         }, p->source_hnm_parameters.harmony_magnitudes.size(), source_timestamp_windows);
         std::array<WrappedAngle, max_pillars> source_harmony_phases_difference = phase_interpolator([&](size_t index) {
@@ -285,10 +287,9 @@ Synthesizer &Synthesizer::adjust_synth_params() {
             sink_harmony_frequencies[pillar_idx] = sink_harmony_frequency;
         }
 
-        // Apply a +12dB/octave filter to reduce the effect of glottal excitement
-        source_harmony_magnitude[0] = source_harmony_magnitude[1];
+        // Apply a +12dB/octave filter to reduce the influence of glottal excitement
         for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
-            source_harmony_magnitude[pillar_idx] *= (
+            source_harmony_magnitudes[pillar_idx] *= (
                 (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[0]) *
                 (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[0]));
         }
@@ -299,8 +300,8 @@ Synthesizer &Synthesizer::adjust_synth_params() {
             LinearVectorInterpolator<double> linear_vector_interpolator; // Better with a cubic one
             try {
                 sink_harmony_magnitudes[pillar_idx] = linear_vector_interpolator([&](size_t index) {
-                    return source_harmony_magnitude[index];
-                }, source_harmony_magnitude.size(), sink_harmony_frequencies[pillar_idx]/source_harmony_frequencies[0]);
+                    return source_harmony_magnitudes[index];
+                }, source_harmony_magnitudes.size(), sink_harmony_frequencies[pillar_idx]/source_harmony_frequencies[0]);
             } catch(std::out_of_range) {
                 continue;
             }
@@ -308,6 +309,14 @@ Synthesizer &Synthesizer::adjust_synth_params() {
             sink_harmony_magnitudes[pillar_idx] *= (
                 (sink_f0/sink_harmony_frequencies[pillar_idx])*
                 (sink_f0/sink_harmony_frequencies[pillar_idx]));
+        }
+        // Amplify the magnitudes according to the magnitude of f0
+        // Silly approach, but should solve most situations when f0 can roughly represent the volume
+        if(sink_harmony_magnitudes[1] != 0) {
+            for(size_t pillar_idx = 2; pillar_idx < max_pillars; pillar_idx++) {
+                sink_harmony_magnitudes[pillar_idx] *=
+                    source_harmony_magnitudes[0]/sink_harmony_magnitudes[1];
+            }
         }
 
         // Calculate sink harmony phases
