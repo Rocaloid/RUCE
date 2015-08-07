@@ -22,7 +22,7 @@ if(NOT MSVC)
     target_link_libraries(Rocaloid PUBLIC m)  # Math library
 endif()
 
-if(NOT USE_SYSTEM_SNDFILE)
+if(USE_BUNDLED_SNDFILE)
     add_subdirectory(lib/libsndfile-1.0.25)
     target_link_libraries(Rocaloid PUBLIC sndfile)
 elseif(MSVC)
