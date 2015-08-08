@@ -206,7 +206,7 @@ Synthesizer &Synthesizer::analyze() {
             double y_1 = source_magnitude[peak_bin-1];
             double y0 = source_magnitude[peak_bin];
             double y1 = source_magnitude[peak_bin+1];
-            double subbin_correction = clamp((y1-y_1)/(2*y1-4*y0+2*y_1), -1.0, 1.0);
+            double subbin_correction = clamp((y_1-y1)/(2*y1-4*y0+2*y_1), -1.0, 1.0);
             source_harmony_frequency = source_spectrum.bin_to_hertz(peak_bin + subbin_correction, p->input_sample_rate);
             if(!(source_harmony_frequency >= 0 && source_harmony_frequency < std::min(source_max_harmony, double(p->input_sample_rate)/2)))
                 source_harmony_frequency = 0;
