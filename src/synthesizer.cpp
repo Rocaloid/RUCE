@@ -47,7 +47,7 @@
 #include "window.hpp"
 #include "wrapped-angle.hpp"
 
-/**
+/*
  * TODO: Naming suggestions as following,
  *  harmony -> harmonic (n. in this case)
  *  f0 (when representing the first spectral peak at fundamental freq) -> first harmonic
@@ -181,7 +181,7 @@ Synthesizer &Synthesizer::analyze() {
         // Convert magnitude to log scale
         std::vector<double> source_magnitude = source_spectrum.get_magnitude();
         for(double &mag : source_magnitude)
-            mag = mag > 0 ? std::log10(mag*2/source_window_size) : -HUGE_VAL;
+            mag = mag > 0 ? std::log10(mag/source_window_size) : -HUGE_VAL;
 
         // Omit peak finding
         std::array<double, max_pillars> source_harmony_frequencies {{ 0 }};
