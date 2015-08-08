@@ -77,7 +77,7 @@ Spectrum &Spectrum::fft_analyze(const SignalSegment &signal) {
         }
     }
 
-    cdft(fftsize*2, 1, fftdata, p->ip.data(), p->w.data());
+    cdft(fftsize*2, -1, fftdata, p->ip.data(), p->w.data());
 
     assert(p->spectrum.size() == fftsize);
 
@@ -100,7 +100,7 @@ SignalSegment Spectrum::ifft_analyze() {
         fftdata[i*2+1] = spectrum[i].imag();
     }
 
-    cdft(fftsize*2, -1, fftdata, p->ip.data(), p->w.data());
+    cdft(fftsize*2, 1, fftdata, p->ip.data(), p->w.data());
 
     SignalSegment result_signal(fftsize);
 
