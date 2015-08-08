@@ -47,6 +47,17 @@
 #include "window.hpp"
 #include "wrapped-angle.hpp"
 
+/**
+ * TODO: Naming suggestions as following,
+ *  harmony -> harmonic (n. in this case)
+ *  f0 (when representing the first spectral peak at fundamental freq) -> first harmonic
+ *  source -> input/in
+ *  sink -> output/out
+ *  pillar_idx -> harmonic_idx
+ *  magnitude (when representing the factor multiplied by a sine wave) -> amplitude
+ *    (magnitude usually appears when we're describing the spectrum; amplitude is for time domain)
+ */
+
 namespace RUCE {
 
 struct Synthesizer::Private {
@@ -378,11 +389,11 @@ Synthesizer &Synthesizer::synthesize() {
 
             double harmony_magnitude = sink_harmony_magnitudes[pillar_idx];
             double harmony_phases_difference = sink_harmony_phases_difference[pillar_idx];
+            double harmonic_central_phase = last_sink_phase*sink_harmony_frequency/sink_f0 + harmony_phases_difference;
 
             for(auto sink_segment_idx = sink_segment.left(); sink_segment_idx < sink_segment.right(); sink_segment_idx++) {
-                sink_segment[sink_segment_idx] += std::sin(
-                    omega*sink_segment_idx*sink_harmony_frequency + last_sink_phase*sink_harmony_frequency/sink_f0 + harmony_phases_difference
-                ) * harmony_magnitude;
+                sink_segment[sink_segment_idx] += std::cos(
+                    omega*sink_segment_idx*sink_harmony_frequency + harmonic_central_phase) * harmony_magnitude;
             }
         }
 
