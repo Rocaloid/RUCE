@@ -181,7 +181,7 @@ Synthesizer &Synthesizer::analyze() {
         // Convert magnitude to log scale
         std::vector<double> source_magnitude = source_spectrum.get_magnitude();
         for(double &mag : source_magnitude)
-            mag = mag > 0 ? std::log10(mag/source_window_size) : -HUGE_VAL;
+            mag = mag > 0 ? std::log10(mag*4/source_window_size) : -HUGE_VAL;
 
         // Omit peak finding
         std::array<double, max_pillars> source_harmony_frequencies {{ 0 }};
