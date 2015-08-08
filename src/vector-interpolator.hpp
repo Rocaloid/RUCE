@@ -111,8 +111,8 @@ public:
 private:
     static T interp_3(T y_1, T y0, T y1, double residual) {
         // y = a*x^2 + b*x + c
-        T a = (y_1 + y1) / 2 - y0;
-        T b = (y_1 - y1) / 2;
+        T a = (y1 + y_1) / 2 - y0;
+        T b = (y1 - y_1) / 2;
         const T &c = y0;
         return (a*residual + b) * residual + c;
     }
