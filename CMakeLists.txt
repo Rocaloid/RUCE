@@ -46,3 +46,7 @@ if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")  # Test subproj
         ARCHIVE DESTINATION "lib"
     )
 endif()
+
+enable_testing()
+add_subdirectory("tests")
+

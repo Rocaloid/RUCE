@@ -1,12 +1,13 @@
-#include "signal-segment.hpp"
+#include "../src/signal-segment.hpp"
 #include <cassert>
+using namespace RUCE;
 int main()
 {
 	SignalSegment a(5);
 	SignalSegment b(a);
 	SignalSegment c = a;
-	SignalSegment d(b,1,2);
-	SignalSegment e;
+	SignalSegment d(b,1,3);
+	SignalSegment nul;
 	assert(d[0] == 0);
 	d[0] = 1;
 	assert(d[0] == 0);
