@@ -1,4 +1,4 @@
 *.swp
-build
+build*
 *~
 CMakeLists.txt.user
