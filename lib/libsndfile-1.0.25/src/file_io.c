@@ -38,11 +38,13 @@
 #include <stdlib.h>
 
 #if HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #endif
 
 #if (HAVE_DECL_S_IRGRP == 0)
-#include <sf_unistd.h>
+#include "sf_unistd.h"
 #endif
 
 #include <string.h>

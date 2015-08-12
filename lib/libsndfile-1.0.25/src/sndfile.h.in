@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -315,8 +316,8 @@ typedef	struct SNDFILE_tag	SNDFILE ;
 typedef __int64		sf_count_t ;
 #define SF_COUNT_MAX		0x7fffffffffffffffi64
 #else
-typedef @TYPEOF_SF_COUNT_T@	sf_count_t ;
-#define SF_COUNT_MAX		@SF_COUNT_MAX@
+typedef @SNDFILE_CONF_TYPEOF_SF_COUNT_T@	sf_count_t ;
+#define SF_COUNT_MAX		@SNDFILE_CONF_SF_COUNT_MAX@
 #endif
 
 
