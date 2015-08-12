@@ -42,7 +42,7 @@ if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")  # Test subproj
         LIBRARY DESTINATION "lib"
         ARCHIVE DESTINATION "lib"
     )
-    install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include"
+    install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include/"
         DESTINATION "include"
     )
 endif()
