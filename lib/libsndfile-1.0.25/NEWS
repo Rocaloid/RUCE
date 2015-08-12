@@ -1,6 +1,3 @@
-Version recmake (2015-08)
-  * Migrated to cmake
-
 Version 1.0.25 (2011-07-13)
   * Fix for Secunia Advisory SA45125, heap overflow in PAF file handler.
   * Accept broken WAV files with blockalign == 0.

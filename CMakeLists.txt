@@ -25,14 +25,22 @@ if(NOT MSVC)
     target_link_libraries(Rocaloid PUBLIC m)  # Math library
 endif()
 
+if(USE_BUNDLED_SNDFILE)
+    add_subdirectory(lib/libsndfile-1.0.25)
+    target_link_libraries(Rocaloid PUBLIC sndfile)
+elseif(MSVC)
+    target_link_libraries(Rocaloid PUBLIC libsndfile-1)
+else()
+    find_library(RUCE_LIBSNDFILE sndfile)
+    target_link_libraries(Rocaloid PUBLIC "${RUCE_LIBSNDFILE}")
+endif()
+
 add_subdirectory(lib/ooura-fft)
 target_link_libraries(Rocaloid PUBLIC ooura-fft)
 add_subdirectory(lib/SPTK-3.8-extracted)
 target_link_libraries(Rocaloid PUBLIC SPTK)
 add_subdirectory(lib/libWinTF8)
 target_link_libraries(Rocaloid PUBLIC wintf8)
-add_subdirectory(lib/libsndfile-1.0.25)
-target_link_libraries(Rocaloid PUBLIC sndfile)
 
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")  # Test subproject
     install(TARGETS Rocaloid
