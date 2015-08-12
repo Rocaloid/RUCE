@@ -109,5 +109,14 @@
 #define	HAVE_WAITPID 0
 #endif
 
+#ifndef HAVE_SSIZE_T
+#include <stddef.h>
+typedef ptrdiff_t ssize_t;
+#endif
+
+#ifndef __func__
+#define __func__ __FUNCTION__
+#endif
+
 #endif
 
