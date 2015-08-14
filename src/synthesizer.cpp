@@ -187,7 +187,7 @@ Synthesizer &Synthesizer::analyze() {
         for(double &mag : source_magnitude)
             mag = mag > 0 ? std::log10(mag/source_window_half_size) : -HUGE_VAL;
 
-        // Omit peak finding
+        // Optimal peak finding
         std::array<double, max_pillars> source_harmony_frequencies {{ 0 }};
         // [0] is used to store estimated frequency,
         // [1] is used to store exact frequency.
@@ -259,10 +259,10 @@ Synthesizer &Synthesizer::analyze() {
                 phase_angle -= base_harmony_phase_angle*(source_harmony_frequency/source_harmony_frequencies[1]);
                 source_harmony_phases_difference[pillar_idx] = std::polar(1.0, phase_angle);
             } else
-                source_harmony_phases_difference[pillar_idx] = 0;
+                source_harmony_phases_difference[pillar_idx] = std::complex<double>(1.0, 0.0);
         }
-        source_harmony_phases_difference[0] = 0;
-        source_harmony_phases_difference[1] = 0;
+        source_harmony_phases_difference[0] = std::complex<double>(1.0, 0.0);
+        source_harmony_phases_difference[1] = std::complex<double>(1.0, 0.0);
 
         // Push the result of this window
         p->source_hnm_parameters.harmony_frequencies.push_back(std::move(source_harmony_frequencies));
