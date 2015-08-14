@@ -154,35 +154,41 @@ Synthesizer &Synthesizer::track_f0() {
 }
 
 Synthesizer &Synthesizer::analyze() {
-    static const ssize_t source_window_size = 1024;
-    static const ssize_t source_window_hop = source_window_size/2;
+    static const ssize_t source_fft_size = Spectrum::next_pow2(p->input_sample_rate/48);
+    static const ssize_t source_window_hop = source_fft_size/2;
     static const double source_max_harmony = 10000;
     static const auto max_pillars = HNMParameters::max_pillars;
-    assert((source_window_size & 1) == 0);
+    assert((source_fft_size & 1) == 0);
 
-    p->source_hnm_parameters.window_size = source_window_size;
+    p->source_hnm_parameters.window_size = source_fft_size;
     p->source_hnm_parameters.window_hop = source_window_hop;
     p->source_hnm_parameters.first_window_mid = p->source_buffer.left();
 
-    SignalSegment source_window = HannWindow(source_window_size);
-    Spectrum source_spectrum(Spectrum::next_pow2(source_window_size));
+    Spectrum source_spectrum(source_fft_size);
 
-    for(auto source_window_mid = p->source_buffer.left(); source_window_mid < p->source_buffer.right()+source_window_size/2; source_window_mid += source_window_hop) {
+    for(auto source_window_mid = p->source_buffer.left(); source_window_mid < p->source_buffer.right()+source_fft_size/2; source_window_mid += source_window_hop) {
         double source_f0 = p->f0_tracker.get_result(source_window_mid);
 
         // Copy the source and window it
-        SignalSegment source_segment(p->source_buffer, source_window_mid-source_window_size/2, source_window_mid+source_window_size/2);
-        source_segment <<= source_segment.left();
+        ssize_t source_window_half_size = source_f0 > 0 ? ssize_t(std::round(3 * p->input_sample_rate / source_f0 / 2)) : source_fft_size;
+        WTF8::clog << "half " << source_window_half_size << std::endl;
+        if(source_window_half_size > source_fft_size/2)
+            source_window_half_size = source_fft_size/2;
+        SignalSegment source_segment(p->source_buffer, source_window_mid-source_window_half_size, source_window_mid+source_window_half_size);
+        source_segment <<= source_segment.left() + source_window_half_size;
+        SignalSegment source_window = HannWindow(source_window_half_size*2);
+        source_window <<= source_window_half_size;
         source_segment *= source_window;
+        WTF8::clog << source_segment.size() << std::endl;
 
         // Do FFT analysis
-        source_segment = source_spectrum.fftshift(source_segment);
+        source_segment = source_spectrum.fftshift(SignalSegment(source_segment, -source_fft_size/2, source_fft_size/2));
         source_spectrum.fft_analyze(source_segment);
 
         // Convert magnitude to log scale
         std::vector<double> source_magnitude = source_spectrum.get_magnitude();
         for(double &mag : source_magnitude)
-            mag = mag > 0 ? std::log10(mag*4/source_window_size) : -HUGE_VAL;
+            mag = mag > 0 ? std::log10(mag*4/(source_window_half_size*2)) : -HUGE_VAL;
 
         // Omit peak finding
         std::array<double, max_pillars> source_harmony_frequencies {{ 0 }};

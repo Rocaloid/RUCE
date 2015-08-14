@@ -55,32 +55,19 @@ Spectrum &Spectrum::init(size_t fftsize) {
 
 Spectrum &Spectrum::fft_analyze(const SignalSegment &signal) {
     assert(p->fftdata.size() == fftsize*2);
+    if(ssize_t(fftsize) != signal.size())
+        throw std::range_error("Input signal is different than FFT size");
+
+    const auto signal_buffer = signal.buffer();
     auto fftdata = p->fftdata.data();
-
-    ssize_t padding = signal.size() - ssize_t(fftsize);
-    if(padding < 0)
-        throw std::range_error("Input signal is larger than FFT size");
-    else if(padding == 0) {
-        const auto signal_buffer = signal.buffer();
-        for(size_t i = 0; i < fftsize; i++) {
-            fftdata[i*2] = signal_buffer[i];
-            fftdata[i*2+1] = 0;
-        }
-    } else {
-        SignalSegment padded_signal = SignalSegment(signal, signal.left() - padding/2, signal.right() + (padding+1)/2);
-        assert(padded_signal.size() == ssize_t(fftsize));
-
-        const auto padded_signal_buffer = padded_signal.buffer();
-        for(size_t i = 0; i < fftsize; i++) {
-            fftdata[i*2] = padded_signal_buffer[i];
-            fftdata[i*2+1] = 0;
-        }
+    for(size_t i = 0; i < fftsize; i++) {
+        fftdata[i*2] = signal_buffer[i];
+        fftdata[i*2+1] = 0;
     }
 
     cdft(fftsize*2, -1, fftdata, p->ip.data(), p->w.data());
 
     assert(p->spectrum.size() == fftsize);
-
     auto spectrum = p->spectrum.data();
     for(size_t i = 0; i < fftsize; i++) {
         spectrum[i] = std::complex<double>(fftdata[i*2], fftdata[i*2+1]);
@@ -93,8 +80,8 @@ SignalSegment Spectrum::ifft_analyze() {
     assert(p->spectrum.size() == fftsize);
     assert(p->fftdata.size() == fftsize*2);
 
-    auto fftdata = p->fftdata.data();
     const auto spectrum = p->spectrum.data();
+    auto fftdata = p->fftdata.data();
     for(size_t i = 0; i < fftsize; i++) {
         fftdata[i*2] = spectrum[i].real();
         fftdata[i*2+1] = spectrum[i].imag();
@@ -103,7 +90,6 @@ SignalSegment Spectrum::ifft_analyze() {
     cdft(fftsize*2, 1, fftdata, p->ip.data(), p->w.data());
 
     SignalSegment result_signal(fftsize);
-
     auto result_signal_buffer = result_signal.buffer();
     for(size_t i = 0; i < fftsize; i++) {
         result_signal_buffer[i] = fftdata[i*2];
