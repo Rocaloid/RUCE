@@ -432,14 +432,16 @@ Synthesizer &Synthesizer::synthesize() {
                 continue;
 
             double harmony_magnitude = sink_harmony_magnitudes[pillar_idx];
-            double harmony_phases_difference = std::arg(sink_harmony_phases_difference[pillar_idx]);
-            if(!std::isfinite(harmony_phases_difference))
-                harmony_phases_difference = 0;
-            double harmonic_central_phase = last_sink_phase*sink_harmony_frequency/sink_f0 + harmony_phases_difference;
+            double harmony_phase_angle_difference = std::arg(sink_harmony_phases_difference[pillar_idx]);
+            if(!std::isfinite(harmony_phase_angle_difference)) {
+                harmony_phase_angle_difference = 0;
+                WTF8::cerr << "Warning: Phase construct failure at frame #" << std::round(sink_timestamp_frames) << ", harmony #" << pillar_idx << std::endl;
+            }
+            double harmonic_central_phase_angle = last_sink_phase*sink_harmony_frequency/sink_f0 + harmony_phase_angle_difference;
 
             for(auto sink_segment_idx = sink_segment.left(); sink_segment_idx < sink_segment.right(); sink_segment_idx++) {
                 sink_segment[sink_segment_idx] += std::cos(
-                    omega*sink_segment_idx*sink_harmony_frequency + harmonic_central_phase) * harmony_magnitude;
+                    omega*sink_segment_idx*sink_harmony_frequency + harmonic_central_phase_angle) * harmony_magnitude;
             }
         }
 
