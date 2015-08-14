@@ -43,6 +43,7 @@
 #include "spectrum.hpp"
 #include "time-mapper.hpp"
 #include "tuner.hpp"
+#include "utils.hpp"
 #include "vector-interpolator.hpp"
 #include "window.hpp"
 #include "wrapped-angle.hpp"
@@ -211,6 +212,8 @@ Synthesizer &Synthesizer::analyze() {
             if(!(source_harmony_frequency >= 0 && source_harmony_frequency < std::min(source_max_harmony, double(p->input_sample_rate)/2)))
                 source_harmony_frequency = 0;
             source_harmony_frequencies[pillar_idx] = source_harmony_frequency;
+
+            source_f0 = source_harmony_frequencies[1];
         }
 
         // Extract sinusold parameters
@@ -279,6 +282,7 @@ Synthesizer &Synthesizer::adjust_synth_params() {
 
     SignalSegment sink_window = HannWindow(sink_window_size);
     TimeMapper time_mapper(option_manager);
+    std::vector<double> freq_domain_mapper(p->input_sample_rate/2);
 
     for(auto sink_window_mid = p->sink_buffer.left(); sink_window_mid <= p->sink_buffer.right()+sink_window_size/2; sink_window_mid += sink_window_hop) {
         // Map the timestamp in sink to source
@@ -306,6 +310,21 @@ Synthesizer &Synthesizer::adjust_synth_params() {
             return p->source_hnm_parameters.harmony_phases_difference[index];
         }, p->source_hnm_parameters.harmony_phases_difference.size(), source_timestamp_windows);
 
+        // Map source frequency scale to array indexes
+        for(auto &i : freq_domain_mapper)
+            i = 0;
+        for(size_t pillar_idx = max_pillars; pillar_idx > 1; pillar_idx--) {
+            double x1 = source_harmony_frequencies[pillar_idx-1];
+            double x2 = source_harmony_frequencies[pillar_idx];
+            if(x1 != x2) {
+                ssize_t x1i = clamp<ssize_t>(ssize_t(std::ceil(x1)), 0, freq_domain_mapper.size()-1);
+                ssize_t x2i = clamp<ssize_t>(ssize_t(std::floor(x2)), 0, freq_domain_mapper.size()-1);
+                double k = 1/(x2-x1);
+                for(ssize_t x = x1i; x <= x2i; x++)
+                    freq_domain_mapper[x] = pillar_idx - (x2-x)*k;
+            }
+        }
+
         // Calculate sink harmony frequencies
         double sink_f0 = p->tuner.midi_id_to_freq(base_pitch + option_manager.get_pitch_bend(sink_timestamp));
         std::array<double, max_pillars> sink_harmony_frequencies {{ 0 }};
@@ -320,8 +339,8 @@ Synthesizer &Synthesizer::adjust_synth_params() {
         // Apply a +12dB/octave filter to reduce the influence of glottal excitement
         for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
             source_harmony_magnitudes[pillar_idx] *= (
-                (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[0]) *
-                (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[0]));
+                (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[1]) *
+                (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[1]));
         }
 
         // Calculate sink harmony magnitudes
@@ -331,7 +350,7 @@ Synthesizer &Synthesizer::adjust_synth_params() {
             try {
                 sink_harmony_magnitudes[pillar_idx] = linear_vector_interpolator([&](size_t index) {
                     return source_harmony_magnitudes[index];
-                }, source_harmony_magnitudes.size(), sink_harmony_frequencies[pillar_idx]/source_harmony_frequencies[0]);
+                }, source_harmony_magnitudes.size(), freq_domain_mapper.at(sink_harmony_frequencies[pillar_idx]));
             } catch(std::out_of_range) {
                 continue;
             }
@@ -345,7 +364,7 @@ Synthesizer &Synthesizer::adjust_synth_params() {
         if(sink_harmony_magnitudes[1] != 0) {
             for(size_t pillar_idx = 2; pillar_idx < max_pillars; pillar_idx++) {
                 sink_harmony_magnitudes[pillar_idx] *=
-                    source_harmony_magnitudes[0]/sink_harmony_magnitudes[1];
+                    source_harmony_magnitudes[1]/sink_harmony_magnitudes[1];
             }
         }
 
@@ -356,7 +375,7 @@ Synthesizer &Synthesizer::adjust_synth_params() {
             try {
                 sink_harmony_phases_difference[pillar_idx] = linear_vector_interpolator([&](size_t index) {
                     return source_harmony_phases_difference[index];
-                }, source_harmony_phases_difference.size(), sink_harmony_frequencies[pillar_idx]/source_harmony_frequencies[0]);
+                }, source_harmony_phases_difference.size(), freq_domain_mapper.at(sink_harmony_frequencies[pillar_idx]));
             } catch(std::out_of_range) {
                 continue;
             }
