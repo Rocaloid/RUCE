@@ -24,9 +24,7 @@
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
 #endif
-#ifdef _MSC_VER
-#include <math.h>
-#endif
+
 #include <cmath>
 
 namespace RUCE {

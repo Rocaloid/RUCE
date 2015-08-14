@@ -121,16 +121,16 @@ std::vector<double> Spectrum::get_magnitude() const {
     return magnitude;
 }
 
-std::vector<WrappedAngle> Spectrum::get_phase() const {
+std::vector<std::complex<double>> Spectrum::get_phase() const {
     assert(p->spectrum.size() == fftsize);
 
-    std::vector<WrappedAngle> phase(fftsize);
+    std::vector<std::complex<double>> phase = p->spectrum;
 
-    auto iters = p->spectrum.cbegin();
-    auto iterp = phase.begin();
-    while(iterp != phase.end()) {
-        *iterp = std::arg(*iters);
-        ++iters; ++iterp;
+    for(std::complex<double> &i : phase) {
+        i /= std::abs(i);
+        if(!std::isfinite(i.real()) && !std::isfinite(i.imag())) {
+            i = 0;
+        }
     }
 
     return phase;

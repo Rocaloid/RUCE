@@ -21,10 +21,10 @@
 #define RUCE_HNM_PARAMETERS_HPP
 
 #include <array>
+#include <complex>
 #include <cstdint>
 #include <vector>
 #include "utils.hpp"
-#include "wrapped-angle.hpp"
 
 namespace RUCE {
 
@@ -52,11 +52,11 @@ public:
      */
     std::vector<std::array<double, max_pillars>> harmony_magnitudes;
     /**
-     * harmony_phase_difference[w][i] is the radian angle of the phase of each harmony
-     * minus by the phase of f0
+     * harmony_phase_difference[w][i] is the angle of the phase of each harmony
+     * minus by the phase of f0, stored in complex number format
      * The phase are measured at the center of the window
      */
-    std::vector<std::array<WrappedAngle, max_pillars>> harmony_phases_difference;
+    std::vector<std::array<std::complex<double>, max_pillars>> harmony_phases_difference;
 
     // Timestamp conversion functions
     double frame_to_window_idx(ssize_t frame_idx) const {

@@ -24,7 +24,6 @@
 #include <cstdint>
 #include <vector>
 #include "proxy-ptr.hpp"
-#include "wrapped-angle.hpp"
 
 namespace RUCE {
 
@@ -60,7 +59,7 @@ public:
     std::vector<std::complex<double>> &get_spectrum();
     const std::vector<std::complex<double>> &get_spectrum() const;
     std::vector<double> get_magnitude() const;
-    std::vector<WrappedAngle> get_phase() const;
+    std::vector<std::complex<double>> get_phase() const;
 
     /* Ultility functions related to FFT */
     double hertz_to_bin(double heartz, int32_t sample_rate) const {

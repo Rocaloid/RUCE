@@ -46,7 +46,6 @@
 #include "utils.hpp"
 #include "vector-interpolator.hpp"
 #include "window.hpp"
-#include "wrapped-angle.hpp"
 
 /*
  * TODO: Naming suggestions as following,
@@ -221,9 +220,9 @@ Synthesizer &Synthesizer::analyze() {
         }
 
         // Extract sinusold parameters
-        std::vector<WrappedAngle> source_phase = source_spectrum.get_phase();
+        std::vector<std::complex<double>> source_phase = source_spectrum.get_phase();
         std::array<double, max_pillars> source_harmony_magnitudes {{ 0 }};
-        std::array<WrappedAngle, max_pillars> source_harmony_phases_difference {{ 0 }};
+        std::array<std::complex<double>, max_pillars> source_harmony_phases_difference {{ 0 }};
         for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
             double source_harmony_frequency = source_harmony_frequencies[pillar_idx];
             if(source_harmony_frequency == 0)
@@ -239,7 +238,7 @@ Synthesizer &Synthesizer::analyze() {
             }
 
             // Phase
-            LinearVectorInterpolator<WrappedAngle> linear_vector_interpolator;
+            LinearVectorInterpolator<std::complex<double>> linear_vector_interpolator;
             try {
                 source_harmony_phases_difference[pillar_idx] = linear_vector_interpolator([&](size_t index) {
                     return source_phase[index];
@@ -252,11 +251,14 @@ Synthesizer &Synthesizer::analyze() {
         source_harmony_magnitudes[0] = source_harmony_magnitudes[1];
 
         // Convert absolute phases to relative phases to f0
+        double base_harmony_phase_angle = std::arg(source_harmony_phases_difference[1]);
         for(size_t pillar_idx = 2; pillar_idx < max_pillars; pillar_idx++) {
             double source_harmony_frequency = source_harmony_frequencies[pillar_idx];
-            if(source_harmony_frequency != 0)
-                source_harmony_phases_difference[pillar_idx] -= source_harmony_phases_difference[1]*(source_harmony_frequency/source_harmony_frequencies[1]);
-            else
+            if(source_harmony_frequency != 0) {
+                double phase_angle = std::arg(source_harmony_phases_difference[pillar_idx]);
+                phase_angle -= base_harmony_phase_angle*(source_harmony_frequency/source_harmony_frequencies[1]);
+                source_harmony_phases_difference[pillar_idx] = std::polar(1.0, phase_angle);
+            } else
                 source_harmony_phases_difference[pillar_idx] = 0;
         }
         source_harmony_phases_difference[0] = 0;
@@ -298,7 +300,7 @@ Synthesizer &Synthesizer::adjust_synth_params() {
         // Fetch source harmonic parameters
         LinearVectorInterpolator<std::array<double, max_pillars>> frequency_interpolator;
         LinearVectorInterpolator<std::array<double, max_pillars>> magnitude_interpolator;
-        LinearVectorInterpolator<std::array<WrappedAngle, max_pillars>> phase_interpolator;
+        LinearVectorInterpolator<std::array<std::complex<double>, max_pillars>> phase_interpolator;
         std::array<double, max_pillars> source_harmony_frequencies;
         try {
             source_harmony_frequencies = magnitude_interpolator([&](size_t index) {
@@ -310,7 +312,7 @@ Synthesizer &Synthesizer::adjust_synth_params() {
         std::array<double, max_pillars> source_harmony_magnitudes = magnitude_interpolator([&](size_t index) {
             return p->source_hnm_parameters.harmony_magnitudes[index];
         }, p->source_hnm_parameters.harmony_magnitudes.size(), source_timestamp_windows);
-        std::array<WrappedAngle, max_pillars> source_harmony_phases_difference = phase_interpolator([&](size_t index) {
+        std::array<std::complex<double>, max_pillars> source_harmony_phases_difference = phase_interpolator([&](size_t index) {
             return p->source_hnm_parameters.harmony_phases_difference[index];
         }, p->source_hnm_parameters.harmony_phases_difference.size(), source_timestamp_windows);
 
@@ -373,9 +375,9 @@ Synthesizer &Synthesizer::adjust_synth_params() {
         }
 
         // Calculate sink harmony phases
-        std::array<WrappedAngle, max_pillars> sink_harmony_phases_difference {{ 0 }};
+        std::array<std::complex<double>, max_pillars> sink_harmony_phases_difference {{ 0 }};
         for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
-            LinearVectorInterpolator<WrappedAngle> linear_vector_interpolator;
+            LinearVectorInterpolator<std::complex<double>> linear_vector_interpolator;
             try {
                 sink_harmony_phases_difference[pillar_idx] = linear_vector_interpolator([&](size_t index) {
                     return source_harmony_phases_difference[index];
@@ -430,7 +432,9 @@ Synthesizer &Synthesizer::synthesize() {
                 continue;
 
             double harmony_magnitude = sink_harmony_magnitudes[pillar_idx];
-            double harmony_phases_difference = sink_harmony_phases_difference[pillar_idx];
+            double harmony_phases_difference = std::arg(sink_harmony_phases_difference[pillar_idx]);
+            if(!std::isfinite(harmony_phases_difference))
+                harmony_phases_difference = 0;
             double harmonic_central_phase = last_sink_phase*sink_harmony_frequency/sink_f0 + harmony_phases_difference;
 
             for(auto sink_segment_idx = sink_segment.left(); sink_segment_idx < sink_segment.right(); sink_segment_idx++) {
