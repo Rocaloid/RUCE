@@ -171,7 +171,6 @@ Synthesizer &Synthesizer::analyze() {
 
         // Copy the source and window it
         ssize_t source_window_half_size = source_f0 > 0 ? ssize_t(std::round(3 * p->input_sample_rate / source_f0 / 2)) : source_fft_size;
-        WTF8::clog << "half " << source_window_half_size << std::endl;
         if(source_window_half_size > source_fft_size/2)
             source_window_half_size = source_fft_size/2;
         SignalSegment source_segment(p->source_buffer, source_window_mid-source_window_half_size, source_window_mid+source_window_half_size);
@@ -179,7 +178,6 @@ Synthesizer &Synthesizer::analyze() {
         SignalSegment source_window = HannWindow(source_window_half_size*2);
         source_window <<= source_window_half_size;
         source_segment *= source_window;
-        WTF8::clog << source_segment.size() << std::endl;
 
         // Do FFT analysis
         source_segment = source_spectrum.fftshift(SignalSegment(source_segment, -source_fft_size/2, source_fft_size/2));
