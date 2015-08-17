@@ -73,7 +73,8 @@ public:
      *
      * Thanks to the algorithm http://stackoverflow.com/a/1322548/2557927
      */
-    static size_t next_pow2(size_t n, size_t minimal = 2) {
+    template <typename T>
+    static T next_pow2(T n, T minimal = 2) {
         if(n <= minimal)
             return minimal;
         --n;

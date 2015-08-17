@@ -68,7 +68,7 @@ Spectrum &Spectrum::fft_analyze(const SignalSegment &signal) {
     cdft(fftsize*2, -1, fftdata, p->ip.data(), p->w.data());
 
     assert(p->spectrum.size() == fftsize);
-    auto spectrum = p->spectrum.data();
+    auto &spectrum = p->spectrum;
     for(size_t i = 0; i < fftsize; i++) {
         spectrum[i] = std::complex<double>(fftdata[i*2], fftdata[i*2+1]);
     }
@@ -127,6 +127,7 @@ std::vector<std::complex<double>> Spectrum::get_phase() const {
     std::vector<std::complex<double>> phase = p->spectrum;
 
     for(std::complex<double> &i : phase) {
+        //i = std::polar(1.0, std::arg(i));
         i /= std::abs(i);
         if(!std::isfinite(i.real()) && !std::isfinite(i.imag())) {
             i = 0;

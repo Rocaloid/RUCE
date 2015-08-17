@@ -187,82 +187,86 @@ Synthesizer &Synthesizer::analyze() {
         for(double &mag : source_magnitude)
             mag = mag > 0 ? std::log10(mag/source_window_half_size) : -HUGE_VAL;
 
-        // Optimal peak finding
         std::array<double, max_pillars> source_harmony_frequencies {{ 0 }};
-        // [0] is used to store estimated frequency,
-        // [1] is used to store exact frequency.
-        source_harmony_frequencies[0] = source_f0;
-        for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
-            double source_harmony_frequency = source_f0 * pillar_idx;
-            if(source_harmony_frequency >= std::min(source_max_harmony, double(p->input_sample_rate)/2))
-                break;
-            size_t source_harmony_bin_low = size_t(std::round(std::max(source_spectrum.hertz_to_bin(source_harmony_frequency - source_f0/3, p->input_sample_rate), 1.0)));
-            size_t source_harmony_bin_high = size_t(std::round(std::min(source_spectrum.hertz_to_bin(source_harmony_frequency + source_f0/3, p->input_sample_rate), source_magnitude.size()/2-1.0)));
-            size_t peak_bin = size_t(std::round(source_spectrum.hertz_to_bin(source_harmony_frequency, p->input_sample_rate))); // The highest bin
-            double peak_magnitude = 0; // The value of the highest bin
-            for(size_t bin = source_harmony_bin_low; bin <= source_harmony_bin_high; bin++) {
-                if(source_magnitude[bin] > peak_magnitude) {
-                    peak_bin = bin;
-                    peak_magnitude = source_magnitude[bin];
-                }
-            }
-
-            double y_1 = source_magnitude[peak_bin-1];
-            double y0 = source_magnitude[peak_bin];
-            double y1 = source_magnitude[peak_bin+1];
-            double subbin_correction = clamp((y_1-y1)/(2*y1-4*y0+2*y_1), -1.0, 1.0);
-            source_harmony_frequency = source_spectrum.bin_to_hertz(peak_bin + subbin_correction, p->input_sample_rate);
-            if(!(source_harmony_frequency >= 0 && source_harmony_frequency < std::min(source_max_harmony, double(p->input_sample_rate)/2)))
-                source_harmony_frequency = 0;
-            source_harmony_frequencies[pillar_idx] = source_harmony_frequency;
-
-            source_f0 = source_harmony_frequencies[1];
-        }
-
-        // Extract sinusold parameters
-        std::vector<std::complex<double>> source_phase = source_spectrum.get_phase();
         std::array<double, max_pillars> source_harmony_magnitudes {{ 0 }};
-        std::array<std::complex<double>, max_pillars> source_harmony_phases_difference {{ 0 }};
-        for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
-            double source_harmony_frequency = source_harmony_frequencies[pillar_idx];
-            if(source_harmony_frequency == 0)
-                continue;
-
-            // Magnitude
-            QuadraticVectorInterpolator<double> quadratic_vector_interpolator;
-            try {
-                source_harmony_magnitudes[pillar_idx] = std::pow(10, quadratic_vector_interpolator([&](size_t index) {
-                    return source_magnitude[index];
-                }, source_magnitude.size(), source_spectrum.hertz_to_bin(source_harmony_frequency, p->input_sample_rate)));
-            } catch(std::out_of_range) {
-            }
-
-            // Phase
-            LinearVectorInterpolator<std::complex<double>> linear_vector_interpolator;
-            try {
-                source_harmony_phases_difference[pillar_idx] = linear_vector_interpolator([&](size_t index) {
-                    return source_phase[index];
-                }, source_phase.size(), source_spectrum.hertz_to_bin(source_harmony_frequency, p->input_sample_rate));
-            } catch(std::out_of_range) {
-            }
-
+        std::array<std::complex<double>, max_pillars> source_harmony_phases_difference;
+        for(auto &i : source_harmony_phases_difference) {
+            i = std::complex<double>(1.0, 0.0);
         }
 
-        source_harmony_magnitudes[0] = source_harmony_magnitudes[1];
+        if(source_f0 != 0) {
+            // [0] is identical to [1], for the convenience of interpolation, you should use [1]
+            source_harmony_frequencies[0] = source_f0;
+            source_harmony_frequencies[1] = source_f0;
+            // Optimal peak finding
+            for(size_t pillar_idx = 2; pillar_idx < max_pillars; pillar_idx++) {
+                double source_harmony_frequency = source_f0 * pillar_idx;
+                if(source_harmony_frequency >= std::min(source_max_harmony, double(p->input_sample_rate)/2))
+                    break;
+                ssize_t source_harmony_bin_low = std::max(ssize_t(std::round(source_spectrum.hertz_to_bin(source_harmony_frequency - source_f0/3, p->input_sample_rate))), ssize_t(1));
+                ssize_t source_harmony_bin_high = std::min(ssize_t(std::round(source_spectrum.hertz_to_bin(source_harmony_frequency + source_f0/3, p->input_sample_rate))), ssize_t(source_magnitude.size()/2-1));
+                ssize_t peak_bin = ssize_t(std::round(source_spectrum.hertz_to_bin(source_harmony_frequency, p->input_sample_rate))); // The highest bin
+                double peak_magnitude = 0; // The value of the highest bin
+                for(ssize_t bin = source_harmony_bin_low; bin <= source_harmony_bin_high; bin++) {
+                    if(source_magnitude[bin] > peak_magnitude) {
+                        peak_bin = bin;
+                        peak_magnitude = source_magnitude[bin];
+                    }
+                }
 
-        // Convert absolute phases to relative phases to f0
-        double base_harmony_phase_angle = std::arg(source_harmony_phases_difference[1]);
-        for(size_t pillar_idx = 2; pillar_idx < max_pillars; pillar_idx++) {
-            double source_harmony_frequency = source_harmony_frequencies[pillar_idx];
-            if(source_harmony_frequency != 0) {
-                double phase_angle = std::arg(source_harmony_phases_difference[pillar_idx]);
-                phase_angle -= base_harmony_phase_angle*(source_harmony_frequency/source_harmony_frequencies[1]);
-                source_harmony_phases_difference[pillar_idx] = std::polar(1.0, phase_angle);
-            } else
-                source_harmony_phases_difference[pillar_idx] = std::complex<double>(1.0, 0.0);
+                double y_1 = source_magnitude[peak_bin-1];
+                double y0 = source_magnitude[peak_bin];
+                double y1 = source_magnitude[peak_bin+1];
+                double subbin_correction = clamp((y_1-y1)/(2*y1-4*y0+2*y_1), -1.0, 1.0);
+                source_harmony_frequency = source_spectrum.bin_to_hertz(peak_bin + subbin_correction, p->input_sample_rate);
+                if(!(source_harmony_frequency >= 0 && source_harmony_frequency < std::min(source_max_harmony, double(p->input_sample_rate)/2)))
+                    source_harmony_frequency = 0;
+                source_harmony_frequencies[pillar_idx] = source_harmony_frequency;
+            }
+
+            // Extract sinusold parameters
+            std::vector<std::complex<double>> source_phase = source_spectrum.get_phase();
+            for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
+                double source_harmony_frequency = source_harmony_frequencies[pillar_idx];
+                if(source_harmony_frequency == 0)
+                    continue;
+
+                // Magnitude
+                QuadraticVectorInterpolator<double> quadratic_vector_interpolator;
+                try {
+                    source_harmony_magnitudes[pillar_idx] = std::pow(10, quadratic_vector_interpolator([&](size_t index) {
+                        return source_magnitude[index];
+                    }, source_magnitude.size(), source_spectrum.hertz_to_bin(source_harmony_frequency, p->input_sample_rate)));
+                } catch(std::out_of_range) {
+                }
+
+                // Phase
+                LinearVectorInterpolator<std::complex<double>> linear_vector_interpolator;
+                try {
+                    source_harmony_phases_difference[pillar_idx] = linear_vector_interpolator([&](size_t index) {
+                        return source_phase[index];
+                    }, source_phase.size(), source_spectrum.hertz_to_bin(source_harmony_frequency, p->input_sample_rate));
+                } catch(std::out_of_range) {
+                }
+
+            }
+
+            source_harmony_magnitudes[0] = source_harmony_magnitudes[1];
+
+            // Convert absolute phases to relative phases to f0
+            double base_harmony_phase_angle = std::arg(source_harmony_phases_difference[1]);
+            for(size_t pillar_idx = 2; pillar_idx < max_pillars; pillar_idx++) {
+                double source_harmony_frequency = source_harmony_frequencies[pillar_idx];
+                if(source_harmony_frequency != 0) {
+                    double phase_angle = std::arg(source_harmony_phases_difference[pillar_idx]);
+                    phase_angle -= base_harmony_phase_angle*(source_harmony_frequency/source_harmony_frequencies[1]);
+                    source_harmony_phases_difference[pillar_idx] = std::polar(1.0, phase_angle);
+                } else
+                    source_harmony_phases_difference[pillar_idx] = std::complex<double>(1.0, 0.0);
+            }
+            source_harmony_phases_difference[0] = std::complex<double>(1.0, 0.0);
+            source_harmony_phases_difference[1] = std::complex<double>(1.0, 0.0);
         }
-        source_harmony_phases_difference[0] = std::complex<double>(1.0, 0.0);
-        source_harmony_phases_difference[1] = std::complex<double>(1.0, 0.0);
 
         // Push the result of this window
         p->source_hnm_parameters.harmony_frequencies.push_back(std::move(source_harmony_frequencies));
@@ -304,7 +308,10 @@ Synthesizer &Synthesizer::adjust_synth_params() {
         std::array<double, max_pillars> source_harmony_frequencies;
         try {
             source_harmony_frequencies = magnitude_interpolator([&](size_t index) {
-                return p->source_hnm_parameters.harmony_frequencies[index];
+                const std::array<double, max_pillars> &res = p->source_hnm_parameters.harmony_frequencies[index];
+                if(res[1] == 0)
+                    throw std::out_of_range("No frequency information for unvoiced phone");
+                return res;
             }, p->source_hnm_parameters.harmony_frequencies.size(), source_timestamp_windows);
         } catch(std::out_of_range) {
             continue;
@@ -319,7 +326,7 @@ Synthesizer &Synthesizer::adjust_synth_params() {
         // Map source frequency scale to array indexes
         for(auto &i : freq_domain_mapper)
             i = 0;
-        for(size_t pillar_idx = max_pillars; pillar_idx > 1; pillar_idx--) {
+        for(size_t pillar_idx = max_pillars-1; pillar_idx > 1; pillar_idx--) {
             double x1 = source_harmony_frequencies[pillar_idx-1];
             double x2 = source_harmony_frequencies[pillar_idx];
             if(x1 != x2) {
