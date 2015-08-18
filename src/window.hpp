@@ -27,11 +27,22 @@ namespace RUCE {
 class Window : public SignalSegment {
 protected:
     Window(size_t size) : SignalSegment(size) {}
+public:
+    virtual double sum() const {
+        double result = 0;
+        auto window_data = data();
+        for(auto i = left(); i < right(); i++)
+            result += window_data[i];
+        return result;
+    }
 };
 
 class HannWindow : public Window {
 public:
     HannWindow(size_t size);
+    double sum() const {
+        return size()/2.0;
+    }
 };
 
 class BlackmanHarrisWindow : public Window {
@@ -42,6 +53,9 @@ public:
 class SquareWindow : public Window {
 public:
     SquareWindow(size_t size);
+    double sum() const {
+        return size()/2.0;
+    }
 };
 
 }

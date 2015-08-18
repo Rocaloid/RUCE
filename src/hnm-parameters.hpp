@@ -23,7 +23,9 @@
 #include <array>
 #include <complex>
 #include <cstdint>
+#include <valarray>
 #include <vector>
+#include "spectrum.hpp"
 #include "utils.hpp"
 
 namespace RUCE {
@@ -57,6 +59,10 @@ public:
      * The phase are measured at the center of the window
      */
     std::vector<std::array<std::complex<double>, max_pillars>> harmony_phases_difference;
+    /**
+     * noise_magnitudes are the spectrum magnitudes of noise
+     */
+    std::vector<std::valarray<double>> noise_magnitudes;
 
     // Timestamp conversion functions
     double frame_to_window_idx(ssize_t frame_idx) const {

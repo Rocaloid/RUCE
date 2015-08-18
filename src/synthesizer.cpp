@@ -155,7 +155,7 @@ Synthesizer &Synthesizer::track_f0() {
 Synthesizer &Synthesizer::analyze() {
     static const ssize_t source_fft_size = Spectrum::next_pow2(p->input_sample_rate/48);
     static const ssize_t source_window_hop = source_fft_size/2;
-    static const double source_max_harmony = 10000;
+    static const double source_max_harmony = 8000;
     static const auto max_pillars = HNMParameters::max_pillars;
     assert((source_fft_size & 1) == 0);
 
@@ -174,7 +174,7 @@ Synthesizer &Synthesizer::analyze() {
             source_window_half_size = source_fft_size/2;
         SignalSegment source_segment(p->source_buffer, source_window_mid-source_window_half_size, source_window_mid+source_window_half_size);
         source_segment <<= source_segment.left() + source_window_half_size;
-        SignalSegment source_window = HannWindow(source_window_half_size*2);
+        Window source_window = HannWindow(source_window_half_size*2);
         source_window <<= source_window_half_size;
         source_segment *= source_window;
 
@@ -185,14 +185,16 @@ Synthesizer &Synthesizer::analyze() {
         // Convert magnitude to log scale
         std::vector<double> source_magnitude = source_spectrum.get_magnitude();
         for(double &mag : source_magnitude)
-            mag = mag > 0 ? std::log10(mag/source_window_half_size) : -HUGE_VAL;
+            mag = mag > 0 ? std::log10(mag*2/source_window.sum()) : -HUGE_VAL;
 
+        // Prepare output values
         std::array<double, max_pillars> source_harmony_frequencies {{ 0 }};
         std::array<double, max_pillars> source_harmony_magnitudes {{ 0 }};
         std::array<std::complex<double>, max_pillars> source_harmony_phases_difference;
         for(auto &i : source_harmony_phases_difference) {
             i = std::complex<double>(1.0, 0.0);
         }
+        std::valarray<double> source_noise_magnitudes(source_fft_size/2);
 
         if(source_f0 != 0) {
             // [0] is identical to [1], for the convenience of interpolation, you should use [1]
@@ -268,19 +270,37 @@ Synthesizer &Synthesizer::analyze() {
             source_harmony_phases_difference[1] = std::complex<double>(1.0, 0.0);
         }
 
+        // Model noise
+        // STUB A temporary method
+        for(size_t bin = 1; bin < size_t(source_fft_size/2); bin++) {
+            source_noise_magnitudes[bin] = std::pow(10, source_magnitude[bin]);
+        }
+        for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
+            double source_harmony_frequency = source_harmony_frequencies[pillar_idx];
+            if(source_harmony_frequency == 0)
+                continue;
+            ssize_t cut_low = std::max(ssize_t(std::round(source_spectrum.hertz_to_bin(source_harmony_frequency - source_harmony_frequency/32, p->input_sample_rate))), ssize_t(1));
+            ssize_t cut_high = std::min(ssize_t(std::round(source_spectrum.hertz_to_bin(source_harmony_frequency + source_harmony_frequency/32, p->input_sample_rate))), source_fft_size/2-1);
+            for(ssize_t i = cut_low; i <= cut_high; i++) {
+                source_noise_magnitudes[i] = 0;
+            }
+        }
+
         // Push the result of this window
         p->source_hnm_parameters.harmony_frequencies.push_back(std::move(source_harmony_frequencies));
         p->source_hnm_parameters.harmony_magnitudes.push_back(std::move(source_harmony_magnitudes));
         p->source_hnm_parameters.harmony_phases_difference.push_back(std::move(source_harmony_phases_difference));
+        p->source_hnm_parameters.noise_magnitudes.push_back(std::move(source_noise_magnitudes));
     }
 
     return *this;
 }
 
 Synthesizer &Synthesizer::adjust_synth_params() {
-    static const ssize_t sink_window_size = 256;
+    static const ssize_t sink_fft_size = 256;
+    static const ssize_t sink_window_size = sink_fft_size;
     static const ssize_t sink_window_hop = sink_window_size/2;
-    static const double sink_max_harmony = 10000;
+    static const double sink_max_harmony = 8000;
     static const auto max_pillars = HNMParameters::max_pillars;
     assert((sink_window_size & 1) == 0);
 
@@ -394,16 +414,37 @@ Synthesizer &Synthesizer::adjust_synth_params() {
             }
         }
 
+        // Fetch source noise parameters
+        LinearVectorInterpolator<std::valarray<double>> noise_magnitude_interpolator;
+        std::valarray<double> source_noise_magnitudes = noise_magnitude_interpolator([&](size_t index) {
+            return p->source_hnm_parameters.noise_magnitudes[index];
+        }, p->source_hnm_parameters.noise_magnitudes.size(), source_timestamp_windows);
+
+        // Calculate sink noise magnitudes
+        std::valarray<double> sink_noise_magnitudes(sink_fft_size/2);
+        for(size_t bin = 1; bin < sink_fft_size/2; bin++) {
+            LinearVectorInterpolator<double> linear_vector_interpolator;
+            try {
+                sink_noise_magnitudes[bin] = linear_vector_interpolator([&](size_t index) {
+                    return source_noise_magnitudes[index];
+                }, source_noise_magnitudes.size(), bin * (p->source_hnm_parameters.window_size * p->output_sample_rate) / (sink_fft_size * p->input_sample_rate));
+            } catch(std::out_of_range) {
+                continue;
+            }
+        }
+
         // Push the result of this window
         p->sink_hnm_parameters.harmony_frequencies.push_back(std::move(sink_harmony_frequencies));
         p->sink_hnm_parameters.harmony_magnitudes.push_back(std::move(sink_harmony_magnitudes));
         p->sink_hnm_parameters.harmony_phases_difference.push_back(std::move(sink_harmony_phases_difference));
+        p->sink_hnm_parameters.noise_magnitudes.push_back(std::move(sink_noise_magnitudes));
     }
 
     return *this;
 }
 
 Synthesizer &Synthesizer::synthesize() {
+    static const ssize_t sink_fft_size = p->sink_hnm_parameters.window_size;
     static const ssize_t sink_window_size = p->sink_hnm_parameters.window_size;
     static const ssize_t sink_window_hop = p->sink_hnm_parameters.window_hop;
     static const auto max_pillars = HNMParameters::max_pillars;
@@ -411,7 +452,8 @@ Synthesizer &Synthesizer::synthesize() {
 
     WTF8::clog << "Average output sink frequency:  " << p->tuner.midi_id_to_freq(option_manager.get_output_pitch()) << " Hz" << std::endl;
 
-    SignalSegment sink_window = HannWindow(sink_window_size);
+    Window sink_window = HannWindow(sink_window_size);
+    Spectrum sink_noise_spectrum(sink_fft_size);
 
     double last_sink_phase = 0;
     double last_sink_f0 = 0;
@@ -451,9 +493,23 @@ Synthesizer &Synthesizer::synthesize() {
                     omega*sink_segment_idx*sink_harmony_frequency + harmonic_central_phase_angle) * harmony_magnitude;
             }
         }
+        sink_segment <<= sink_segment.left();
+
+        // Fetch sink noise magnitudes
+        std::valarray<double> &sink_noise_magnitudes = p->sink_hnm_parameters.noise_magnitudes[sink_timestamp_windows];
+        std::vector<std::complex<double>> &sink_noise_ifft_data = sink_noise_spectrum.get_spectrum();
+        assert(ssize_t(sink_noise_magnitudes.size()) == sink_fft_size/2);
+        assert(ssize_t(sink_noise_ifft_data.size()) == sink_fft_size);
+        for(ssize_t bin = 1; bin < sink_fft_size/2; bin++) {
+            sink_noise_ifft_data[bin] = std::polar(sink_noise_magnitudes[bin]*sink_fft_size/2, p->fast_random() * 2 * M_PI);
+        }
+        for(ssize_t bin = 1; bin < sink_fft_size/2; bin++) {
+            sink_noise_ifft_data[sink_fft_size-bin] = std::conj(sink_noise_ifft_data[bin]);
+        }
+        SignalSegment noise_segment = sink_noise_spectrum.ifft_analyze();
+        sink_segment += noise_segment;
 
         // Window the segment and mix to the sink
-        sink_segment <<= sink_segment.left();
         sink_segment *= sink_window;
         sink_segment >>= sink_timestamp_frames - sink_window_size/2;
         p->sink_buffer += sink_segment;

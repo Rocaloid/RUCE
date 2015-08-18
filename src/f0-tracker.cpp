@@ -84,10 +84,9 @@ float F0Tracker::get_result(ssize_t sample_idx) const {
 void F0Tracker::Private::optimize(const SignalSegment &segment) {
     auto window_size = 2048;//Spectrum::next_pow2(sample_rate/50);
     Spectrum spectrum(window_size);
+    Window window = HannWindow(window_size);
 
     for(size_t window_id = 0; window_id < output.size(); window_id++) {
-        SignalSegment window = HannWindow(window_size);
-
         SignalSegment windowed_segment(segment, left_bound + window_id*frame_hop - window_size/2, left_bound + window_id*frame_hop + window_size/2);
         windowed_segment <<= windowed_segment.left();
         windowed_segment *= window;
@@ -121,7 +120,7 @@ void F0Tracker::Private::optimize(const SignalSegment &segment) {
         std::complex<double> phase1 = spectrum.get_phase()[f0_bin];
 
         double f0_hertz_corrected = (std::arg(phase0)-std::arg(phase1)) * sample_rate / (2 * M_PI) / move_step;
-        if(f0_hertz_corrected < f0_hertz - f0_hertz/3 || f0_hertz_corrected <= f0_hertz + f0_hertz/3) {
+        if(!(f0_hertz_corrected >= f0_hertz - f0_hertz/3 && f0_hertz_corrected <= f0_hertz + f0_hertz/3)) {
             if(f0_bin > 0) {
                 // Use alternative correction method
                 double y_1 = magnitude[f0_bin-1];

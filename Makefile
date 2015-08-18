@@ -3,13 +3,13 @@
 .PHONY: all install clean
 
 all:
-	make -C build all
+	$(MAKE) -C build all
 
 install:
-	make -C build install
+	$(MAKE) -C build install
 
 clean:
-	make -C build clean
+	$(MAKE) -C build clean
 
 test:
-	make -C build test
+	$(MAKE) -C build test

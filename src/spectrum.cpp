@@ -92,7 +92,7 @@ SignalSegment Spectrum::ifft_analyze() {
     SignalSegment result_signal(fftsize);
     auto result_signal_buffer = result_signal.buffer();
     for(size_t i = 0; i < fftsize; i++) {
-        result_signal_buffer[i] = fftdata[i*2];
+        result_signal_buffer[i] = fftdata[i*2] / fftsize;
     }
 
     return result_signal;
