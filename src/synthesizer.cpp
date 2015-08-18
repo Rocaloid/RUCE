@@ -442,7 +442,6 @@ Synthesizer &Synthesizer::adjust_synth_params() {
             LinearVectorInterpolator<double> linear_vector_interpolator;
             try {
                 sink_noise_magnitudes[bin] = linear_vector_interpolator([&](size_t index) {
-                    WTF8::clog << index << std::endl;
                     return source_noise_magnitudes[index];
                 }, source_noise_magnitudes.size(), bin * (double(p->source_hnm_parameters.window_size) / sink_fft_size) * (double(p->output_sample_rate) / p->input_sample_rate));
             } catch(std::out_of_range) {
