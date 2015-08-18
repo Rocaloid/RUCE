@@ -322,103 +322,119 @@ Synthesizer &Synthesizer::adjust_synth_params() {
         double source_timestamp_windows = p->source_hnm_parameters.frame_to_window_idx(source_timestamp_frames);
 
         // Fetch source harmonic parameters
-        LinearVectorInterpolator<std::array<double, max_pillars>> frequency_interpolator;
-        LinearVectorInterpolator<std::array<double, max_pillars>> magnitude_interpolator;
-        LinearVectorInterpolator<std::array<std::complex<double>, max_pillars>> phase_interpolator;
         std::array<double, max_pillars> source_harmony_frequencies;
+        std::array<double, max_pillars> source_harmony_magnitudes;
+        std::array<std::complex<double>, max_pillars> source_harmony_phases_difference;
         try {
-            source_harmony_frequencies = magnitude_interpolator([&](size_t index) {
+            LinearVectorInterpolator<std::array<double, max_pillars>> frequency_interpolator;
+            source_harmony_frequencies = frequency_interpolator([&](size_t index) {
                 const std::array<double, max_pillars> &res = p->source_hnm_parameters.harmony_frequencies[index];
                 if(res[1] == 0)
                     throw std::out_of_range("No frequency information for unvoiced phone");
                 return res;
             }, p->source_hnm_parameters.harmony_frequencies.size(), source_timestamp_windows);
         } catch(std::out_of_range) {
-            continue;
         }
-        std::array<double, max_pillars> source_harmony_magnitudes = magnitude_interpolator([&](size_t index) {
-            return p->source_hnm_parameters.harmony_magnitudes[index];
-        }, p->source_hnm_parameters.harmony_magnitudes.size(), source_timestamp_windows);
-        std::array<std::complex<double>, max_pillars> source_harmony_phases_difference = phase_interpolator([&](size_t index) {
-            return p->source_hnm_parameters.harmony_phases_difference[index];
-        }, p->source_hnm_parameters.harmony_phases_difference.size(), source_timestamp_windows);
-
-        // Map source frequency scale to array indexes
-        for(auto &i : freq_domain_mapper)
-            i = 0;
-        for(size_t pillar_idx = max_pillars-1; pillar_idx > 1; pillar_idx--) {
-            double x1 = source_harmony_frequencies[pillar_idx-1];
-            double x2 = source_harmony_frequencies[pillar_idx];
-            if(x1 != x2) {
-                ssize_t x1i = clamp<ssize_t>(ssize_t(std::ceil(x1)), 0, freq_domain_mapper.size()-1);
-                ssize_t x2i = clamp<ssize_t>(ssize_t(std::floor(x2)), 0, freq_domain_mapper.size()-1);
-                double k = 1/(x2-x1);
-                for(ssize_t x = x1i; x <= x2i; x++)
-                    freq_domain_mapper[x] = pillar_idx - (x2-x)*k;
-            }
+        try {
+            LinearVectorInterpolator<std::array<double, max_pillars>> magnitude_interpolator;
+            source_harmony_magnitudes = magnitude_interpolator([&](size_t index) {
+                return p->source_hnm_parameters.harmony_magnitudes[index];
+            }, p->source_hnm_parameters.harmony_magnitudes.size(), source_timestamp_windows);
+        } catch(std::out_of_range) {
+        }
+        try {
+            LinearVectorInterpolator<std::array<std::complex<double>, max_pillars>> phase_interpolator;
+            source_harmony_phases_difference = phase_interpolator([&](size_t index) {
+                return p->source_hnm_parameters.harmony_phases_difference[index];
+            }, p->source_hnm_parameters.harmony_phases_difference.size(), source_timestamp_windows);
+        } catch(std::out_of_range) {
         }
 
-        // Calculate sink harmony frequencies
-        double sink_f0 = p->tuner.midi_id_to_freq(base_pitch + option_manager.get_pitch_bend(sink_timestamp));
+        // Prepare output values
         std::array<double, max_pillars> sink_harmony_frequencies {{ 0 }};
-        sink_harmony_frequencies[0] = sink_f0;
-        for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
-            double sink_harmony_frequency = sink_f0 * pillar_idx;
-            if(sink_harmony_frequency*2 >= std::min(sink_max_harmony*2, double(p->output_sample_rate)))
-                break;
-            sink_harmony_frequencies[pillar_idx] = sink_harmony_frequency;
-        }
-
-        // Apply a +12dB/octave filter to reduce the influence of glottal excitement
-        for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
-            source_harmony_magnitudes[pillar_idx] *= (
-                (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[1]) *
-                (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[1]));
-        }
-
-        // Calculate sink harmony magnitudes
         std::array<double, max_pillars> sink_harmony_magnitudes {{ 0 }};
-        for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
-            LinearVectorInterpolator<double> linear_vector_interpolator; // Better with a cubic one
-            try {
-                sink_harmony_magnitudes[pillar_idx] = linear_vector_interpolator([&](size_t index) {
-                    return source_harmony_magnitudes[index];
-                }, source_harmony_magnitudes.size(), freq_domain_mapper.at(sink_harmony_frequencies[pillar_idx]));
-            } catch(std::out_of_range) {
-                continue;
-            }
-            // Apply the -12dB/octave filter back
-            sink_harmony_magnitudes[pillar_idx] *= (
-                (sink_f0/sink_harmony_frequencies[pillar_idx])*
-                (sink_f0/sink_harmony_frequencies[pillar_idx]));
-        }
-        // Amplify the magnitudes according to the magnitude of f0
-        // Silly approach, but should solve most situations when f0 can roughly represent the volume
-        if(sink_harmony_magnitudes[1] != 0) {
-            for(size_t pillar_idx = 2; pillar_idx < max_pillars; pillar_idx++) {
-                sink_harmony_magnitudes[pillar_idx] *=
-                    source_harmony_magnitudes[1]/sink_harmony_magnitudes[1];
-            }
-        }
-
-        // Calculate sink harmony phases
         std::array<std::complex<double>, max_pillars> sink_harmony_phases_difference {{ 0 }};
-        for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
-            LinearVectorInterpolator<std::complex<double>> linear_vector_interpolator;
-            try {
-                sink_harmony_phases_difference[pillar_idx] = linear_vector_interpolator([&](size_t index) {
-                    return source_harmony_phases_difference[index];
-                }, source_harmony_phases_difference.size(), freq_domain_mapper.at(sink_harmony_frequencies[pillar_idx]));
-            } catch(std::out_of_range) {
-                continue;
+
+        if(source_harmony_frequencies[1] != 0) {
+
+            // Map source frequency scale to array indexes
+            for(auto &i : freq_domain_mapper)
+                i = 0;
+            for(size_t pillar_idx = max_pillars-1; pillar_idx > 1; pillar_idx--) {
+                double x1 = source_harmony_frequencies[pillar_idx-1];
+                double x2 = source_harmony_frequencies[pillar_idx];
+                if(x1 != x2) {
+                    ssize_t x1i = clamp<ssize_t>(ssize_t(std::ceil(x1)), 0, freq_domain_mapper.size()-1);
+                    ssize_t x2i = clamp<ssize_t>(ssize_t(std::floor(x2)), 0, freq_domain_mapper.size()-1);
+                    double k = 1/(x2-x1);
+                    for(ssize_t x = x1i; x <= x2i; x++)
+                        freq_domain_mapper[x] = pillar_idx - (x2-x)*k;
+                }
             }
+
+            // Calculate sink harmony frequencies
+            double sink_f0 = p->tuner.midi_id_to_freq(base_pitch + option_manager.get_pitch_bend(sink_timestamp));
+            sink_harmony_frequencies[0] = sink_f0;
+            for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
+                double sink_harmony_frequency = sink_f0 * pillar_idx;
+                if(sink_harmony_frequency*2 >= std::min(sink_max_harmony*2, double(p->output_sample_rate)))
+                    break;
+                sink_harmony_frequencies[pillar_idx] = sink_harmony_frequency;
+            }
+
+            // Apply a +12dB/octave filter to reduce the influence of glottal excitement
+            for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
+                source_harmony_magnitudes[pillar_idx] *= (
+                    (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[1]) *
+                    (source_harmony_frequencies[pillar_idx]/source_harmony_frequencies[1]));
+            }
+
+            // Calculate sink harmony magnitudes
+            for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
+                LinearVectorInterpolator<double> linear_vector_interpolator; // Better with a cubic one
+                try {
+                    sink_harmony_magnitudes[pillar_idx] = linear_vector_interpolator([&](size_t index) {
+                        return source_harmony_magnitudes[index];
+                    }, source_harmony_magnitudes.size(), freq_domain_mapper.at(sink_harmony_frequencies[pillar_idx]));
+                } catch(std::out_of_range) {
+                    continue;
+                }
+                // Apply the -12dB/octave filter back
+                sink_harmony_magnitudes[pillar_idx] *= (
+                    (sink_f0/sink_harmony_frequencies[pillar_idx])*
+                    (sink_f0/sink_harmony_frequencies[pillar_idx]));
+            }
+            // Amplify the magnitudes according to the magnitude of f0
+            // Silly approach, but should solve most situations when f0 can roughly represent the volume
+            if(sink_harmony_magnitudes[1] != 0) {
+                for(size_t pillar_idx = 2; pillar_idx < max_pillars; pillar_idx++) {
+                    sink_harmony_magnitudes[pillar_idx] *=
+                        source_harmony_magnitudes[1]/sink_harmony_magnitudes[1];
+                }
+            }
+
+            // Calculate sink harmony phases
+            for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
+                LinearVectorInterpolator<std::complex<double>> linear_vector_interpolator;
+                try {
+                    sink_harmony_phases_difference[pillar_idx] = linear_vector_interpolator([&](size_t index) {
+                        return source_harmony_phases_difference[index];
+                    }, source_harmony_phases_difference.size(), freq_domain_mapper.at(sink_harmony_frequencies[pillar_idx]));
+                } catch(std::out_of_range) {
+                }
+            }
+
         }
 
         // Fetch source noise parameters
-        LinearVectorInterpolator<std::valarray<double>> noise_magnitude_interpolator;
-        std::valarray<double> source_noise_magnitudes = noise_magnitude_interpolator([&](size_t index) {
-            return p->source_hnm_parameters.noise_magnitudes[index];
-        }, p->source_hnm_parameters.noise_magnitudes.size(), source_timestamp_windows);
+        std::valarray<double> source_noise_magnitudes(p->source_hnm_parameters.window_size/2);
+        try {
+            LinearVectorInterpolator<std::valarray<double>> noise_magnitude_interpolator;
+            source_noise_magnitudes = noise_magnitude_interpolator([&](size_t index) {
+                return p->source_hnm_parameters.noise_magnitudes[index];
+            }, p->source_hnm_parameters.noise_magnitudes.size(), source_timestamp_windows);
+        } catch(std::out_of_range) {
+        }
 
         // Calculate sink noise magnitudes
         std::valarray<double> sink_noise_magnitudes(sink_fft_size/2);
@@ -426,10 +442,10 @@ Synthesizer &Synthesizer::adjust_synth_params() {
             LinearVectorInterpolator<double> linear_vector_interpolator;
             try {
                 sink_noise_magnitudes[bin] = linear_vector_interpolator([&](size_t index) {
+                    WTF8::clog << index << std::endl;
                     return source_noise_magnitudes[index];
-                }, source_noise_magnitudes.size(), double(bin) * (p->source_hnm_parameters.window_size * p->output_sample_rate) / (sink_fft_size * p->input_sample_rate));
+                }, source_noise_magnitudes.size(), bin * (double(p->source_hnm_parameters.window_size) / sink_fft_size) * (double(p->output_sample_rate) / p->input_sample_rate));
             } catch(std::out_of_range) {
-                continue;
             }
         }
 
