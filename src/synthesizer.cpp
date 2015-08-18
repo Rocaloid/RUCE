@@ -272,7 +272,7 @@ Synthesizer &Synthesizer::analyze() {
 
         // Model noise
         // STUB A temporary method
-        for(size_t bin = 1; bin < size_t(source_fft_size/2); bin++) {
+        for(ssize_t bin = 1; bin < source_fft_size/2; bin++) {
             source_noise_magnitudes[bin] = std::pow(10, source_magnitude[bin]);
         }
         for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
@@ -427,7 +427,7 @@ Synthesizer &Synthesizer::adjust_synth_params() {
             try {
                 sink_noise_magnitudes[bin] = linear_vector_interpolator([&](size_t index) {
                     return source_noise_magnitudes[index];
-                }, source_noise_magnitudes.size(), bin * (p->source_hnm_parameters.window_size * p->output_sample_rate) / (sink_fft_size * p->input_sample_rate));
+                }, source_noise_magnitudes.size(), double(bin) * (p->source_hnm_parameters.window_size * p->output_sample_rate) / (sink_fft_size * p->input_sample_rate));
             } catch(std::out_of_range) {
                 continue;
             }
@@ -501,7 +501,7 @@ Synthesizer &Synthesizer::synthesize() {
         assert(ssize_t(sink_noise_magnitudes.size()) == sink_fft_size/2);
         assert(ssize_t(sink_noise_ifft_data.size()) == sink_fft_size);
         for(ssize_t bin = 1; bin < sink_fft_size/2; bin++) {
-            sink_noise_ifft_data[bin] = std::polar(sink_noise_magnitudes[bin]*sink_fft_size/2, p->fast_random() * 2 * M_PI);
+            sink_noise_ifft_data[bin] = std::polar(sink_noise_magnitudes[bin]*sink_window.sum()/4, p->fast_random() * 2 * M_PI);
         }
         for(ssize_t bin = 1; bin < sink_fft_size/2; bin++) {
             sink_noise_ifft_data[sink_fft_size-bin] = std::conj(sink_noise_ifft_data[bin]);
