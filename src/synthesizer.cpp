@@ -271,7 +271,10 @@ Synthesizer &Synthesizer::analyze() {
         }
 
         // Model noise
-        // STUB A temporary method
+        /* TODO 
+         * The temporary method simply sets the magnitudes in the range [f-f/32, f+f/32] to 0
+         * Should acquire the frequency domain response of Hann window, then cut out the pillars of each harmony
+         */
         for(ssize_t bin = 1; bin < source_fft_size/2; bin++) {
             source_noise_magnitudes[bin] = std::pow(10, source_magnitude[bin]);
         }
