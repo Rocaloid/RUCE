@@ -516,7 +516,7 @@ Synthesizer &Synthesizer::synthesize() {
         assert(ssize_t(sink_noise_magnitudes.size()) == sink_fft_size/2);
         assert(ssize_t(sink_noise_ifft_data.size()) == sink_fft_size);
         for(ssize_t bin = 1; bin < sink_fft_size/2; bin++) {
-            sink_noise_ifft_data[bin] = std::polar(sink_noise_magnitudes[bin]*sink_window.sum()/4, p->fast_random() * 2 * M_PI);
+            sink_noise_ifft_data[bin] = std::polar(sink_noise_magnitudes[bin]*sink_window.sum()/8, p->fast_random() * 2 * M_PI);
         }
         for(ssize_t bin = 1; bin < sink_fft_size/2; bin++) {
             sink_noise_ifft_data[sink_fft_size-bin] = std::conj(sink_noise_ifft_data[bin]);
