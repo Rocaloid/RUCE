@@ -312,6 +312,7 @@ Synthesizer &Synthesizer::adjust_synth_params() {
     p->sink_hnm_parameters.first_window_mid = p->sink_buffer.left();
 
     double base_pitch = option_manager.get_output_pitch();
+    double modulation = option_manager.get_note_modulation();
 
     SignalSegment sink_window = HannWindow(sink_window_size);
     TimeMapper time_mapper(option_manager);
@@ -376,7 +377,8 @@ Synthesizer &Synthesizer::adjust_synth_params() {
             }
 
             // Calculate sink harmony frequencies
-            double sink_f0 = p->tuner.midi_id_to_freq(base_pitch + option_manager.get_pitch_bend(sink_timestamp));
+            double sink_f0 = p->tuner.midi_id_to_freq(base_pitch + option_manager.get_pitch_bend(sink_timestamp)) * (1-modulation)
+                           + source_harmony_frequencies[1] * modulation;
             sink_harmony_frequencies[0] = sink_f0;
             for(size_t pillar_idx = 1; pillar_idx < max_pillars; pillar_idx++) {
                 double sink_harmony_frequency = sink_f0 * pillar_idx;
