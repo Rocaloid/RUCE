@@ -169,7 +169,7 @@ Synthesizer &Synthesizer::analyze() {
         double source_f0 = p->f0_tracker.get_result(source_window_mid);
 
         // Copy the source and window it
-        ssize_t source_window_half_size = source_f0 > 0 ? ssize_t(std::round(3 * p->input_sample_rate / source_f0 / 2)) : source_fft_size;
+        ssize_t source_window_half_size = source_f0 > 0 ? ssize_t(std::round(5 * p->input_sample_rate / source_f0 / 2)) : source_fft_size;
         if(source_window_half_size > source_fft_size/2)
             source_window_half_size = source_fft_size/2;
         SignalSegment source_segment(p->source_buffer, source_window_mid-source_window_half_size, source_window_mid+source_window_half_size);
