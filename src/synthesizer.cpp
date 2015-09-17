@@ -46,6 +46,7 @@
 #include "utils.hpp"
 #include "vector-interpolator.hpp"
 #include "window.hpp"
+#include <llsm.h>
 
 /*
  * TODO: Naming suggestions as following,
