@@ -297,7 +297,7 @@ int16_t CmdlineParser::decode_pitch_bend_item(const char pitch_bend_str[2]) {
             base64_decode_table[c] == int8_t(-1))
             throw StrToNumError();
     }
-    return (int16_t(uint16_t(uint8_t(base64_decode_table[uint8_t(pitch_bend_str[0])])) << 10) >> 4) |
+    return (int16_t(static_cast<uint16_t>(uint8_t(base64_decode_table[uint8_t(pitch_bend_str[0])])) << 10) >> 4) |
         base64_decode_table[uint8_t(pitch_bend_str[1])];
 }
 

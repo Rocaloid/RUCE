@@ -31,8 +31,8 @@ add_subdirectory(lib/SPTK-3.8-extracted)
 target_link_libraries(Rocaloid PUBLIC SPTK)
 add_subdirectory(lib/libWinTF8)
 target_link_libraries(Rocaloid PUBLIC wintf8)
-add_subdirectory(lib/libsndfile-1.0.25)
-target_link_libraries(Rocaloid PUBLIC sndfile)
+add_subdirectory(lib/world)
+target_link_libraries(Rocaloid PUBLIC world-wav)
 
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")  # Test subproject
     install(TARGETS Rocaloid

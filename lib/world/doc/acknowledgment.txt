@@ -1,0 +1,27 @@
+If you permit me to write your e-mail address in this document,
+please contact me via e-mail (mmorise@yamanashi.ac.jp).
+
+Dear Ying-Chun Liu (PaulLiu): 
+He implemented the WORLD for GNU/Linux.
+WORLD 0.0.4_1 and later are based on his program.
+
+Dear Takuya Ooura: 
+We used his source code on FFT (Version 0.1.0).
+This program made it possible to avoid using FFTW,
+and we can release WORLD under modified BSD license.
+http://www.kurims.kyoto-u.ac.jp/~ooura/index.html
+
+Dear Custom.Maid:
+He/She modified dio.cpp to fix several bugs.
+We introduced his/hers ideas and released Version 0.1.1.
+http://custom-made.seesaa.net/
+
+Dear Ackie:
+He/She used WORLD as the plug-in for software, VocalShifter.
+Several technical comments were also given by him/her.
+http://ackiesound.ifdef.jp/index.html
+
+Dear @r9y9 (Ryuichi Yamamoto):
+He gave me a bug report in WORLD 0.2.0.
+
+And all users.

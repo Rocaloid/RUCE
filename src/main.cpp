@@ -39,7 +39,6 @@ int main() {
 
     Synthesizer(*option_manager.get())
         .check_params()
-        .prepare()
         .read_source()
         .track_f0()
         .analyze()

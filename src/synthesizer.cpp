@@ -34,11 +34,13 @@
 #include <utility>
 #include <libwintf8/termio.h>
 #include <sndfile.h>
+extern "C" {
+    #include <matlabfunctions.h>
+}
 #include "fast-random.hpp"
 #include "f0-tracker.hpp"
 #include "hnm-parameters.hpp"
 #include "option-manager.hpp"
-#include "pcm-file.hpp"
 #include "signal-segment.hpp"
 #include "spectrum.hpp"
 #include "time-mapper.hpp"
@@ -61,8 +63,8 @@
 namespace RUCE {
 
 struct Synthesizer::Private {
-    PCMFile input_file;
-    PCMFile output_file;
+    WTF8::u8string input_file;
+    WTF8::u8string output_file;
     int32_t input_sample_rate;
     int32_t output_sample_rate;
     int64_t input_file_frames;
@@ -97,25 +99,25 @@ Synthesizer &Synthesizer::check_params() {
     return *this;
 }
 
-Synthesizer &Synthesizer::prepare() {
-    p->input_file.open(option_manager.get_input_file_name(), std::ios_base::in, 0, 1, 0);
-    p->input_sample_rate = p->input_file.sample_rate();
-    p->input_file_frames = p->input_file.frames();
-    if(p->input_file.channels() != 1) {
-        WTF8::cerr << "Error: Input file must have only one channel." << std::endl;
+Synthesizer &Synthesizer::read_source() {
+    p->input_file = option_manager.get_input_file_name();
+    p->output_file = option_manager.get_output_file_name();
+    
+    int fs = 0;
+    int nbit = 0;
+    int ninput = 0;
+    double* input_full = wavread(p->input_file.c_str(), & fs, & nbit, & ninput);
+    if(input_full == NULL) {
+        WTF8::cerr << "Error: Cannot read \'" << p->input_file << "\'." << std::endl;
         std::exit(1);
     }
-
+  
+    p->input_sample_rate = fs;
+    p->input_file_frames = ninput;
     p->output_sample_rate = p->input_sample_rate;
     p->output_file_frames = size_t(std::ceil(option_manager.get_required_length() * p->output_sample_rate));
-    p->output_file.open(option_manager.get_output_file_name(), std::ios_base::out, SF_FORMAT_WAV | SF_FORMAT_DOUBLE, 1, p->output_sample_rate);
-
     p->sink_buffer = SignalSegment(p->output_file_frames);
 
-    return *this;
-}
-
-Synthesizer &Synthesizer::read_source() {
     // Some voicebanks provide negative right_blank value
     if(option_manager.get_right_blank() < 0) {
         option_manager.set_right_blank(double(p->input_file_frames)/double(p->input_sample_rate) + option_manager.get_right_blank() - option_manager.get_left_blank());
@@ -125,13 +127,18 @@ Synthesizer &Synthesizer::read_source() {
     int64_t right_bound = p->input_file_frames - int64_t(std::round(option_manager.get_right_blank() * p->input_sample_rate));
     p->source_buffer = SignalSegment(left_bound, right_bound);
     if(left_bound >= 0) {
-        p->input_file.seek(left_bound, SEEK_SET);
-        p->input_file.read(p->source_buffer.buffer(), p->source_buffer.size());
+        for (int i = 0; i < p->source_buffer.size(); i ++)
+            p->source_buffer[i] = input_full[i + left_bound];
+//        p->input_file.seek(left_bound, SEEK_SET);
+//        p->input_file.read(p->source_buffer.buffer(), p->source_buffer.size());
     } else {
-        p->input_file.seek(0, SEEK_SET);
-        p->input_file.read(&p->source_buffer.buffer()[left_bound], p->source_buffer.size() - left_bound);
+        for (int i = 0; i < p->source_buffer.size() - left_bound; i ++)
+            p->source_buffer[i + left_bound] = input_full[i];
+//        p->input_file.seek(0, SEEK_SET);
+//        p->input_file.read(&p->source_buffer.buffer()[left_bound], p->source_buffer.size() - left_bound);
     }
 
+    free(input_full);
     return *this;
 }
 
@@ -271,10 +278,6 @@ Synthesizer &Synthesizer::analyze() {
         }
 
         // Model noise
-        /* TODO 
-         * The temporary method simply sets the magnitudes in the range [f-f/32, f+f/32] to 0
-         * Should acquire the frequency domain response of Hann window, then cut out the pillars of each harmony
-         */
         for(ssize_t bin = 1; bin < source_fft_size/2; bin++) {
             source_noise_magnitudes[bin] = std::pow(10, source_magnitude[bin]);
         }
@@ -542,7 +545,12 @@ Synthesizer &Synthesizer::synthesize() {
 }
 
 Synthesizer &Synthesizer::write_sink() {
-    p->output_file.write(p->sink_buffer.buffer(), p->sink_buffer.size());
+    double* output = (double*)calloc(p->sink_buffer.size(), sizeof(double));
+    for(int i = 0; i < p->sink_buffer.size(); i ++)
+        output[i] = p->sink_buffer[i];
+    wavwrite(output, p->sink_buffer.size(), p->output_sample_rate, 24, p->output_file.c_str());
+    free(output);
+    //p->output_file.write(p->sink_buffer.buffer(), p->sink_buffer.size());
 
     return *this;
 }
