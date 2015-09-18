@@ -3,4 +3,5 @@
 	url = https://github.com/m13253/libWinTF8.git
 [submodule "lib/libllsm"]
 	path = lib/libllsm
-	url = https://github.com/Sleepwalking/libllsm.git
+	url = https://github.com/icenowy/libllsm.git
+	branch = cmake-repair
