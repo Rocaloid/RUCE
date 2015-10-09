@@ -25,6 +25,8 @@ if(NOT MSVC)
     target_link_libraries(Rocaloid PUBLIC m)  # Math library
 endif()
 
+add_subdirectory(lib/libllsm)
+target_link_libraries(Rocaloid PUBLIC llsm)
 add_subdirectory(lib/ooura-fft)
 target_link_libraries(Rocaloid PUBLIC ooura-fft)
 add_subdirectory(lib/SPTK-3.8-extracted)
