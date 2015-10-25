@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <valarray>
 #include <vector>
+#include <llsm.h>
 #include "spectrum.hpp"
 #include "utils.hpp"
 
@@ -32,48 +33,9 @@ namespace RUCE {
 
 class HNMParameters {
 public:
-    ssize_t window_size;
-    ssize_t window_hop;
-    static const size_t max_pillars = 128;
-    /**
-     * The middle point of the first window
-     * measured in frames
-     */
-    ssize_t first_window_mid;
-    /**
-     * The first index is window index,
-     * the second index is harmony index.
-     *
-     * harmony_frequencies[w][0] is the estimated f0
-     * harmony_frequencies[w][i] is the frequency of each harmony peak
-     */
-    std::vector<std::array<double, max_pillars>> harmony_frequencies;
-    /**
-     * harmony_magnitude_factor[w][i] is the linear magnitude of each harmony
-     * multiplied by i^2
-     */
-    std::vector<std::array<double, max_pillars>> harmony_magnitudes;
-    /**
-     * harmony_phase_difference[w][i] is the angle of the phase of each harmony
-     * minus by the phase of f0, stored in complex number format
-     * The phase are measured at the center of the window
-     */
-    std::vector<std::array<std::complex<double>, max_pillars>> harmony_phases_difference;
-    /**
-     * noise_magnitudes are the spectrum magnitudes of noise
-     */
-    std::vector<std::valarray<double>> noise_magnitudes;
-
-    // Timestamp conversion functions
-    double frame_to_window_idx(ssize_t frame_idx) const {
-        return double(frame_idx-first_window_mid) / double(window_hop);
-    }
-    double frame_to_window_idx(double frame_idx) const {
-        return (frame_idx-first_window_mid) / double(window_hop);
-    }
-    ssize_t window_to_frame_idx(double window_idx) const {
-        return ssize_t(std::round(window_idx*window_hop)) + first_window_mid;
-    }
+    HNMParameters();
+    ~HNMParameters();
+    llsm_parameters parameters;
 };
 
 // Some operators to make interpolation work
